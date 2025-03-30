@@ -26,8 +26,11 @@ const Customers = () => {
         const snapshot = await getDocs(customersQuery);
         const customerData = snapshot.docs.map(doc => {
           const data = doc.data() as CustomerData;
-          // Convert timestamps to dates
-          if (data.lastPurchaseDate && typeof data.lastPurchaseDate === 'object' && 'toDate' in data.lastPurchaseDate) {
+          // Convert timestamps to dates - safely check if toDate method exists
+          if (data.lastPurchaseDate && 
+              typeof data.lastPurchaseDate === 'object' && 
+              'toDate' in data.lastPurchaseDate && 
+              typeof data.lastPurchaseDate.toDate === 'function') {
             data.lastPurchaseDate = data.lastPurchaseDate.toDate();
           }
           return {
