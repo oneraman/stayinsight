@@ -12,6 +12,7 @@ import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import DataUpload from "./pages/DataUpload";
 import CustomerDataUpload from "./pages/CustomerDataUpload";
+import Customers from "./pages/Customers";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/upload" element={<DataUpload />} />
               <Route path="/customer-data" element={<CustomerDataUpload />} />
+              <Route path="/customers" element={<Customers />} />
             </Route>
             
             {/* Catch all */}
