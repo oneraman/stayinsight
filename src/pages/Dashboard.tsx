@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import MetricsOverview from "@/components/dashboard/MetricsOverview";
@@ -10,44 +9,30 @@ import { SidebarProvider, Sidebar, SidebarContent, SidebarMenu, SidebarMenuItem,
 import { LayoutDashboard, Users, BarChart2, Settings, ChevronLeft, ChevronRight, Menu } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-
 const Dashboard = () => {
   const [timePeriod, setTimePeriod] = useState("30");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed);
   };
-  
-  return (
-    <SidebarProvider defaultOpen={!sidebarCollapsed}>
+  return <SidebarProvider defaultOpen={!sidebarCollapsed}>
       <div className="flex h-screen bg-gray-50">
         <Sidebar variant="sidebar" collapsible="icon">
-          <SidebarContent className="bg-[#111] text-white rounded">
+          <SidebarContent className="text-white rounded bg-slate-50">
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
               <div className="flex items-center">
                 <div className="h-6 w-6 mr-2">
-                  <img src="/lovable-uploads/77a399d7-0bd8-439e-a7b4-e2fdc134ee7f.png" 
-                    alt="Churnify Logo" className="w-full h-full object-contain" />
+                  <img src="/lovable-uploads/77a399d7-0bd8-439e-a7b4-e2fdc134ee7f.png" alt="Churnify Logo" className="w-full h-full object-contain" />
                 </div>
                 <span className="text-lg font-bold text-white">churnify-insights</span>
               </div>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-transparent"
-                onClick={toggleSidebar}
-              >
+              <Button variant="ghost" size="icon" className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-transparent" onClick={toggleSidebar}>
                 {sidebarCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
               </Button>
             </div>
             <SidebarMenu className="mt-4">
               <SidebarMenuItem>
-                <SidebarMenuButton 
-                  tooltip="Dashboard" 
-                  asChild
-                  className="text-white hover:bg-gray-800 transition-colors duration-200"
-                >
+                <SidebarMenuButton tooltip="Dashboard" asChild className="text-white hover:bg-gray-800 transition-colors duration-200">
                   <Link to="/dashboard" className="text-white hover:text-primary-foreground group">
                     <LayoutDashboard className="h-5 w-5 text-primary group-hover:text-primary" />
                     <span>Dashboard</span>
@@ -55,11 +40,7 @@ const Dashboard = () => {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton 
-                  tooltip="Customers" 
-                  asChild
-                  className="text-white hover:bg-gray-800 transition-colors duration-200"
-                >
+                <SidebarMenuButton tooltip="Customers" asChild className="text-white hover:bg-gray-800 transition-colors duration-200">
                   <Link to="/dashboard" className="text-gray-400 hover:text-white transition-colors group">
                     <Users className="h-5 w-5 group-hover:text-primary" />
                     <span>Customers</span>
@@ -67,11 +48,7 @@ const Dashboard = () => {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton 
-                  tooltip="Analytics" 
-                  asChild
-                  className="text-white hover:bg-gray-800 transition-colors duration-200"
-                >
+                <SidebarMenuButton tooltip="Analytics" asChild className="text-white hover:bg-gray-800 transition-colors duration-200">
                   <Link to="/dashboard" className="text-gray-400 hover:text-white transition-colors group">
                     <BarChart2 className="h-5 w-5 group-hover:text-primary" />
                     <span>Analytics</span>
@@ -79,11 +56,7 @@ const Dashboard = () => {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton 
-                  tooltip="Settings" 
-                  asChild
-                  className="text-white hover:bg-gray-800 transition-colors duration-200"
-                >
+                <SidebarMenuButton tooltip="Settings" asChild className="text-white hover:bg-gray-800 transition-colors duration-200">
                   <Link to="/dashboard" className="text-gray-400 hover:text-white transition-colors group">
                     <Settings className="h-5 w-5 group-hover:text-primary" />
                     <span>Settings</span>
@@ -143,8 +116,6 @@ const Dashboard = () => {
           </div>
         </SidebarInset>
       </div>
-    </SidebarProvider>
-  );
+    </SidebarProvider>;
 };
-
 export default Dashboard;
