@@ -22,9 +22,15 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
+          <Route path="/signup" element={<Login />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/upload" element={<DataUpload />} />
+          <Route path="/features" element={<NotFound />} />
+          <Route path="/solutions" element={<NotFound />} />
+          <Route path="/pricing" element={<NotFound />} />
+          <Route path="/testimonials" element={<NotFound />} />
+          <Route path="/demo" element={<NotFound />} />
+          <Route path="/learn-more" element={<NotFound />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

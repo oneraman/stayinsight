@@ -14,10 +14,10 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 217 91% 60%;
+    --primary: 240 95% 68%;
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 173 80% 32%;
+    --secondary: 173 80% 48%;
     --secondary-foreground: 210 40% 98%;
 
     --accent: 34 94% 51%;
@@ -31,18 +31,18 @@
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 217 91% 60%;
+    --ring: 240 95% 68%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 217 91% 60%;
+    --sidebar-background: 240 95% 68%;
     --sidebar-foreground: 0 0% 100%;
     --sidebar-primary: 0 0% 100%;
-    --sidebar-primary-foreground: 217 91% 60%;
+    --sidebar-primary-foreground: 240 95% 68%;
     --sidebar-accent: 213 94% 95%;
-    --sidebar-accent-foreground: 217 91% 60%;
+    --sidebar-accent-foreground: 240 95% 68%;
     --sidebar-border: 213 94% 90%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-ring: 240 95% 68%;
   }
 
   .dark {
@@ -55,10 +55,10 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 217 91% 60%;
+    --primary: 240 95% 68%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 173 80% 32%;
+    --secondary: 173 80% 48%;
     --secondary-foreground: 0 0% 100%;
 
     --accent: 34 94% 51%;
@@ -87,10 +87,6 @@
 }
 
 @layer components {
-  .hero-gradient {
-    @apply bg-gradient-to-br from-churnify-blue to-churnify-teal;
-  }
-  
   .card-hover {
     @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
   }
@@ -108,14 +104,14 @@
   }
   
   .risk-high {
-    @apply text-churnify-red;
+    @apply text-[#F56565];
   }
   
   .risk-medium {
-    @apply text-churnify-amber;
+    @apply text-[#F6AD55];
   }
   
   .risk-low {
-    @apply text-churnify-green;
+    @apply text-[#48BB78];
   }
 }

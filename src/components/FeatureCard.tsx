@@ -10,10 +10,10 @@ interface FeatureCardProps {
 
 const FeatureCard = ({ icon, title, description }: FeatureCardProps) => {
   return (
-    <Card className="card-hover">
+    <Card className="card-hover border-none shadow-md">
       <CardHeader>
         <div className="flex items-center space-x-2">
-          <div className="p-2 rounded-full bg-churnify-blue/10 text-churnify-blue">
+          <div className="p-2 rounded-full bg-[#5E5AFF]/10 text-[#5E5AFF]">
             {icon}
           </div>
           <CardTitle className="text-xl">{title}</CardTitle>
