@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import MetricsOverview from "@/components/dashboard/MetricsOverview";
@@ -9,26 +8,23 @@ import { FileUploader } from "@/components/FileUploader";
 import { LayoutDashboard, Users, Settings, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-
 const Dashboard = () => {
   const [timePeriod, setTimePeriod] = useState("30");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed);
   };
-
-  return (
-    <div className="flex h-screen bg-gray-50">
+  return <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
       <div className={`bg-[#1A1F2C] text-white transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'w-0 overflow-hidden' : 'w-64'}`}>
         <div className="flex flex-col h-full">
           {/* Logo & Brand */}
           <div className="flex items-center p-4 border-b border-gray-800">
             <div className="h-8 w-8 mr-2">
-              <img src="/lovable-uploads/77a399d7-0bd8-439e-a7b4-e2fdc134ee7f.png" alt="Churnify Logo" className="w-full h-full object-contain" />
+              
             </div>
-            <span className="text-lg font-bold">Churnify</span>
+            <span className="text-lg font-bold">
+          </span>
           </div>
           
           {/* Navigation */}
@@ -57,11 +53,7 @@ const Dashboard = () => {
           
           {/* Hide Sidebar Button */}
           <div className="p-4 border-t border-gray-800 mt-auto">
-            <Button 
-              variant="ghost" 
-              onClick={toggleSidebar}
-              className="w-full flex items-center justify-center gap-2 text-gray-300 hover:text-white hover:bg-[#262c3a]"
-            >
+            <Button variant="ghost" onClick={toggleSidebar} className="w-full flex items-center justify-center gap-2 text-gray-300 hover:text-white hover:bg-[#262c3a]">
               <ChevronLeft className="h-4 w-4" />
               <span>Hide Sidebar</span>
             </Button>
@@ -118,8 +110,6 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Dashboard;
