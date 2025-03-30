@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { 
   User, 
@@ -88,8 +87,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Handle the unauthorized domain error specifically
       if (error.code === "auth/unauthorized-domain") {
-        errorMessage = "This domain is not authorized for Firebase Authentication. Please try email/password login instead, or contact the administrator to add this domain to authorized domains in the Firebase console.";
-        console.error("Domain not authorized for Firebase Authentication:", window.location.hostname);
+        const currentDomain = window.location.hostname;
+        errorMessage = `Domain "${currentDomain}" is not authorized for Firebase Authentication. Please log in with email/password instead, or add this domain to the authorized domains list in your Firebase console (Authentication → Settings → Authorized domains).`;
+        
+        console.error("Domain not authorized for Firebase Authentication:", currentDomain);
+        
+        toast({
+          variant: "destructive",
+          title: "Google sign in failed",
+          description: errorMessage,
+          duration: 10000, // Show for longer (10 seconds) since this is important information
+        });
+        
+        // Don't throw the error for unauthorized domain case
+        return;
       }
       
       toast({
@@ -97,11 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         title: "Google sign in failed",
         description: errorMessage,
       });
-      
-      // Don't throw the error for unauthorized domain case, just log it
-      if (error.code !== "auth/unauthorized-domain") {
-        throw error;
-      }
+      throw error;
     }
   };
 
