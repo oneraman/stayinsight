@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import MetricsOverview from "@/components/dashboard/MetricsOverview";
@@ -6,26 +5,15 @@ import DashboardTabs from "@/components/dashboard/DashboardTabs";
 import RecommendedActions from "@/components/dashboard/RecommendedActions";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileUploader } from "@/components/FileUploader";
-import { 
-  SidebarProvider, 
-  Sidebar, 
-  SidebarContent, 
-  SidebarMenu, 
-  SidebarMenuItem, 
-  SidebarMenuButton, 
-  SidebarInset
-} from "@/components/ui/sidebar";
+import { SidebarProvider, Sidebar, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset } from "@/components/ui/sidebar";
 import { LayoutDashboard, Users, BarChart2, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
-
 const Dashboard = () => {
   const [timePeriod, setTimePeriod] = useState("30");
-
-  return (
-    <SidebarProvider defaultOpen={true}>
+  return <SidebarProvider defaultOpen={true}>
       <div className="flex h-screen bg-gray-50">
         <Sidebar variant="sidebar" collapsible="icon">
-          <SidebarContent>
+          <SidebarContent className="bg-slate-50 rounded">
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton tooltip="Dashboard" asChild>
@@ -112,8 +100,6 @@ const Dashboard = () => {
           </div>
         </SidebarInset>
       </div>
-    </SidebarProvider>
-  );
+    </SidebarProvider>;
 };
-
 export default Dashboard;
