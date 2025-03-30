@@ -18,30 +18,30 @@ const DashboardHeader = () => {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200">
+    <header className="bg-white border-b border-gray-100 shadow-sm">
       <div className="max-w-full px-4 sm:px-6">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
             <Link to="/" className="flex items-center">
-              <span className="text-2xl font-bold text-[#5E5AFF]">StayInsight</span>
+              <span className="text-2xl font-bold text-primary">StayInsight</span>
             </Link>
             <div className="hidden md:flex ml-10">
               <div className="relative w-64">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
                 <Input 
                   placeholder="Search customers..." 
-                  className="pl-8 h-9 text-sm"
+                  className="pl-8 h-9 text-sm bg-gray-50 border-gray-100"
                 />
               </div>
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            <Button variant="outline" size="sm" className="hidden md:flex">
+            <Button variant="outline" size="sm" className="hidden md:flex text-gray-600 border-gray-200">
               <FileDown size={16} className="mr-2" />
               Export Report
             </Button>
             <Link to="/customer-data">
-              <Button variant="default" size="sm">
+              <Button variant="default" size="sm" className="bg-primary hover:bg-primary/90">
                 <Upload size={16} className="mr-2" />
                 Import Data
               </Button>
@@ -51,7 +51,7 @@ const DashboardHeader = () => {
                 <span className="text-sm font-medium">{getUserName()}</span>
                 <span className="text-xs text-gray-500">Product Manager</span>
               </div>
-              <div className="h-8 w-8 rounded-full bg-[#5E5AFF] text-white flex items-center justify-center">
+              <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
                 <User size={16} />
               </div>
             </div>

@@ -92,7 +92,7 @@
   }
   
   .dashboard-card {
-    @apply bg-white rounded-lg shadow-md p-4 h-full;
+    @apply bg-white rounded-lg shadow-sm p-4 h-full border border-gray-100;
   }
   
   .metric-value {
@@ -113,5 +113,18 @@
   
   .risk-low {
     @apply text-[#48BB78];
+  }
+
+  /* Animation classes */
+  .fade-in {
+    @apply animate-fade-in;
+  }
+  
+  .slide-in {
+    @apply animate-slide-in;
+  }
+  
+  .scale-up {
+    @apply animate-scale-up;
   }
 }
