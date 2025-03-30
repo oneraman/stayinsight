@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import MetricsOverview from "@/components/dashboard/MetricsOverview";
@@ -8,12 +9,15 @@ import { FileUploader } from "@/components/FileUploader";
 import { LayoutDashboard, Users, Settings, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+
 const Dashboard = () => {
   const [timePeriod, setTimePeriod] = useState("30");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed);
   };
+
   return <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
       <div className={`bg-[#1A1F2C] text-white transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'w-0 overflow-hidden' : 'w-64'}`}>
@@ -23,8 +27,7 @@ const Dashboard = () => {
             <div className="h-8 w-8 mr-2">
               
             </div>
-            <span className="text-lg font-bold">
-          </span>
+            <span className="text-lg font-bold">stayInsights</span>
           </div>
           
           {/* Navigation */}
@@ -112,4 +115,5 @@ const Dashboard = () => {
       </div>
     </div>;
 };
+
 export default Dashboard;

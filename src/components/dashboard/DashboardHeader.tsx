@@ -38,7 +38,7 @@ const DashboardHeader = ({ onToggleSidebar, isSidebarCollapsed }: DashboardHeade
               </Button>
             )}
             <Link to="/" className="flex items-center">
-              <span className="text-2xl font-bold text-primary">Churnify</span>
+              <span className="text-2xl font-bold text-primary">stayInsights</span>
             </Link>
             <div className="hidden md:flex ml-10">
               <div className="relative w-64">
