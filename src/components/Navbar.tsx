@@ -2,10 +2,12 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import { Menu, X, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { currentUser, logOut } = useAuth();
 
   return (
     <nav className="bg-white shadow-sm sticky top-0 z-50">
@@ -43,12 +45,30 @@ const Navbar = () => {
             </div>
           </div>
           <div className="hidden md:flex items-center space-x-4">
-            <Link to="/login">
-              <Button variant="ghost" className="text-gray-700">Log in</Button>
-            </Link>
-            <Link to="/signup">
-              <Button className="bg-[#5E5AFF] hover:bg-[#4B48CC]">Get Started</Button>
-            </Link>
+            {currentUser ? (
+              <>
+                <Link to="/dashboard">
+                  <Button variant="ghost" className="text-gray-700">Dashboard</Button>
+                </Link>
+                <Button 
+                  variant="outline" 
+                  className="text-gray-700 flex items-center gap-2" 
+                  onClick={logOut}
+                >
+                  <LogOut size={16} />
+                  Log out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button variant="ghost" className="text-gray-700">Log in</Button>
+                </Link>
+                <Link to="/signup">
+                  <Button className="bg-[#5E5AFF] hover:bg-[#4B48CC]">Get Started</Button>
+                </Link>
+              </>
+            )}
           </div>
           <div className="flex items-center md:hidden">
             <button
@@ -90,12 +110,30 @@ const Navbar = () => {
               Testimonials
             </Link>
             <div className="pt-4 flex flex-col space-y-3">
-              <Link to="/login">
-                <Button variant="outline" className="w-full">Log in</Button>
-              </Link>
-              <Link to="/signup">
-                <Button className="w-full bg-[#5E5AFF] hover:bg-[#4B48CC]">Get Started</Button>
-              </Link>
+              {currentUser ? (
+                <>
+                  <Link to="/dashboard">
+                    <Button variant="outline" className="w-full">Dashboard</Button>
+                  </Link>
+                  <Button 
+                    className="w-full flex items-center justify-center gap-2" 
+                    variant="outline"
+                    onClick={logOut}
+                  >
+                    <LogOut size={16} />
+                    Log out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link to="/login">
+                    <Button variant="outline" className="w-full">Log in</Button>
+                  </Link>
+                  <Link to="/signup">
+                    <Button className="w-full bg-[#5E5AFF] hover:bg-[#4B48CC]">Get Started</Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>

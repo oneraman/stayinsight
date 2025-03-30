@@ -4,6 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -19,20 +21,29 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Login />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/upload" element={<DataUpload />} />
-          <Route path="/features" element={<NotFound />} />
-          <Route path="/solutions" element={<NotFound />} />
-          <Route path="/pricing" element={<NotFound />} />
-          <Route path="/testimonials" element={<NotFound />} />
-          <Route path="/demo" element={<NotFound />} />
-          <Route path="/learn-more" element={<NotFound />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/features" element={<NotFound />} />
+            <Route path="/solutions" element={<NotFound />} />
+            <Route path="/pricing" element={<NotFound />} />
+            <Route path="/testimonials" element={<NotFound />} />
+            <Route path="/demo" element={<NotFound />} />
+            <Route path="/learn-more" element={<NotFound />} />
+            
+            {/* Protected routes */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/upload" element={<DataUpload />} />
+            </Route>
+            
+            {/* Catch all */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
