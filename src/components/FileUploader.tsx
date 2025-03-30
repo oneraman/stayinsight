@@ -7,12 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { FileUp, Check, AlertCircle, File } from "lucide-react";
 
-interface FileUploaderProps {
-  onUploadSuccess?: (url: string) => void;
-  onUploadError?: (error: string) => void;
-}
-
-const FileUploader = ({ onUploadSuccess, onUploadError }: FileUploaderProps) => {
+export const FileUploader = () => {
   const { currentUser } = useAuth();
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
@@ -71,10 +66,6 @@ const FileUploader = ({ onUploadSuccess, onUploadError }: FileUploaderProps) => 
         title: "Upload successful",
         description: "Your customer data file has been uploaded successfully.",
       });
-
-      if (onUploadSuccess) {
-        onUploadSuccess(downloadURL);
-      }
     } catch (error: any) {
       setIsUploading(false);
       setUploadError(error.message || "Failed to upload file. Please try again.");
@@ -84,10 +75,6 @@ const FileUploader = ({ onUploadSuccess, onUploadError }: FileUploaderProps) => 
         title: "Upload failed",
         description: error.message || "Failed to upload file. Please try again.",
       });
-
-      if (onUploadError) {
-        onUploadError(error.message || "Failed to upload file");
-      }
     }
   };
 
@@ -102,53 +89,57 @@ const FileUploader = ({ onUploadSuccess, onUploadError }: FileUploaderProps) => 
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto">
+    <div className="w-full">
       <div 
-        className={`border-2 border-dashed rounded-lg p-8 ${
+        className={`border-2 border-dashed rounded-lg p-6 ${
           isUploading ? "border-blue-300 bg-blue-50" : 
           uploadSuccess ? "border-green-300 bg-green-50" : 
           uploadError ? "border-red-300 bg-red-50" : 
           "border-gray-300 bg-gray-50"
-        } transition-colors duration-300`}
+        } transition-colors duration-300 cursor-pointer`}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
+        onClick={() => fileInputRef.current?.click()}
       >
         {!isUploading && !uploadSuccess ? (
-          <div className="flex flex-col items-center justify-center">
-            <FileUp className="h-12 w-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Upload Customer Data</h3>
-            <p className="text-sm text-gray-500 mb-4 text-center">
-              Drag and drop your CSV, XLS, or XLSX file here, or click to browse
+          <div className="flex flex-col items-center justify-center text-center">
+            <FileUp className="h-10 w-10 text-gray-400 mb-4" />
+            <p className="text-md font-medium text-gray-700 mb-1">
+              Drag and drop your Excel or XML files here
             </p>
+            <p className="text-sm text-gray-500 mb-1">or</p>
             <Button 
-              onClick={() => fileInputRef.current?.click()}
               variant="outline"
-              className="mb-3"
+              className="mt-2"
+              onClick={(e) => {
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }}
             >
               Browse Files
             </Button>
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv,.xls,.xlsx"
+              accept=".csv,.xls,.xlsx,.xml"
               onChange={handleFileChange}
               className="hidden"
             />
-            <p className="text-xs text-gray-500">
-              Supported formats: CSV, XLS, XLSX (Max 10MB)
+            <p className="text-xs text-gray-500 mt-3">
+              Supported formats: .xlsx, .xls, .xml
             </p>
           </div>
         ) : isUploading ? (
           <div className="flex flex-col items-center justify-center">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Uploading...</h3>
+            <h3 className="text-md font-medium text-gray-700 mb-4">Uploading...</h3>
             <Progress value={uploadProgress} className="w-full max-w-md h-2 mb-2" />
             <p className="text-sm text-gray-500">{Math.round(uploadProgress)}% complete</p>
           </div>
         ) : uploadSuccess ? (
           <div className="flex flex-col items-center justify-center">
-            <Check className="h-12 w-12 text-green-500 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Upload Successful!</h3>
-            <p className="text-sm text-gray-500 mb-4 text-center">
+            <Check className="h-10 w-10 text-green-500 mb-4" />
+            <h3 className="text-md font-medium text-gray-700 mb-2">Upload Successful!</h3>
+            <p className="text-sm text-gray-500 mb-4">
               Your customer data file has been uploaded and is being processed.
             </p>
             <Button onClick={resetUpload} variant="outline">
@@ -162,9 +153,9 @@ const FileUploader = ({ onUploadSuccess, onUploadError }: FileUploaderProps) => 
         <div className="mt-4 bg-white p-4 rounded-lg border border-gray-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <File className="h-6 w-6 text-gray-400 mr-3" />
+              <File className="h-5 w-5 text-gray-400 mr-3" />
               <div>
-                <p className="text-sm font-medium text-gray-900">{file.name}</p>
+                <p className="text-sm font-medium text-gray-700">{file.name}</p>
                 <p className="text-xs text-gray-500">
                   {(file.size / 1024 / 1024).toFixed(2)} MB
                 </p>
@@ -174,13 +165,19 @@ const FileUploader = ({ onUploadSuccess, onUploadError }: FileUploaderProps) => 
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={resetUpload}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  resetUpload();
+                }}
                 className="text-gray-500"
               >
                 Remove
               </Button>
               <Button
-                onClick={handleUpload}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleUpload();
+                }}
               >
                 Upload
               </Button>
@@ -195,28 +192,6 @@ const FileUploader = ({ onUploadSuccess, onUploadError }: FileUploaderProps) => 
           )}
         </div>
       )}
-      
-      <div className="mt-6">
-        <h4 className="text-md font-medium text-gray-900 mb-2">Required Fields</h4>
-        <div className="bg-white p-4 rounded-lg border border-gray-200">
-          <p className="text-sm text-gray-500 mb-2">
-            Your customer data file must include the following columns:
-          </p>
-          <ul className="list-disc pl-5 text-sm text-gray-500">
-            <li>Customer ID (unique identifier)</li>
-            <li>Email address</li>
-            <li>Sign-up date</li>
-            <li>Last activity date</li>
-            <li>Subscription value</li>
-            <li>Subscription status (active/inactive)</li>
-          </ul>
-          <p className="text-sm text-gray-500 mt-2">
-            Optional but recommended fields include: product usage metrics, support interactions, and feature engagement data.
-          </p>
-        </div>
-      </div>
     </div>
   );
 };
-
-export default FileUploader;
