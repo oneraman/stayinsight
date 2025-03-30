@@ -6,19 +6,25 @@ import DashboardTabs from "@/components/dashboard/DashboardTabs";
 import RecommendedActions from "@/components/dashboard/RecommendedActions";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileUploader } from "@/components/FileUploader";
-import { SidebarProvider, Sidebar, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset } from "@/components/ui/sidebar";
-import { LayoutDashboard, Users, BarChart2, Settings } from "lucide-react";
+import { SidebarProvider, Sidebar, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { LayoutDashboard, Users, BarChart2, Settings, ChevronLeft, ChevronRight, Menu } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 const Dashboard = () => {
   const [timePeriod, setTimePeriod] = useState("30");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  
+  const toggleSidebar = () => {
+    setSidebarCollapsed(!sidebarCollapsed);
+  };
   
   return (
-    <SidebarProvider defaultOpen={true}>
+    <SidebarProvider defaultOpen={!sidebarCollapsed}>
       <div className="flex h-screen bg-gray-50">
         <Sidebar variant="sidebar" collapsible="icon">
           <SidebarContent className="bg-[#111] text-white rounded">
-            <div className="flex items-center px-4 py-3 border-b border-gray-800">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
               <div className="flex items-center">
                 <div className="h-6 w-6 mr-2">
                   <img src="/lovable-uploads/77a399d7-0bd8-439e-a7b4-e2fdc134ee7f.png" 
@@ -26,6 +32,14 @@ const Dashboard = () => {
                 </div>
                 <span className="text-lg font-bold text-white">churnify-insights</span>
               </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-transparent"
+                onClick={toggleSidebar}
+              >
+                {sidebarCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+              </Button>
             </div>
             <SidebarMenu className="mt-4">
               <SidebarMenuItem>
@@ -81,7 +95,7 @@ const Dashboard = () => {
         </Sidebar>
 
         <SidebarInset className="flex-1 flex flex-col">
-          <DashboardHeader />
+          <DashboardHeader onToggleSidebar={toggleSidebar} isSidebarCollapsed={sidebarCollapsed} />
 
           <div className="flex-1 max-w-full px-4 sm:px-6 py-6 overflow-auto">
             <div className="flex justify-between mb-6">

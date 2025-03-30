@@ -1,11 +1,16 @@
 
-import { Search, FileDown, Upload, User } from "lucide-react";
+import { Search, FileDown, Upload, User, Menu } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 
-const DashboardHeader = () => {
+interface DashboardHeaderProps {
+  onToggleSidebar?: () => void;
+  isSidebarCollapsed?: boolean;
+}
+
+const DashboardHeader = ({ onToggleSidebar, isSidebarCollapsed }: DashboardHeaderProps) => {
   const { currentUser } = useAuth();
   
   // Get user name for display
@@ -22,6 +27,16 @@ const DashboardHeader = () => {
       <div className="max-w-full px-4 sm:px-6">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
+            {isSidebarCollapsed && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={onToggleSidebar} 
+                className="mr-2 text-gray-500 hover:text-primary hover:bg-gray-100"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+            )}
             <Link to="/" className="flex items-center">
               <span className="text-2xl font-bold text-primary">StayInsight</span>
             </Link>

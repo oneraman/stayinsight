@@ -136,4 +136,37 @@
   .sidebar-item-active {
     @apply bg-[#222] text-white;
   }
+
+  /* Animation keyframes */
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes slide-in {
+    from { transform: translateX(-20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  
+  @keyframes scale-up {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-in-out;
+  }
+  
+  .animate-slide-in {
+    animation: slide-in 0.3s ease-in-out;
+  }
+  
+  .animate-scale-up {
+    animation: scale-up 0.3s ease-in-out;
+  }
+
+  /* Sidebar transition */
+  .sidebar-transition {
+    @apply transition-all duration-300 ease-in-out;
+  }
 }
