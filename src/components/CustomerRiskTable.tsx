@@ -13,10 +13,10 @@ interface Customer {
 }
 
 interface CustomerRiskTableProps {
-  customers: Customer[];
+  customers?: Customer[];
 }
 
-const CustomerRiskTable = ({ customers }: CustomerRiskTableProps) => {
+const CustomerRiskTable = ({ customers = [] }: CustomerRiskTableProps) => {
   const getRiskBadge = (risk: string) => {
     switch (risk) {
       case "high":
@@ -43,15 +43,21 @@ const CustomerRiskTable = ({ customers }: CustomerRiskTableProps) => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {customers.map((customer) => (
-            <TableRow key={customer.id}>
-              <TableCell className="font-medium">{customer.name}</TableCell>
-              <TableCell>{customer.company}</TableCell>
-              <TableCell>{getRiskBadge(customer.risk)}</TableCell>
-              <TableCell>{customer.score}%</TableCell>
-              <TableCell className="text-right">${customer.subscriptionValue.toLocaleString()}</TableCell>
+          {customers.length > 0 ? (
+            customers.map((customer) => (
+              <TableRow key={customer.id}>
+                <TableCell className="font-medium">{customer.name}</TableCell>
+                <TableCell>{customer.company}</TableCell>
+                <TableCell>{getRiskBadge(customer.risk)}</TableCell>
+                <TableCell>{customer.score}%</TableCell>
+                <TableCell className="text-right">${customer.subscriptionValue.toLocaleString()}</TableCell>
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={5} className="text-center py-4">No customers found</TableCell>
             </TableRow>
-          ))}
+          )}
         </TableBody>
       </Table>
     </div>

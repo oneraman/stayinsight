@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { FileUp, RefreshCw, Filter } from "lucide-react";
+import { FileUp, RefreshCw, Filter, Activity, AlertTriangle, DollarSign } from "lucide-react";
 import MetricCard from "@/components/MetricCard";
 import CustomerRiskTable from "@/components/CustomerRiskTable";
 import RetentionActionCard from "@/components/RetentionActionCard";
@@ -75,12 +74,59 @@ const segmentData = [
   },
 ];
 
+const customerData = [
+  { 
+    id: "c1", 
+    name: "Sarah Johnson", 
+    company: "Acme Corp", 
+    email: "sarah@acmecorp.com", 
+    risk: "high", 
+    score: 82, 
+    subscriptionValue: 15000 
+  },
+  { 
+    id: "c2", 
+    name: "Tom Martinez", 
+    company: "Globex Inc", 
+    email: "tom@globex.com", 
+    risk: "medium", 
+    score: 58, 
+    subscriptionValue: 8500 
+  },
+  { 
+    id: "c3", 
+    name: "Emma Wilson", 
+    company: "Stark Industries", 
+    email: "emma@stark.com", 
+    risk: "high", 
+    score: 76, 
+    subscriptionValue: 22000 
+  },
+  { 
+    id: "c4", 
+    name: "David Chen", 
+    company: "Wayne Enterprises", 
+    email: "david@wayne.com", 
+    risk: "low", 
+    score: 32, 
+    subscriptionValue: 5000 
+  },
+  { 
+    id: "c5", 
+    name: "Lisa Park", 
+    company: "Hooli", 
+    email: "lisa@hooli.com", 
+    risk: "medium", 
+    score: 62, 
+    subscriptionValue: 10000 
+  },
+];
+
 const Dashboard = () => {
   const [selectedTab, setSelectedTab] = useState("overview");
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -110,7 +156,6 @@ const Dashboard = () => {
 
       <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col space-y-8">
-          {/* Dashboard Title */}
           <div>
             <h1 className="text-2xl font-bold">Customer Analytics Dashboard</h1>
             <p className="text-gray-500">
@@ -118,7 +163,6 @@ const Dashboard = () => {
             </p>
           </div>
 
-          {/* Metrics Overview */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <MetricCard
               title="Churn Rate"
@@ -126,7 +170,7 @@ const Dashboard = () => {
               change="-0.5%"
               isPositive={true}
               description="Last 30 days"
-              icon="chart"
+              icon={<Activity className="h-4 w-4" />}
             />
             <MetricCard
               title="At-Risk Customers"
@@ -134,7 +178,7 @@ const Dashboard = () => {
               change="+3"
               isPositive={false}
               description="Identified this month"
-              icon="alert"
+              icon={<AlertTriangle className="h-4 w-4" />}
             />
             <MetricCard
               title="Customer Lifetime Value"
@@ -142,11 +186,10 @@ const Dashboard = () => {
               change="+$28"
               isPositive={true}
               description="Average per customer"
-              icon="money"
+              icon={<DollarSign className="h-4 w-4" />}
             />
           </div>
 
-          {/* Tabs */}
           <Tabs value={selectedTab} onValueChange={setSelectedTab}>
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -154,9 +197,7 @@ const Dashboard = () => {
               <TabsTrigger value="predictions">Churn Predictions</TabsTrigger>
             </TabsList>
 
-            {/* Overview Tab */}
             <TabsContent value="overview" className="space-y-6">
-              {/* Charts */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card className="p-6">
                   <h3 className="text-lg font-medium mb-4">
@@ -233,7 +274,6 @@ const Dashboard = () => {
                 </Card>
               </div>
 
-              {/* At-Risk Customers Table */}
               <Card className="p-6">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-medium">
@@ -244,11 +284,10 @@ const Dashboard = () => {
                     Filter
                   </Button>
                 </div>
-                <CustomerRiskTable />
+                <CustomerRiskTable customers={customerData} />
               </Card>
             </TabsContent>
 
-            {/* Segments Tab */}
             <TabsContent value="segments">
               <Card className="p-6">
                 <h3 className="text-lg font-medium mb-4">
@@ -258,7 +297,6 @@ const Dashboard = () => {
               </Card>
             </TabsContent>
 
-            {/* Predictions Tab */}
             <TabsContent value="predictions">
               <Card className="p-6">
                 <h3 className="text-lg font-medium mb-4">
@@ -269,27 +307,32 @@ const Dashboard = () => {
             </TabsContent>
           </Tabs>
 
-          {/* Recommended Actions */}
           <div>
             <h2 className="text-xl font-bold mb-4">Recommended Actions</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <RetentionActionCard
                 title="Send Renewal Offer"
                 description="12 high-value customers have subscriptions expiring in the next 30 days."
+                actionType="offer"
                 impact="High"
                 actionText="View Customers"
+                onActionClick={() => console.log("View customers clicked")}
               />
               <RetentionActionCard
                 title="Follow Up on Support Tickets"
                 description="8 customers with open support tickets for more than 48 hours."
+                actionType="call"
                 impact="Medium"
                 actionText="View Tickets"
+                onActionClick={() => console.log("View tickets clicked")}
               />
               <RetentionActionCard
                 title="Re-engagement Campaign"
                 description="22 customers showing decreased usage in the last 14 days."
+                actionType="email"
                 impact="Medium"
                 actionText="Create Campaign"
+                onActionClick={() => console.log("Create campaign clicked")}
               />
             </div>
           </div>

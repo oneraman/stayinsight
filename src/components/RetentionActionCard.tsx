@@ -6,17 +6,21 @@ import { Badge } from "@/components/ui/badge";
 interface RetentionActionProps {
   title: string;
   description: string;
-  actionType: "email" | "call" | "offer" | "survey";
-  impactScore: number;
-  onActionClick: () => void;
+  actionType?: "email" | "call" | "offer" | "survey";
+  impact?: string;
+  impactScore?: number;
+  actionText?: string;
+  onActionClick?: () => void;
 }
 
 const RetentionActionCard = ({
   title,
   description,
-  actionType,
-  impactScore,
-  onActionClick
+  actionType = "email",
+  impact,
+  impactScore = 0,
+  actionText,
+  onActionClick = () => {}
 }: RetentionActionProps) => {
   // Get action type color
   const getActionTypeColor = () => {
@@ -39,6 +43,24 @@ const RetentionActionCard = ({
     return actionType.charAt(0).toUpperCase() + actionType.slice(1);
   };
 
+  // Calculate impact score from string if needed
+  const getImpactScore = () => {
+    if (impactScore > 0) return impactScore;
+    if (impact === "High") return 85;
+    if (impact === "Medium") return 60;
+    if (impact === "Low") return 30;
+    return 50;
+  };
+
+  // Get button text
+  const getButtonText = () => {
+    if (actionText) return actionText;
+    
+    return actionType === "email" ? "Send Email" : 
+           actionType === "call" ? "Schedule Call" :
+           actionType === "offer" ? "Create Offer" : "Send Survey";
+  };
+
   return (
     <Card className="h-full">
       <CardHeader className="pb-2">
@@ -55,10 +77,10 @@ const RetentionActionCard = ({
             <div className="h-2 w-20 bg-gray-200 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-churnify-blue" 
-                style={{ width: `${impactScore}%` }}
+                style={{ width: `${getImpactScore()}%` }}
               ></div>
             </div>
-            <span className="ml-2 text-sm font-medium">{impactScore}%</span>
+            <span className="ml-2 text-sm font-medium">{getImpactScore()}%</span>
           </div>
         </div>
       </CardContent>
@@ -67,9 +89,7 @@ const RetentionActionCard = ({
           onClick={onActionClick}
           className="w-full bg-churnify-blue hover:bg-churnify-dark-blue"
         >
-          {actionType === "email" ? "Send Email" : 
-           actionType === "call" ? "Schedule Call" :
-           actionType === "offer" ? "Create Offer" : "Send Survey"}
+          {getButtonText()}
         </Button>
       </CardFooter>
     </Card>
