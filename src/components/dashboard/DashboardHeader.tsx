@@ -1,9 +1,19 @@
 
-import { RefreshCw, FileUp } from "lucide-react";
+import { RefreshCw, FileUp, Upload } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 
 const DashboardHeader = () => {
+  const { currentUser } = useAuth();
+  
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (!currentUser || !currentUser.email) return "U";
+    const email = currentUser.email;
+    return email.charAt(0).toUpperCase();
+  };
+
   return (
     <header className="bg-white shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -18,14 +28,14 @@ const DashboardHeader = () => {
               <RefreshCw size={16} className="mr-2" />
               Refresh Data
             </Button>
-            <Link to="/upload">
+            <Link to="/customer-data">
               <Button>
-                <FileUp size={16} className="mr-2" />
-                Upload Data
+                <Upload size={16} className="mr-2" />
+                Import Data
               </Button>
             </Link>
             <div className="h-8 w-8 rounded-full bg-blue-500 text-white flex items-center justify-center">
-              U
+              {getUserInitials()}
             </div>
           </div>
         </div>

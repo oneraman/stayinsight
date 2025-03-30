@@ -11,6 +11,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import DataUpload from "./pages/DataUpload";
+import CustomerDataUpload from "./pages/CustomerDataUpload";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/upload" element={<DataUpload />} />
+              <Route path="/customer-data" element={<CustomerDataUpload />} />
             </Route>
             
             {/* Catch all */}
