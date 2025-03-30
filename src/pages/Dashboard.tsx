@@ -3,16 +3,16 @@ import { useState, useEffect } from "react";
 import { collection, getDocs, query, orderBy, limit, where } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
 import { CustomerData } from "@/utils/dataProcessing";
-import DashboardLayout from "@/components/layouts/DashboardLayout";
+import { Link } from "react-router-dom";
+import { LayoutDashboard, Users, Settings, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import MetricsOverview from "@/components/dashboard/MetricsOverview";
 import DashboardTabs from "@/components/dashboard/DashboardTabs";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileUploader } from "@/components/FileUploader";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import HighRiskCustomersTable from "@/components/dashboard/HighRiskCustomersTable";
-import { Loader2 } from "lucide-react";
 
 const Dashboard = () => {
   const [timePeriod, setTimePeriod] = useState("30");
