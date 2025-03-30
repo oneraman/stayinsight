@@ -1,24 +1,75 @@
 
-import { useState } from "react";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import { useState, useEffect } from "react";
+import { collection, getDocs, query, orderBy, limit, where } from "firebase/firestore";
+import { firestore } from "@/lib/firebase";
+import { CustomerData } from "@/utils/dataProcessing";
+import DashboardLayout from "@/components/layouts/DashboardLayout";
 import MetricsOverview from "@/components/dashboard/MetricsOverview";
 import DashboardTabs from "@/components/dashboard/DashboardTabs";
-import RecommendedActions from "@/components/dashboard/RecommendedActions";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileUploader } from "@/components/FileUploader";
-import { LayoutDashboard, Users, Settings, ChevronLeft, ChevronRight } from "lucide-react";
-import { Link } from "react-router-dom";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import HighRiskCustomersTable from "@/components/dashboard/HighRiskCustomersTable";
+import { Loader2 } from "lucide-react";
 
 const Dashboard = () => {
   const [timePeriod, setTimePeriod] = useState("30");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [highRiskCustomers, setHighRiskCustomers] = useState<CustomerData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [metrics, setMetrics] = useState({
+    churnRate: 4.2,
+    retentionRate: 95.8,
+    customerLifetimeValue: 842,
+    atRiskRevenue: 24500
+  });
+  
+  useEffect(() => {
+    const fetchHighRiskCustomers = async () => {
+      try {
+        setLoading(true);
+        const customersQuery = query(
+          collection(firestore, "customers"),
+          where("segment", "==", "high-risk"),
+          orderBy("riskScore", "desc"),
+          limit(5)
+        );
+        
+        const snapshot = await getDocs(customersQuery);
+        const customerData = snapshot.docs.map(doc => {
+          const data = doc.data() as CustomerData;
+          // Convert timestamps to dates - safely check if toDate method exists
+          if (data.lastPurchaseDate && 
+              typeof data.lastPurchaseDate === 'object' && 
+              'toDate' in data.lastPurchaseDate && 
+              typeof data.lastPurchaseDate.toDate === 'function') {
+            data.lastPurchaseDate = data.lastPurchaseDate.toDate();
+          }
+          return {
+            ...data,
+            id: doc.id
+          };
+        });
+        
+        setHighRiskCustomers(customerData);
+      } catch (err) {
+        console.error("Error fetching customers:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHighRiskCustomers();
+  }, []);
   
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed);
   };
 
-  return <div className="flex h-screen bg-gray-50">
+  return (
+    <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
       <div className={`bg-[#1A1F2C] text-white transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'w-0 overflow-hidden' : 'w-64'}`}>
         <div className="flex flex-col h-full">
@@ -88,32 +139,43 @@ const Dashboard = () => {
           </div>
 
           <div className="grid grid-cols-1 gap-6 animate-fade-in">
+            {/* Key Metrics Overview */}
+            <MetricsOverview metrics={metrics} />
+            
+            {/* Data Visualizations */}
+            <DashboardTabs />
+            
+            {/* High Risk Customers */}
+            <Card>
+              <CardHeader>
+                <CardTitle>High Risk Customers</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="flex justify-center items-center h-64">
+                    <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                  </div>
+                ) : highRiskCustomers.length === 0 ? (
+                  <div className="text-center py-4">
+                    <p className="text-gray-500">No high-risk customers found.</p>
+                    <p className="text-sm text-gray-400 mt-1">Upload customer data to identify at-risk customers.</p>
+                  </div>
+                ) : (
+                  <HighRiskCustomersTable customers={highRiskCustomers} />
+                )}
+              </CardContent>
+            </Card>
+
+            {/* File Uploader Card */}
             <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
               <h2 className="text-lg font-semibold mb-4">Import Data</h2>
               <FileUploader />
             </div>
-            
-            <MetricsOverview />
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-semibold">Customer Health Score</h2>
-                </div>
-                <p className="text-gray-500">Customer health score data will appear here.</p>
-              </div>
-              
-              <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-semibold">Customer Segments</h2>
-                </div>
-                <p className="text-gray-500">Customer segments data will appear here.</p>
-              </div>
-            </div>
           </div>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
 
 export default Dashboard;
