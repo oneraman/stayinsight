@@ -1,5 +1,5 @@
 
-import { Search, FileDown, Upload, User, Menu } from "lucide-react";
+import { Search, User, Menu } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -50,17 +50,7 @@ const DashboardHeader = ({ onToggleSidebar, isSidebarCollapsed }: DashboardHeade
               </div>
             </div>
           </div>
-          <div className="flex items-center space-x-4">
-            <Button variant="outline" size="sm" className="hidden md:flex text-gray-600 border-gray-200">
-              <FileDown size={16} className="mr-2" />
-              Export Report
-            </Button>
-            <Link to="/customer-data">
-              <Button variant="default" size="sm" className="bg-primary hover:bg-primary/90">
-                <Upload size={16} className="mr-2" />
-                Import Data
-              </Button>
-            </Link>
+          <div className="flex items-center">
             <div className="flex items-center">
               <div className="flex flex-col items-end mr-2 hidden md:block">
                 <span className="text-sm font-medium">{getUserName()}</span>
