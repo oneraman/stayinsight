@@ -1,5 +1,5 @@
 
-import { Search, Export, Upload, User } from "lucide-react";
+import { Search, FileDown, Upload, User } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,7 +37,7 @@ const DashboardHeader = () => {
           </div>
           <div className="flex items-center space-x-4">
             <Button variant="outline" size="sm" className="hidden md:flex">
-              <Export size={16} className="mr-2" />
+              <FileDown size={16} className="mr-2" />
               Export Report
             </Button>
             <Link to="/customer-data">

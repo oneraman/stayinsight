@@ -14,14 +14,7 @@ const CustomerDataUpload = () => {
   const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
   const [processingComplete, setProcessingComplete] = useState(false);
 
-  const handleUploadSuccess = (url: string) => {
-    setUploadedFileUrl(url);
-    
-    // Simulate processing completion after 3 seconds
-    setTimeout(() => {
-      setProcessingComplete(true);
-    }, 3000);
-  };
+  // Remove the handleUploadSuccess function since we'll handle this differently
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
@@ -61,7 +54,7 @@ const CustomerDataUpload = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <FileUploader onUploadSuccess={handleUploadSuccess} />
+                <FileUploader />
               </CardContent>
             </Card>
             
