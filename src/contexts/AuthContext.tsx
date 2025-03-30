@@ -84,12 +84,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       navigate("/dashboard");
     } catch (error: any) {
+      let errorMessage = error.message || "Failed to sign in with Google. Please try again.";
+      
+      // Handle the unauthorized domain error specifically
+      if (error.code === "auth/unauthorized-domain") {
+        errorMessage = "This domain is not authorized for Firebase Authentication. Please try email/password login instead, or contact the administrator to add this domain to authorized domains in the Firebase console.";
+        console.error("Domain not authorized for Firebase Authentication:", window.location.hostname);
+      }
+      
       toast({
         variant: "destructive",
         title: "Google sign in failed",
-        description: error.message || "Failed to sign in with Google. Please try again.",
+        description: errorMessage,
       });
-      throw error;
+      
+      // Don't throw the error for unauthorized domain case, just log it
+      if (error.code !== "auth/unauthorized-domain") {
+        throw error;
+      }
     }
   };
 
