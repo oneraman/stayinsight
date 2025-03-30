@@ -27,7 +27,7 @@ const Customers = () => {
         const customerData = snapshot.docs.map(doc => {
           const data = doc.data() as CustomerData;
           // Convert timestamps to dates
-          if (data.lastPurchaseDate && 'toDate' in data.lastPurchaseDate) {
+          if (data.lastPurchaseDate && typeof data.lastPurchaseDate === 'object' && 'toDate' in data.lastPurchaseDate) {
             data.lastPurchaseDate = data.lastPurchaseDate.toDate();
           }
           return {
