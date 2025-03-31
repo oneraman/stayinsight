@@ -1,66 +1,97 @@
 
-import { Search, User, Menu } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Settings, LogOut, User } from "lucide-react";
 
-interface DashboardHeaderProps {
-  onToggleSidebar?: () => void;
-  isSidebarCollapsed?: boolean;
-}
-
-const DashboardHeader = ({ onToggleSidebar, isSidebarCollapsed }: DashboardHeaderProps) => {
-  const { currentUser } = useAuth();
+const DashboardHeader = () => {
+  const { currentUser, logOut } = useAuth();
   
-  // Get user name for display
-  const getUserName = () => {
-    if (!currentUser || !currentUser.email) return "User";
-    // Extract name from email or use first part of email
-    const email = currentUser.email;
-    const name = email.split('@')[0];
-    return name.charAt(0).toUpperCase() + name.slice(1);
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return "U";
+    return name
+      .split(" ")
+      .map(part => part[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2);
   };
 
   return (
-    <header className="bg-white border-b border-gray-100 shadow-sm">
-      <div className="max-w-full px-4 sm:px-6">
-        <div className="flex justify-between items-center h-16">
-          <div className="flex items-center">
-            {isSidebarCollapsed && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={onToggleSidebar} 
-                className="mr-2 text-gray-500 hover:text-primary hover:bg-gray-100"
-              >
-                <Menu className="h-5 w-5" />
-              </Button>
-            )}
-            <Link to="/" className="flex items-center">
-              <span className="text-2xl font-bold text-primary">stayInsights</span>
+    <header className="w-full border-b bg-white">
+      <div className="container flex h-16 items-center justify-between px-4">
+        <div className="flex items-center gap-4">
+          <Link to="/dashboard" className="text-xl font-bold text-[#5E5AFF]">
+            StayInsights
+          </Link>
+          <nav className="hidden md:flex gap-6 text-sm">
+            <Link to="/dashboard" className="text-gray-700 hover:text-[#5E5AFF]">
+              Dashboard
             </Link>
-            <div className="hidden md:flex ml-10">
-              <div className="relative w-64">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
-                <Input 
-                  placeholder="Search customers..." 
-                  className="pl-8 h-9 text-sm bg-gray-50 border-gray-100"
-                />
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center">
-            <div className="flex items-center">
-              <div className="flex flex-col items-end mr-2 hidden md:block">
-                <span className="text-sm font-medium">{getUserName()}</span>
-                <span className="text-xs text-gray-500">Product Manager</span>
-              </div>
-              <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
-                <User size={16} />
-              </div>
-            </div>
-          </div>
+            <Link to="/customers" className="text-gray-700 hover:text-[#5E5AFF]">
+              Customers
+            </Link>
+          </nav>
+        </div>
+        
+        <div className="flex items-center gap-4">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage 
+                    src={currentUser?.photoURL || ""} 
+                    alt={currentUser?.displayName || "User"} 
+                  />
+                  <AvatarFallback className="bg-[#5E5AFF]/10 text-[#5E5AFF]">
+                    {getInitials(currentUser?.displayName)}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+              <DropdownMenuLabel>
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium">
+                    {currentUser?.displayName || "User"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {currentUser?.email || ""}
+                  </p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to="/settings" className="cursor-pointer flex w-full items-center">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/profile" className="cursor-pointer flex w-full items-center">
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                className="cursor-pointer"
+                onClick={() => logOut()}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>

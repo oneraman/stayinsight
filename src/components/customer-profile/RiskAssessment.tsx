@@ -9,6 +9,9 @@ interface RiskAssessmentProps {
 }
 
 const RiskAssessment = ({ customer }: RiskAssessmentProps) => {
+  // Convert string to number and handle null/undefined
+  const riskScoreValue = customer.riskScore ? Number(customer.riskScore) : 0;
+  
   return (
     <Card>
       <CardHeader>
@@ -21,9 +24,8 @@ const RiskAssessment = ({ customer }: RiskAssessmentProps) => {
             <span className="text-sm font-bold">{customer.riskScore || 0}</span>
           </div>
           <Progress 
-            value={customer.riskScore ? Number(customer.riskScore) : 0} 
-            className="h-2" 
-            indicatorClassName={`bg-${getRiskColor(customer.segment)}-500`}
+            value={riskScoreValue} 
+            className={`h-2 bg-gray-200 ${getRiskColor(customer.segment)}`}
           />
         </div>
         
