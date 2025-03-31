@@ -3,7 +3,7 @@ import { ReactNode, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Users, Settings, ChevronLeft, ChevronRight, FileUpload, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, Settings, ChevronLeft, ChevronRight, Upload, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface DashboardLayoutProps {
@@ -62,7 +62,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             className="w-full bg-[#5E5AFF] hover:bg-[#4B48CC] flex items-center justify-center gap-2"
             onClick={() => navigate('/dashboard')}
           >
-            <FileUpload className="h-4 w-4" />
+            <Upload className="h-4 w-4" />
             {!sidebarCollapsed && <span>Import Data</span>}
           </Button>
         </div>

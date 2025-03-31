@@ -40,11 +40,11 @@ const RiskAssessment = ({ customer }: RiskAssessmentProps) => {
           </div>
           <div className="space-y-1">
             <p className="text-sm text-gray-500">Purchase Frequency</p>
-            <p className="font-medium">{customer.purchaseFrequency || "N/A"} days</p>
+            <p className="font-medium">{customer.purchaseFrequency ? customer.purchaseFrequency : "N/A"} days</p>
           </div>
           <div className="space-y-1">
             <p className="text-sm text-gray-500">Churn Probability</p>
-            <p className="font-medium">{customer.churnProbability || 0}%</p>
+            <p className="font-medium">{customer.churnProbability ? customer.churnProbability : 0}%</p>
           </div>
         </div>
       </CardContent>
