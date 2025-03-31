@@ -5,8 +5,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ChurnRateChart from "./ChurnRateChart";
 import RetentionBySegmentChart from "./RetentionBySegmentChart";
 import CustomerRiskSection from "./CustomerRiskSection";
+import { CustomerData } from "@/utils/dataProcessing";
 
-const DashboardTabs = () => {
+interface DashboardTabsProps {
+  customers: CustomerData[];
+}
+
+const DashboardTabs = ({ customers }: DashboardTabsProps) => {
   const [selectedTab, setSelectedTab] = useState("overview");
 
   return (
@@ -19,10 +24,10 @@ const DashboardTabs = () => {
 
       <TabsContent value="overview" className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <ChurnRateChart />
-          <RetentionBySegmentChart />
+          <ChurnRateChart customers={customers} />
+          <RetentionBySegmentChart customers={customers} />
         </div>
-        <CustomerRiskSection />
+        <CustomerRiskSection customers={customers} />
       </TabsContent>
 
       <TabsContent value="segments">

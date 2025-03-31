@@ -6,18 +6,12 @@ import { CustomerData } from "@/utils/dataProcessing";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import MetricsOverview from "@/components/dashboard/MetricsOverview";
-import ChurnRateChart from "@/components/dashboard/ChurnRateChart";
-import RetentionBySegmentChart from "@/components/dashboard/RetentionBySegmentChart";
-import CustomerRiskSection from "@/components/dashboard/CustomerRiskSection";
-import RecommendedActions from "@/components/dashboard/RecommendedActions";
-import { Button } from "@/components/ui/button";
+import DashboardTabs from "@/components/dashboard/DashboardTabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import HighRiskCustomersTable from "@/components/dashboard/HighRiskCustomersTable";
 
-// Define the props interface for DashboardHeader
 interface DashboardHeaderProps {
-  onToggleSidebar: () => void;
-  isSidebarCollapsed: boolean;
+  onToggleSidebar?: () => void;
+  isSidebarCollapsed?: boolean;
 }
 
 const Dashboard = () => {
@@ -94,41 +88,14 @@ const Dashboard = () => {
   return (
     <DashboardLayout>
       <DashboardHeader onToggleSidebar={toggleSidebar} isSidebarCollapsed={isSidebarCollapsed} />
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-        <MetricsOverview customers={customers} />
-      </div>
-      
-      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 mt-6">
-        <Card className="card-hover">
-          <CardHeader>
-            <CardTitle>Customer Churn Rate</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ChurnRateChart customers={customers} />
-          </CardContent>
-        </Card>
+      <div className="container mx-auto px-4 py-6">
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+          <MetricsOverview customers={customers} />
+        </div>
         
-        <Card className="card-hover">
-          <CardHeader>
-            <CardTitle>Retention Rate by Customer Segment</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RetentionBySegmentChart customers={customers} />
-          </CardContent>
-        </Card>
-      </div>
-      
-      <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <CustomerRiskSection customers={customers} />
-        <RecommendedActions />
-        <Card className="card-hover">
-          <CardHeader>
-            <CardTitle>High Risk Customers</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <HighRiskCustomersTable customers={customers} />
-          </CardContent>
-        </Card>
+        <div className="mt-6">
+          <DashboardTabs customers={customers} />
+        </div>
       </div>
     </DashboardLayout>
   );
