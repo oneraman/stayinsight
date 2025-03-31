@@ -10,8 +10,6 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
-import DataUpload from "./pages/DataUpload";
-import CustomerDataUpload from "./pages/CustomerDataUpload";
 import Customers from "./pages/Customers";
 import CustomerProfile from "./pages/CustomerProfile";
 import NotFound from "./pages/NotFound";
@@ -40,8 +38,6 @@ const App = () => (
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/upload" element={<DataUpload />} />
-              <Route path="/customer-data" element={<CustomerDataUpload />} />
               <Route path="/customers" element={<Customers />} />
               <Route path="/customers/:customerId" element={<CustomerProfile />} />
             </Route>

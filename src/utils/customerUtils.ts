@@ -1,62 +1,75 @@
 
-import { CustomerData } from "@/utils/dataProcessing";
+import { CustomerData } from "./dataProcessing";
 
-export const formatDate = (date: Date | undefined) => {
-  if (!date) return "N/A";
-  return new Date(date).toLocaleDateString();
-};
-
-export const formatCurrency = (value: number | undefined) => {
-  if (value === undefined) return "N/A";
-  return `$${value.toFixed(2)}`;
-};
-
-export const getRecommendations = (customer: CustomerData) => {
-  if (!customer) return [];
+// Function to format date to a readable string
+export const formatDate = (date: Date | string | undefined): string => {
+  if (!date) return 'N/A';
   
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return dateObj.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
+// Get recommendations based on customer data
+export const getRecommendations = (customer: CustomerData) => {
   const recommendations = [];
   
-  if (customer.segment === 'high-risk') {
+  if (customer.riskScore && customer.riskScore > 70) {
     recommendations.push({
-      title: "Offer renewal discount",
-      description: "Provide a 15% discount on the next subscription renewal to incentivize staying.",
+      title: "Immediate Outreach",
+      description: "This customer is at high risk of churning. Schedule a personal call to address concerns.",
     });
     recommendations.push({
-      title: "Executive outreach",
-      description: "Schedule a call with a company executive to discuss customer needs and concerns.",
+      title: "Loyalty Discount",
+      description: "Offer a special discount on their next purchase to incentivize loyalty.",
     });
-  } else if (customer.segment === 'medium-risk') {
+  } else if (customer.riskScore && customer.riskScore > 40) {
     recommendations.push({
-      title: "Engagement campaign",
-      description: "Send targeted emails highlighting unused features of their subscription.",
+      title: "Re-engagement Email",
+      description: "Send a personalized email with product recommendations based on past purchases.",
     });
     recommendations.push({
-      title: "Feature education",
-      description: "Invite to a product webinar or provide custom tutorials for better product usage.",
+      title: "Feedback Survey",
+      description: "Request feedback to understand potential pain points and areas for improvement.",
     });
   } else {
     recommendations.push({
-      title: "Upsell opportunity",
-      description: "This customer may be ready for a premium plan upgrade.",
+      title: "Upsell Opportunity",
+      description: "This loyal customer may be interested in premium offerings or complementary products.",
     });
     recommendations.push({
-      title: "Referral request",
-      description: "Ask this loyal customer for referrals to similar businesses.",
+      title: "Referral Program",
+      description: "Invite this satisfied customer to participate in your referral program.",
+    });
+  }
+  
+  if (customer.purchaseCount && customer.purchaseCount < 2) {
+    recommendations.push({
+      title: "First Purchase Follow-up",
+      description: "Send a thank you message and request feedback on their first experience.",
     });
   }
   
   return recommendations;
 };
 
-export const getRiskColor = (segment: string | undefined) => {
-  switch (segment) {
-    case 'high-risk':
-      return "text-red-500";
-    case 'medium-risk':
-      return "text-yellow-500";
-    case 'low-risk':
-      return "text-green-500";
-    default:
-      return "text-gray-500";
-  }
+// Get risk status text and color based on risk score
+export const getRiskStatus = (score: number | undefined) => {
+  if (!score && score !== 0) return { text: 'Unknown', color: 'gray' };
+  
+  if (score < 30) return { text: 'Low Risk', color: 'green' };
+  if (score < 70) return { text: 'Medium Risk', color: 'yellow' };
+  return { text: 'High Risk', color: 'red' };
+};
+
+// Get segment description based on risk score
+export const getSegmentDescription = (score: number | undefined) => {
+  if (!score && score !== 0) return 'Not enough data to determine segment';
+  
+  if (score < 30) return 'Loyal customer with strong engagement and regular purchases';
+  if (score < 70) return 'Average engagement with occasional purchases';
+  return 'At risk of churning with declining engagement';
 };
