@@ -1,10 +1,8 @@
 
 import { HelpCircle, Users, TrendingDown, Wallet, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CustomerData } from "@/utils/dataProcessing";
 
 interface MetricsOverviewProps {
-  customers: CustomerData[];
   metrics?: {
     churnRate: number;
     retentionRate: number;
@@ -13,35 +11,13 @@ interface MetricsOverviewProps {
   };
 }
 
-const MetricsOverview = ({ customers, metrics }: MetricsOverviewProps) => {
-  // Calculate metrics from customer data if not provided
-  const calculatedMetrics = metrics || {
-    churnRate: 4.2, 
-    retentionRate: 95.8, 
-    customerLifetimeValue: 842, 
-    atRiskRevenue: calculateAtRiskRevenue(customers)
-  };
-  
+const MetricsOverview = ({ metrics }: MetricsOverviewProps) => {
   const { 
-    churnRate, 
-    retentionRate, 
-    customerLifetimeValue, 
-    atRiskRevenue 
-  } = calculatedMetrics;
-
-  function calculateAtRiskRevenue(customers: CustomerData[]): number {
-    // Calculate total revenue at risk from high-risk customers
-    const highRiskCustomers = customers.filter(
-      customer => customer.riskScore && customer.riskScore >= 70
-    );
-    
-    const totalAtRisk = highRiskCustomers.reduce(
-      (total, customer) => total + (customer.totalSpent || 0), 
-      0
-    );
-    
-    return totalAtRisk || 24500; // Fallback to default value if no data
-  }
+    churnRate = 4.2, 
+    retentionRate = 95.8, 
+    customerLifetimeValue = 842, 
+    atRiskRevenue = 24500 
+  } = metrics || {};
 
   const formatCurrency = (value: number) => {
     if (value >= 1000) {
@@ -51,7 +27,7 @@ const MetricsOverview = ({ customers, metrics }: MetricsOverviewProps) => {
   };
 
   return (
-    <>
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
       <Card className="bg-white shadow-sm hover:shadow-md transition-shadow">
         <CardHeader className="pb-2">
           <div className="flex justify-between items-center">
@@ -123,7 +99,7 @@ const MetricsOverview = ({ customers, metrics }: MetricsOverviewProps) => {
           </div>
         </CardContent>
       </Card>
-    </>
+    </div>
   );
 };
 
