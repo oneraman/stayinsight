@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
@@ -42,6 +41,7 @@ const CustomerProfile = () => {
             data.lastPurchaseDate = data.lastPurchaseDate.toDate();
           }
           
+          // Use functional update to avoid the TypeScript error
           setCustomer({
             ...data,
             id: customerDoc.id
@@ -211,13 +211,12 @@ const CustomerProfile = () => {
                       </div>
                       <Progress 
                         value={customer.riskScore || 0} 
-                        className="h-2 bg-gray-200"
-                        indicatorClassName={
+                        className={
                           customer.riskScore && customer.riskScore > 70 
-                            ? "bg-red-500" 
+                            ? "h-2 bg-gray-200 text-red-500" 
                             : customer.riskScore && customer.riskScore > 30 
-                              ? "bg-yellow-500" 
-                              : "bg-green-500"
+                              ? "h-2 bg-gray-200 text-yellow-500" 
+                              : "h-2 bg-gray-200 text-green-500"
                         }
                       />
                     </div>

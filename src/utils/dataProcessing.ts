@@ -7,6 +7,7 @@ import * as XLSX from "xlsx";
 
 // Customer data interface
 export interface CustomerData {
+  id?: string; // Add id property for Firestore document id
   customerId: string;
   email?: string;
   name?: string;

@@ -40,8 +40,8 @@ const CustomerSearch = ({ customers, onSearch, showButton = true }: CustomerSear
     if (onSearch) onSearch(results);
   };
 
-  const handleViewCustomer = (customerId: string) => {
-    navigate(`/customers/${customerId}`);
+  const handleViewCustomer = (customer: CustomerData) => {
+    navigate(`/customers/${customer.id || customer.customerId}`);
     setIsSearchVisible(false);
     setSearchResults([]);
     setSearchTerm("");
@@ -67,7 +67,7 @@ const CustomerSearch = ({ customers, onSearch, showButton = true }: CustomerSear
             className="ml-2"
             onClick={() => {
               if (searchResults.length === 1) {
-                handleViewCustomer(searchResults[0].customerId);
+                handleViewCustomer(searchResults[0]);
               }
             }}
           >
@@ -83,7 +83,7 @@ const CustomerSearch = ({ customers, onSearch, showButton = true }: CustomerSear
               <li 
                 key={customer.customerId} 
                 className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex justify-between items-center"
-                onClick={() => handleViewCustomer(customer.customerId)}
+                onClick={() => handleViewCustomer(customer)}
               >
                 <div>
                   <p className="font-medium">{customer.name || 'N/A'}</p>
