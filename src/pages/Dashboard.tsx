@@ -1,7 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { collection, getDocs, query, orderBy, limit, where } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
-import { CustomerData, processCustomerData } from "@/utils/dataProcessing";
+import { CustomerData } from "@/utils/dataProcessing";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import MetricsOverview from "@/components/dashboard/MetricsOverview";
@@ -23,11 +24,11 @@ const Dashboard = () => {
   const [customers, setCustomers] = useState<CustomerData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-	const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-	const toggleSidebar = () => {
-		setIsSidebarCollapsed(!isSidebarCollapsed);
-	};
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed(!isSidebarCollapsed);
+  };
 
   useEffect(() => {
     const fetchCustomers = async () => {
@@ -53,8 +54,23 @@ const Dashboard = () => {
           } as CustomerData);
         });
         
-        // Process customer data (example: convert dates, calculate metrics)
-        const processedCustomers = processCustomerData(customerList);
+        // Process the customer data (calculate segments if needed)
+        const processedCustomers = customerList.map(customer => {
+          // Make sure we have a proper risk score
+          if (customer.riskScore === undefined) {
+            customer.riskScore = 50; // Default medium risk
+          }
+          
+          // Determine segment if not already set
+          if (!customer.segment) {
+            if (customer.riskScore < 30) customer.segment = 'low-risk';
+            else if (customer.riskScore < 70) customer.segment = 'medium-risk';
+            else customer.segment = 'high-risk';
+          }
+          
+          return customer;
+        });
+        
         setCustomers(processedCustomers);
       } catch (err: any) {
         console.error("Error fetching customers:", err);
@@ -76,7 +92,7 @@ const Dashboard = () => {
   }
 
   return (
-    <DashboardLayout isSidebarCollapsed={isSidebarCollapsed}>
+    <DashboardLayout>
       <DashboardHeader onToggleSidebar={toggleSidebar} isSidebarCollapsed={isSidebarCollapsed} />
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
         <MetricsOverview customers={customers} />

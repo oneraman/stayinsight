@@ -1,49 +1,60 @@
 
-import { Card } from "@/components/ui/card";
+import React from 'react';
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
-} from "recharts";
-import { trendData } from "@/data/dashboardData";
+} from 'recharts';
+import { CustomerData } from '@/utils/dataProcessing';
 
-const ChurnRateChart = () => {
+// Sample data for the chart - in a real app, this would be derived from actual customer data
+const data = [
+  { name: 'Jan', rate: 4.0 },
+  { name: 'Feb', rate: 4.2 },
+  { name: 'Mar', rate: 3.8 },
+  { name: 'Apr', rate: 4.5 },
+  { name: 'May', rate: 4.2 },
+  { name: 'Jun', rate: 3.9 },
+  { name: 'Jul', rate: 4.2 },
+  { name: 'Aug', rate: 4.6 },
+  { name: 'Sep', rate: 4.2 },
+  { name: 'Oct', rate: 3.8 },
+  { name: 'Nov', rate: 3.5 },
+  { name: 'Dec', rate: 4.2 },
+];
+
+interface ChurnRateChartProps {
+  customers: CustomerData[];
+}
+
+const ChurnRateChart = ({ customers }: ChurnRateChartProps) => {
+  // In a real app, we would process the customers data here
+  // to generate month-by-month churn rates
+
   return (
-    <Card className="p-6">
-      <h3 className="text-lg font-medium mb-4">
-        Churn Rate Trend
-      </h3>
-      <div className="h-72">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={trendData}
-            margin={{
-              top: 5,
-              right: 30,
-              left: 20,
-              bottom: 5,
-            }}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Line
-              type="monotone"
-              dataKey="churnRate"
-              stroke="#5E5AFF"
-              activeDot={{ r: 8 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-    </Card>
+    <div className="h-72">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart
+          data={data}
+          margin={{
+            top: 10,
+            right: 30,
+            left: 0,
+            bottom: 0,
+          }}
+        >
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="name" />
+          <YAxis />
+          <Tooltip />
+          <Area type="monotone" dataKey="rate" stroke="#8884d8" fill="#8884d8" />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
   );
 };
 
