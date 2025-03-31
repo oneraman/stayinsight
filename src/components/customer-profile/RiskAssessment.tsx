@@ -1,3 +1,4 @@
+
 import { CustomerData } from "@/utils/dataProcessing";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -23,8 +24,8 @@ const RiskAssessment = ({ customer }: RiskAssessmentProps) => {
             <span className="text-sm font-bold">{customer.riskScore || 0}</span>
           </div>
           <Progress 
-            value={parseInt(String(riskScoreValue))} 
-            className={`h-2 bg-gray-200 ${getRiskColor(customer.segment)}`}
+            value={riskScoreValue} 
+            className={`h-2 bg-gray-200 ${getRiskColor(customer.riskScore)}`}
           />
         </div>
         

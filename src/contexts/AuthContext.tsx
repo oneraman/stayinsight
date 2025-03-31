@@ -1,3 +1,4 @@
+
 import {
   createContext,
   ReactNode,
@@ -12,15 +13,19 @@ import {
   signOut,
   sendPasswordResetEmail,
   onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup,
 } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, googleProvider } from "@/lib/firebase";
 import { toast } from "sonner";
 
 type AuthContextType = {
   currentUser: User | null;
   loading: boolean;
+  isLoading: boolean; // Added for consistency with ProtectedRoute
   signIn: (email: string, password: string) => Promise<User | null>;
   signUp: (email: string, password: string) => Promise<User | null>;
+  signInWithGoogle: () => Promise<User | null>; // Added for Google sign-in
   logOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updateUserProfile: () => void;
@@ -29,8 +34,10 @@ type AuthContextType = {
 export const AuthContext = createContext<AuthContextType>({
   currentUser: null,
   loading: true,
+  isLoading: true, // Added for consistency with ProtectedRoute
   signIn: async () => null,
   signUp: async () => null,
+  signInWithGoogle: async () => null, // Added for Google sign-in
   logOut: async () => {},
   resetPassword: async () => {},
   updateUserProfile: () => {},
@@ -56,6 +63,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       toast.success("Successfully signed up!");
       return userCredential.user;
+    } catch (error: any) {
+      toast.error(error.message);
+      return null;
+    }
+  };
+
+  // Add Google sign-in method
+  const signInWithGoogle = async (): Promise<User | null> => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      toast.success("Successfully signed in with Google!");
+      return result.user;
     } catch (error: any) {
       toast.error(error.message);
       return null;
@@ -100,8 +119,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const value = {
     currentUser,
     loading,
+    isLoading: loading, // Added for consistency with ProtectedRoute
     signIn,
     signUp,
+    signInWithGoogle, // Added the Google sign-in method
     logOut,
     resetPassword,
     updateUserProfile,
@@ -111,5 +132,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 };
 
 export const useAuth = () => {
-  return useContext(AuthContext);
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
 };
