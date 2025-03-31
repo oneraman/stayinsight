@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -27,17 +27,55 @@ interface AppearanceSettingsProps {
 
 const AppearanceSettings = ({ onSave }: AppearanceSettingsProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [theme, setTheme] = useState("system");
-  const [fontSize, setFontSize] = useState(16);
-  const [dateFormat, setDateFormat] = useState("MM/DD/YYYY");
+  const [theme, setTheme] = useState(() => {
+    // Initialize with the current theme from localStorage if available
+    return localStorage.getItem("theme") || "system";
+  });
+  const [fontSize, setFontSize] = useState(() => {
+    return Number(localStorage.getItem("fontSize")) || 16;
+  });
+  const [dateFormat, setDateFormat] = useState(() => {
+    return localStorage.getItem("dateFormat") || "MM/DD/YYYY";
+  });
+  
+  // Apply theme on component mount and when theme changes
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
+  
+  const applyTheme = (themeValue: string) => {
+    const root = window.document.documentElement;
+    
+    // Remove any previous theme classes
+    root.classList.remove("light", "dark");
+    
+    // Apply the selected theme
+    if (themeValue === "system") {
+      // Check system preference
+      const systemPreference = window.matchMedia("(prefers-color-scheme: dark)").matches 
+        ? "dark" 
+        : "light";
+      root.classList.add(systemPreference);
+    } else {
+      // Apply the selected theme directly
+      root.classList.add(themeValue);
+    }
+  };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-      // Simulate API call to save settings
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Save settings to localStorage
+      localStorage.setItem("theme", theme);
+      localStorage.setItem("fontSize", fontSize.toString());
+      localStorage.setItem("dateFormat", dateFormat);
+      
+      // Apply the font size to the document
+      document.documentElement.style.fontSize = `${fontSize}px`;
+      
+      // Notify parent component
       onSave();
     } catch (error) {
       console.error("Error saving appearance settings:", error);
