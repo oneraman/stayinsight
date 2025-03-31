@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { collection, getDocs, query, orderBy, limit, where } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
@@ -12,6 +13,11 @@ import { FileUploader } from "@/components/FileUploader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import HighRiskCustomersTable from "@/components/dashboard/HighRiskCustomersTable";
+
+interface DashboardHeaderProps {
+  onToggleSidebar: () => void;
+  isSidebarCollapsed: boolean;
+}
 
 const Dashboard = () => {
   const [timePeriod, setTimePeriod] = useState("30");
@@ -110,7 +116,10 @@ const Dashboard = () => {
       </div>
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <DashboardHeader onToggleSidebar={toggleSidebar} isSidebarCollapsed={sidebarCollapsed} />
+        <DashboardHeader 
+          onToggleSidebar={toggleSidebar} 
+          isSidebarCollapsed={sidebarCollapsed} 
+        />
 
         <div className="flex-1 max-w-full px-4 sm:px-6 py-6 overflow-auto">
           <div className="flex justify-between mb-6">
