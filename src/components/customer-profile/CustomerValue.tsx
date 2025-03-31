@@ -2,13 +2,13 @@
 import { DollarSign } from "lucide-react";
 import { CustomerData } from "@/utils/dataProcessing";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { formatCurrency } from "@/utils/customerUtils";
 
 interface CustomerValueProps {
   customer: CustomerData;
-  formatCurrency: (value: number | undefined) => string;
 }
 
-const CustomerValue = ({ customer, formatCurrency }: CustomerValueProps) => {
+const CustomerValue = ({ customer }: CustomerValueProps) => {
   return (
     <Card>
       <CardHeader>

@@ -3,14 +3,13 @@ import { TrendingDown } from "lucide-react";
 import { CustomerData } from "@/utils/dataProcessing";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { getRiskColor, formatDate } from "@/utils/customerUtils";
 
 interface RiskAssessmentProps {
   customer: CustomerData;
-  getRiskColor: (segment: string | undefined) => string;
-  formatDate: (date: Date | undefined) => string;
 }
 
-const RiskAssessment = ({ customer, getRiskColor, formatDate }: RiskAssessmentProps) => {
+const RiskAssessment = ({ customer }: RiskAssessmentProps) => {
   return (
     <Card>
       <CardHeader>

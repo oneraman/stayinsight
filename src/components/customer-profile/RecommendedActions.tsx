@@ -1,16 +1,13 @@
 
 import { CustomerData } from "@/utils/dataProcessing";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { getRecommendations } from "@/utils/customerUtils";
 
 interface RecommendedActionsProps {
   customer: CustomerData;
-  getRecommendations: (customer: CustomerData) => Array<{
-    title: string;
-    description: string;
-  }>;
 }
 
-const RecommendedActions = ({ customer, getRecommendations }: RecommendedActionsProps) => {
+const RecommendedActions = ({ customer }: RecommendedActionsProps) => {
   return (
     <Card>
       <CardHeader>

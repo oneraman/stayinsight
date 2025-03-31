@@ -8,7 +8,7 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatDate, formatCurrency, getRiskColor } from "@/utils/customerUtils";
+import { formatDate, formatCurrency } from "@/utils/customerUtils";
 import CustomerHeader from "@/components/customer-profile/CustomerHeader";
 import RiskAssessment from "@/components/customer-profile/RiskAssessment";
 import CustomerValue from "@/components/customer-profile/CustomerValue";

@@ -1,4 +1,6 @@
 
+import { CustomerData } from "@/utils/dataProcessing";
+
 // Function to format date to a readable string
 export const formatDate = (date: Date | string | undefined): string => {
   if (!date) return 'N/A';
