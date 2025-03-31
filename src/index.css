@@ -92,7 +92,7 @@
   }
   
   .dashboard-card {
-    @apply bg-white rounded-lg shadow-sm p-4 h-full border border-gray-100 hover:shadow-md transition-shadow;
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 h-full border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow;
   }
   
   .metric-value {
@@ -100,7 +100,7 @@
   }
   
   .metric-label {
-    @apply text-sm text-gray-500;
+    @apply text-sm text-gray-500 dark:text-gray-400;
   }
   
   .risk-high {
@@ -135,6 +135,39 @@
   
   .sidebar-item-active {
     @apply bg-[#222] text-white;
+  }
+
+  /* Dark mode specific styles */
+  .dark .bg-white {
+    @apply bg-gray-800;
+  }
+  
+  .dark .border-gray-100 {
+    @apply border-gray-700;
+  }
+  
+  .dark .text-gray-500 {
+    @apply text-gray-400;
+  }
+  
+  .dark .text-gray-600 {
+    @apply text-gray-300;
+  }
+  
+  .dark .text-gray-700 {
+    @apply text-gray-200;
+  }
+  
+  .dark .text-gray-800 {
+    @apply text-gray-100;
+  }
+  
+  .dark .shadow-sm {
+    @apply shadow-none;
+  }
+  
+  .dark .bg-gray-50 {
+    @apply bg-gray-900;
   }
 
   /* Animation keyframes */

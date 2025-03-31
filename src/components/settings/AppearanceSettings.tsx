@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { toast } from "sonner";
 import { 
   Select,
   SelectContent,
@@ -20,27 +21,29 @@ import {
   Sun, 
   Calendar
 } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface AppearanceSettingsProps {
   onSave: () => void;
 }
 
 const AppearanceSettings = ({ onSave }: AppearanceSettingsProps) => {
+  const { theme, setTheme, fontSize, setFontSize, dateFormat, setDateFormat } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
-  const [theme, setTheme] = useState("system");
-  const [fontSize, setFontSize] = useState(16);
-  const [dateFormat, setDateFormat] = useState("MM/DD/YYYY");
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-      // Simulate API call to save settings
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Settings are already applied in real-time via the theme context
+      // This is just for UX feedback
+      await new Promise(resolve => setTimeout(resolve, 500));
       onSave();
+      toast.success("Appearance settings saved successfully!");
     } catch (error) {
       console.error("Error saving appearance settings:", error);
+      toast.error("Failed to save appearance settings");
     } finally {
       setIsLoading(false);
     }

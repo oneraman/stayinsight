@@ -1,9 +1,10 @@
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { User } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 import { 
   Form,
   FormControl,
@@ -25,6 +26,9 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User as UserIcon, Mail, Phone, Building, Upload } from "lucide-react";
+import { ref, uploadBytes, getDownloadURL, getStorage } from "firebase/storage";
+import { updateProfile } from "firebase/auth";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProfileSettingsProps {
   user: User | null;
@@ -43,7 +47,11 @@ const profileFormSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
 const ProfileSettings = ({ user, onSave }: ProfileSettingsProps) => {
+  const { currentUser, updateUserProfile } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(user?.photoURL);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const defaultValues: Partial<ProfileFormValues> = {
     displayName: user?.displayName || "",
@@ -60,17 +68,87 @@ const ProfileSettings = ({ user, onSave }: ProfileSettingsProps) => {
   const onSubmit = async (data: ProfileFormValues) => {
     setIsLoading(true);
     try {
-      // Here you would typically update the user profile in Firebase
-      console.log("Updating profile with:", data);
+      if (currentUser) {
+        // Update profile in Firebase
+        await updateProfile(currentUser, {
+          displayName: data.displayName || null,
+          photoURL: profileImageUrl || null
+        });
+        
+        // Trigger a refresh of the user context
+        if (typeof updateUserProfile === 'function') {
+          updateUserProfile();
+        }
+      }
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      toast.success("Profile updated successfully!");
       onSave();
     } catch (error) {
       console.error("Error updating profile:", error);
+      toast.error("Failed to update profile");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Only accept image files
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file");
+      return;
+    }
+    
+    // Check file size (max 2MB)
+    const maxSize = 2 * 1024 * 1024; // 2MB
+    if (file.size > maxSize) {
+      toast.error("Image is too large. Maximum size is 2MB");
+      return;
+    }
+    
+    setImageLoading(true);
+    
+    try {
+      const storage = getStorage();
+      const storageRef = ref(storage, `profile_images/${currentUser?.uid}/${file.name}`);
+      
+      // Upload the file
+      await uploadBytes(storageRef, file);
+      
+      // Get the download URL
+      const downloadURL = await getDownloadURL(storageRef);
+      
+      // Update local state
+      setProfileImageUrl(downloadURL);
+      
+      // If the user is logged in, update their profile
+      if (currentUser) {
+        await updateProfile(currentUser, {
+          photoURL: downloadURL
+        });
+        
+        // Trigger a refresh of the user context
+        if (typeof updateUserProfile === 'function') {
+          updateUserProfile();
+        }
+      }
+      
+      toast.success("Profile picture updated successfully!");
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast.error("Failed to upload image");
+    } finally {
+      setImageLoading(false);
+      // Clear the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
@@ -93,15 +171,38 @@ const ProfileSettings = ({ user, onSave }: ProfileSettingsProps) => {
         <CardContent className="px-0">
           <div className="flex items-center gap-6">
             <Avatar className="h-20 w-20">
-              <AvatarImage src={user?.photoURL || ""} alt={user?.displayName || "User"} />
+              <AvatarImage src={profileImageUrl || ""} alt={user?.displayName || "User"} />
               <AvatarFallback className="text-lg bg-[#5E5AFF]/10 text-[#5E5AFF]">
                 {getInitials(user?.displayName)}
               </AvatarFallback>
             </Avatar>
-            <Button variant="outline" className="gap-2">
-              <Upload size={16} />
-              Upload new image
-            </Button>
+            <div>
+              <Button 
+                variant="outline" 
+                className="gap-2" 
+                onClick={handleUploadClick}
+                disabled={imageLoading}
+              >
+                {imageLoading ? (
+                  "Uploading..."
+                ) : (
+                  <>
+                    <Upload size={16} />
+                    Upload new image
+                  </>
+                )}
+              </Button>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileChange} 
+                accept="image/*" 
+                className="hidden" 
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                JPG, PNG or GIF, max 2MB
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>

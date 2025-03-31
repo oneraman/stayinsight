@@ -1,151 +1,115 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { 
-  User, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
+import {
+  createContext,
+  ReactNode,
+  useState,
+  useEffect,
+  useContext,
+} from "react";
+import {
+  User,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   signOut,
+  sendPasswordResetEmail,
   onAuthStateChanged,
-  signInWithPopup,
-  GoogleAuthProvider
 } from "firebase/auth";
-import { auth, googleProvider } from "@/lib/firebase";
-import { useNavigate } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
+import { auth } from "@/lib/firebase";
+import { toast } from "sonner";
 
-interface AuthContextProps {
+type AuthContextType = {
   currentUser: User | null;
-  isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  loading: boolean;
+  signIn: (email: string, password: string) => Promise<User | null>;
+  signUp: (email: string, password: string) => Promise<User | null>;
   logOut: () => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
-}
+  resetPassword: (email: string) => Promise<void>;
+  updateUserProfile: () => void;
+};
 
-const AuthContext = createContext<AuthContextProps | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType>({
+  currentUser: null,
+  loading: true,
+  signIn: async () => null,
+  signUp: async () => null,
+  logOut: async () => {},
+  resetPassword: async () => {},
+  updateUserProfile: () => {},
+});
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const navigate = useNavigate();
-  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+
+  const signIn = async (email: string, password: string): Promise<User | null> => {
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      toast.success("Successfully signed in!");
+      return userCredential.user;
+    } catch (error: any) {
+      toast.error(error.message);
+      return null;
+    }
+  };
+
+  const signUp = async (email: string, password: string): Promise<User | null> => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      toast.success("Successfully signed up!");
+      return userCredential.user;
+    } catch (error: any) {
+      toast.error(error.message);
+      return null;
+    }
+  };
+
+  const logOut = async (): Promise<void> => {
+    try {
+      await signOut(auth);
+      toast.success("Successfully signed out!");
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
+  const resetPassword = async (email: string): Promise<void> => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+      toast.success("Password reset email sent!");
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
+  const updateUserProfile = () => {
+    const user = auth.currentUser;
+    if (user) {
+      // Force refresh of the user object
+      setCurrentUser({ ...user });
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
-      setIsLoading(false);
+      setLoading(false);
     });
-
-    return unsubscribe;
+    
+    return () => unsubscribe();
   }, []);
-
-  const signIn = async (email: string, password: string) => {
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      toast({
-        title: "Login successful",
-        description: "Welcome back to StayInsights!",
-      });
-      navigate("/dashboard");
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Login failed",
-        description: error.message || "Failed to sign in. Please check your credentials.",
-      });
-      throw error;
-    }
-  };
-
-  const signUp = async (email: string, password: string) => {
-    try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      toast({
-        title: "Account created",
-        description: "Welcome to StayInsights! Your account has been created successfully.",
-      });
-      navigate("/dashboard");
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Sign up failed",
-        description: error.message || "Failed to create an account. Please try again.",
-      });
-      throw error;
-    }
-  };
-
-  const signInWithGoogle = async () => {
-    try {
-      await signInWithPopup(auth, googleProvider);
-      toast({
-        title: "Login successful",
-        description: "Welcome to StayInsights!",
-      });
-      navigate("/dashboard");
-    } catch (error: any) {
-      let errorMessage = error.message || "Failed to sign in with Google. Please try again.";
-      
-      // Handle the unauthorized domain error specifically
-      if (error.code === "auth/unauthorized-domain") {
-        const currentDomain = window.location.hostname;
-        errorMessage = `Domain "${currentDomain}" is not authorized for Firebase Authentication. Please log in with email/password instead, or add this domain to the authorized domains list in your Firebase console (Authentication → Settings → Authorized domains).`;
-        
-        console.error("Domain not authorized for Firebase Authentication:", currentDomain);
-        
-        toast({
-          variant: "destructive",
-          title: "Google sign in failed",
-          description: errorMessage,
-          duration: 10000, // Show for longer (10 seconds) since this is important information
-        });
-        
-        // Don't throw the error for unauthorized domain case
-        return;
-      }
-      
-      toast({
-        variant: "destructive",
-        title: "Google sign in failed",
-        description: errorMessage,
-      });
-      throw error;
-    }
-  };
-
-  const logOut = async () => {
-    try {
-      await signOut(auth);
-      toast({
-        title: "Logged out",
-        description: "You have been successfully logged out.",
-      });
-      navigate("/");
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Logout failed",
-        description: error.message || "Failed to log out. Please try again.",
-      });
-      throw error;
-    }
-  };
 
   const value = {
     currentUser,
-    isLoading,
+    loading,
     signIn,
     signUp,
     logOut,
-    signInWithGoogle,
+    resetPassword,
+    updateUserProfile,
   };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  
+  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
+  return useContext(AuthContext);
 };
