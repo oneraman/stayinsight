@@ -7,11 +7,15 @@ import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loader2 } from "lucide-react";
+import CustomerSearch from "@/components/CustomerSearch";
+import { useNavigate } from "react-router-dom";
 
 const Customers = () => {
   const [customers, setCustomers] = useState<CustomerData[]>([]);
+  const [filteredCustomers, setFilteredCustomers] = useState<CustomerData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchCustomers = async () => {
@@ -40,6 +44,7 @@ const Customers = () => {
         });
         
         setCustomers(customerData);
+        setFilteredCustomers(customerData);
       } catch (err: any) {
         console.error("Error fetching customers:", err);
         setError(err.message || "Failed to load customer data");
@@ -61,10 +66,23 @@ const Customers = () => {
     return `$${value.toFixed(2)}`;
   };
 
+  const handleSearchResults = (results: CustomerData[]) => {
+    setFilteredCustomers(results.length > 0 ? results : customers);
+  };
+
+  const handleRowClick = (customerId: string) => {
+    navigate(`/customers/${customerId}`);
+  };
+
   return (
     <DashboardLayout>
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-6">Customer Data</h1>
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold mb-4 md:mb-0">Customer Data</h1>
+          <div className="w-full md:w-80">
+            <CustomerSearch customers={customers} onSearch={handleSearchResults} />
+          </div>
+        </div>
         
         <Card>
           <CardHeader>
@@ -79,7 +97,7 @@ const Customers = () => {
               <div className="text-red-500 text-center p-4">
                 {error}
               </div>
-            ) : customers.length === 0 ? (
+            ) : filteredCustomers.length === 0 ? (
               <div className="text-center p-4">
                 No customer data found. Upload a file to get started.
               </div>
@@ -99,16 +117,18 @@ const Customers = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {customers.map((customer) => (
+                    {filteredCustomers.map((customer) => (
                       <TableRow 
                         key={customer.customerId}
-                        className={
-                          customer.segment === 'high-risk' 
-                            ? 'bg-red-50' 
-                            : customer.segment === 'medium-risk' 
-                              ? 'bg-yellow-50' 
-                              : ''
-                        }
+                        className={`
+                          cursor-pointer
+                          ${customer.segment === 'high-risk' 
+                              ? 'bg-red-50' 
+                              : customer.segment === 'medium-risk' 
+                                ? 'bg-yellow-50' 
+                                : ''}
+                        `}
+                        onClick={() => handleRowClick(customer.id || customer.customerId)}
                       >
                         <TableCell>{customer.customerId}</TableCell>
                         <TableCell>{customer.name || 'N/A'}</TableCell>
