@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { 
@@ -17,35 +17,10 @@ import { toast } from "sonner";
 
 const Settings = () => {
   const { currentUser } = useAuth();
-  const [activeTab, setActiveTab] = useState(() => {
-    // Get the last active tab from localStorage if available
-    return localStorage.getItem("settings-tab") || "profile";
-  });
-  
-  // Set up theme from localStorage on initial load
-  useEffect(() => {
-    const storedTheme = localStorage.getItem("theme") || "system";
-    const root = window.document.documentElement;
-    
-    if (storedTheme === "system") {
-      const systemPreference = window.matchMedia("(prefers-color-scheme: dark)").matches 
-        ? "dark" 
-        : "light";
-      root.classList.add(systemPreference);
-    } else {
-      root.classList.add(storedTheme);
-    }
-    
-    // Apply stored font size if available
-    const storedFontSize = localStorage.getItem("fontSize");
-    if (storedFontSize) {
-      document.documentElement.style.fontSize = `${storedFontSize}px`;
-    }
-  }, []);
+  const [activeTab, setActiveTab] = useState("profile");
   
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    localStorage.setItem("settings-tab", value);
   };
 
   const handleSaveSettings = (type: string) => {

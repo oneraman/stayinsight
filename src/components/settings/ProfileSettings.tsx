@@ -1,10 +1,9 @@
 
 import { useState } from "react";
-import { User, updateProfile, updateEmail } from "firebase/auth";
-import { doc, updateDoc } from "firebase/firestore";
-import { firestore } from "@/lib/firebase";
+import { User } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { 
   Form,
   FormControl,
@@ -17,6 +16,7 @@ import {
 import { 
   Card,
   CardContent,
+  CardFooter,
   CardHeader,
   CardTitle
 } from "@/components/ui/card";
@@ -25,7 +25,6 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User as UserIcon, Mail, Phone, Building, Upload } from "lucide-react";
-import { toast } from "sonner";
 
 interface ProfileSettingsProps {
   user: User | null;
@@ -33,9 +32,7 @@ interface ProfileSettingsProps {
 }
 
 const profileFormSchema = z.object({
-  displayName: z.string().min(2, {
-    message: "Name must be at least 2 characters.",
-  }),
+  displayName: z.string().optional(),
   email: z.string().email({
     message: "Please enter a valid email address.",
   }),
@@ -61,57 +58,17 @@ const ProfileSettings = ({ user, onSave }: ProfileSettingsProps) => {
   });
 
   const onSubmit = async (data: ProfileFormValues) => {
-    if (!user) {
-      toast.error("You must be logged in to update your profile");
-      return;
-    }
-    
     setIsLoading(true);
-    
     try {
-      // Update Firebase Auth profile
-      const updates = [];
+      // Here you would typically update the user profile in Firebase
+      console.log("Updating profile with:", data);
       
-      // Update display name if changed
-      if (data.displayName !== user.displayName) {
-        updates.push(updateProfile(user, {
-          displayName: data.displayName
-        }));
-      }
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Update email if changed
-      if (data.email !== user.email) {
-        updates.push(updateEmail(user, data.email));
-      }
-      
-      // Wait for all auth updates to complete
-      await Promise.all(updates);
-      
-      // Update Firestore user document with additional fields
-      if (user.uid) {
-        const userDocRef = doc(firestore, "users", user.uid);
-        await updateDoc(userDocRef, {
-          displayName: data.displayName,
-          email: data.email,
-          phoneNumber: data.phoneNumber || null,
-          company: data.company || null,
-          updatedAt: new Date()
-        });
-      }
-      
-      toast.success("Profile updated successfully");
       onSave();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error updating profile:", error);
-      
-      // Handle specific Firebase errors
-      if (error.code === "auth/requires-recent-login") {
-        toast.error("Please log out and log back in to update your email");
-      } else if (error.code === "auth/email-already-in-use") {
-        toast.error("Email is already in use by another account");
-      } else {
-        toast.error("Failed to update profile: " + (error.message || "Unknown error"));
-      }
     } finally {
       setIsLoading(false);
     }

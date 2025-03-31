@@ -25,7 +25,7 @@ const RiskAssessment = ({ customer }: RiskAssessmentProps) => {
           </div>
           <Progress 
             value={riskScoreValue} 
-            className={`h-2 bg-gray-200 ${getRiskColor(riskScoreValue)}`}
+            className={`h-2 bg-gray-200 ${getRiskColor(customer.segment)}`}
           />
         </div>
         
@@ -40,11 +40,11 @@ const RiskAssessment = ({ customer }: RiskAssessmentProps) => {
           </div>
           <div className="space-y-1">
             <p className="text-sm text-gray-500">Purchase Frequency</p>
-            <p className="font-medium">{customer.purchaseCount || 0} orders</p>
+            <p className="font-medium">{customer.purchaseFrequency || "N/A"} days</p>
           </div>
           <div className="space-y-1">
-            <p className="text-sm text-gray-500">Churn Risk</p>
-            <p className="font-medium">{riskScoreValue}%</p>
+            <p className="text-sm text-gray-500">Churn Probability</p>
+            <p className="font-medium">{customer.churnProbability || 0}%</p>
           </div>
         </div>
       </CardContent>
