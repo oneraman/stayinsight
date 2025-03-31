@@ -1,76 +1,136 @@
 
-import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Calendar } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { doc, getDoc } from "firebase/firestore";
+import { firestore } from "@/lib/firebase";
+import { CustomerData } from "@/utils/dataProcessing";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import DashboardLayout from "@/components/layouts/DashboardLayout";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
+import { formatDate, formatCurrency, getRiskColor } from "@/utils/customerUtils";
 import CustomerHeader from "@/components/customer-profile/CustomerHeader";
 import RiskAssessment from "@/components/customer-profile/RiskAssessment";
 import CustomerValue from "@/components/customer-profile/CustomerValue";
 import RecommendedActions from "@/components/customer-profile/RecommendedActions";
-import { useCustomerProfile } from "@/hooks/useCustomerProfile";
-import { formatDate, formatCurrency, getRecommendations, getRiskColor } from "@/utils/customerUtils";
 
 const CustomerProfile = () => {
   const { customerId } = useParams<{ customerId: string }>();
-  const { customer, loading, error } = useCustomerProfile(customerId);
+  const navigate = useNavigate();
+  const [customer, setCustomer] = useState<CustomerData>({
+    customerId: "",
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState("overview");
+
+  useEffect(() => {
+    const fetchCustomerData = async () => {
+      if (!customerId) {
+        setError("Customer ID is required");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const customerDoc = await getDoc(doc(firestore, "customers", customerId));
+        
+        if (customerDoc.exists()) {
+          const data = customerDoc.data() as CustomerData;
+          setCustomer({
+            ...data,
+            id: customerDoc.id
+          });
+        } else {
+          setError("Customer not found");
+        }
+      } catch (err) {
+        console.error("Error fetching customer:", err);
+        setError("Failed to load customer data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCustomerData();
+  }, [customerId]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen">
+        <h1 className="text-2xl font-bold text-red-500">{error}</h1>
+        <Button onClick={() => navigate("/customers")} className="mt-4">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Customers
+        </Button>
+      </div>
+    );
+  }
 
   return (
-    <DashboardLayout>
-      <div className="p-6">
-        <div className="flex items-center mb-6">
-          <Link to="/customers">
-            <Button variant="ghost" size="sm" className="gap-1">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Customers
-            </Button>
-          </Link>
-          <h1 className="text-2xl font-bold ml-4">Customer Profile</h1>
-        </div>
-        
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <Loader2 className="h-8 w-8 text-primary animate-spin" />
-          </div>
-        ) : error ? (
-          <div className="text-red-500 text-center p-4">
-            {error}
-          </div>
-        ) : customer ? (
-          <div className="space-y-6">
-            {/* Customer Header */}
-            <CustomerHeader 
-              customer={customer} 
-              formatDate={formatDate} 
-            />
-
-            {/* Risk Assessment and Customer Value */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <RiskAssessment 
-                customer={customer} 
-                getRiskColor={getRiskColor} 
-                formatDate={formatDate} 
-              />
-              
-              <CustomerValue 
-                customer={customer} 
-                formatCurrency={formatCurrency} 
-              />
-            </div>
-
-            {/* Recommended Actions */}
-            <RecommendedActions 
-              customer={customer} 
-              getRecommendations={getRecommendations} 
-            />
-          </div>
-        ) : (
-          <div className="text-center p-4">
-            Customer not found
-          </div>
-        )}
+    <div className="container mx-auto py-8 px-4">
+      <div className="mb-6">
+        <Button variant="ghost" size="sm" onClick={() => navigate("/customers")}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Customers
+        </Button>
       </div>
-    </DashboardLayout>
+
+      <CustomerHeader 
+        customer={customer} 
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+      />
+
+      <Tabs value={activeTab} className="mt-6">
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <RiskAssessment customer={customer} />
+            <CustomerValue customer={customer} />
+            <Card>
+              <CardContent className="pt-6">
+                <h3 className="text-lg font-medium mb-2">Purchase History</h3>
+                <div className="text-sm text-gray-500">
+                  <p>Last purchase: {formatDate(customer.lastPurchaseDate)}</p>
+                  <p>Purchase frequency: {customer.purchaseCount || 0} orders</p>
+                  <p>Average order value: {formatCurrency(customer.avgOrderValue)}</p>
+                  <p>Total spent: {formatCurrency(customer.totalSpent)}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          
+          <RecommendedActions customer={customer} />
+        </TabsContent>
+
+        <TabsContent value="purchases">
+          <Card>
+            <CardContent className="pt-6">
+              <h3 className="text-lg font-medium mb-4">Purchase History</h3>
+              <p className="text-gray-500">Detailed purchase history will appear here.</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="engagement">
+          <Card>
+            <CardContent className="pt-6">
+              <h3 className="text-lg font-medium mb-4">Customer Engagement</h3>
+              <p className="text-gray-500">Customer engagement data will appear here.</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 

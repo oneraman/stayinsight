@@ -1,6 +1,4 @@
 
-import { CustomerData } from "./dataProcessing";
-
 // Function to format date to a readable string
 export const formatDate = (date: Date | string | undefined): string => {
   if (!date) return 'N/A';
@@ -11,6 +9,21 @@ export const formatDate = (date: Date | string | undefined): string => {
     month: 'short',
     day: 'numeric',
   });
+};
+
+// Format currency values
+export const formatCurrency = (value: number | undefined): string => {
+  if (value === undefined) return "N/A";
+  return `$${value.toFixed(2)}`;
+};
+
+// Get color based on risk score
+export const getRiskColor = (score: number | undefined): string => {
+  if (!score && score !== 0) return 'bg-gray-200';
+  
+  if (score < 30) return 'bg-green-500';
+  if (score < 70) return 'bg-yellow-500';
+  return 'bg-red-500';
 };
 
 // Get recommendations based on customer data

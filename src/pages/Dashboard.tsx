@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { collection, getDocs, query, orderBy, limit, where } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
@@ -40,7 +39,6 @@ const Dashboard = () => {
         const snapshot = await getDocs(customersQuery);
         const customerData = snapshot.docs.map(doc => {
           const data = doc.data() as CustomerData;
-          // Convert timestamps to dates - safely check if toDate method exists
           if (data.lastPurchaseDate && 
               typeof data.lastPurchaseDate === 'object' && 
               'toDate' in data.lastPurchaseDate && 
@@ -70,10 +68,8 @@ const Dashboard = () => {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
       <div className={`bg-[#1A1F2C] text-white transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'w-0 overflow-hidden' : 'w-64'}`}>
         <div className="flex flex-col h-full">
-          {/* Logo & Brand */}
           <div className="flex items-center p-4 border-b border-gray-800">
             <div className="h-8 w-8 mr-2">
               
@@ -81,7 +77,6 @@ const Dashboard = () => {
             <span className="text-lg font-bold">stayInsights</span>
           </div>
           
-          {/* Navigation */}
           <nav className="flex-1 pt-5">
             <ul className="space-y-2 px-2">
               <li>
@@ -105,7 +100,6 @@ const Dashboard = () => {
             </ul>
           </nav>
           
-          {/* Hide Sidebar Button */}
           <div className="p-4 border-t border-gray-800 mt-auto">
             <Button variant="ghost" onClick={toggleSidebar} className="w-full flex items-center justify-center gap-2 text-gray-300 hover:text-white hover:bg-[#262c3a]">
               <ChevronLeft className="h-4 w-4" />
@@ -115,7 +109,6 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader onToggleSidebar={toggleSidebar} isSidebarCollapsed={sidebarCollapsed} />
 
@@ -139,13 +132,10 @@ const Dashboard = () => {
           </div>
 
           <div className="grid grid-cols-1 gap-6 animate-fade-in">
-            {/* Key Metrics Overview */}
             <MetricsOverview metrics={metrics} />
             
-            {/* Data Visualizations */}
             <DashboardTabs />
             
-            {/* High Risk Customers */}
             <Card>
               <CardHeader>
                 <CardTitle>High Risk Customers</CardTitle>
@@ -166,7 +156,6 @@ const Dashboard = () => {
               </CardContent>
             </Card>
 
-            {/* File Uploader Card */}
             <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
               <h2 className="text-lg font-semibold mb-4">Import Data</h2>
               <FileUploader />
