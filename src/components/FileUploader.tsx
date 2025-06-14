@@ -3,7 +3,7 @@ import { useState, useCallback, useRef } from "react";
 import { Upload, AlertCircle, File, X, CheckCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { uploadFileToStorage, UploadResult, UploadProgress } from "@/utils/fileUpload";
 import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -26,6 +26,8 @@ export const FileUploader = () => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
       setUploadResult(null);
+      // Reset progress when new file is selected
+      setProgressInfo({ phase: 'uploading', progress: 0, message: '' });
     }
   };
 
@@ -52,6 +54,7 @@ export const FileUploader = () => {
       if (fileExtension === 'csv' || fileExtension === 'xls' || fileExtension === 'xlsx') {
         setFile(droppedFile);
         setUploadResult(null);
+        setProgressInfo({ phase: 'uploading', progress: 0, message: '' });
       } else {
         toast({
           title: "Invalid file type",
@@ -65,17 +68,20 @@ export const FileUploader = () => {
   const clearFile = () => {
     setFile(null);
     setUploadResult(null);
+    setProgressInfo({ phase: 'uploading', progress: 0, message: '' });
     const fileInput = document.getElementById("file-upload") as HTMLInputElement;
     if (fileInput) fileInput.value = "";
   };
 
   const cancelUpload = () => {
+    console.log("Cancelling upload, current phase:", progressInfo.phase);
     if (uploadTaskRef.current && progressInfo.phase === 'uploading') {
+      console.log("Cancelling Firebase upload task");
       uploadTaskRef.current.cancel();
       uploadTaskRef.current = null;
     }
     setUploading(false);
-    setProgressInfo({ phase: 'uploading', progress: 0, message: '' });
+    setProgressInfo({ phase: 'uploading', progress: 0, message: 'Upload cancelled' });
     toast({
       title: "Upload cancelled",
       description: "File upload has been cancelled.",
@@ -103,19 +109,22 @@ export const FileUploader = () => {
     }
 
     try {
+      console.log("Starting upload process for file:", file.name);
       setUploading(true);
-      setProgressInfo({ phase: 'uploading', progress: 0, message: 'Starting upload...' });
+      setProgressInfo({ phase: 'uploading', progress: 0, message: 'Preparing upload...' });
       setUploadResult(null);
 
       const result = await uploadFileToStorage(
         file,
         currentUser.uid,
         (progress, uploadTask) => {
+          console.log("Progress update received:", progress);
           uploadTaskRef.current = uploadTask;
           setProgressInfo(progress);
         }
       );
 
+      console.log("Upload process completed with result:", result);
       uploadTaskRef.current = null;
       setUploadResult(result);
 
@@ -243,12 +252,17 @@ export const FileUploader = () => {
         </div>
         
         {uploading && (
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">{progressInfo.message}</span>
-              <span className="text-gray-700 font-medium">{Math.round(progressInfo.progress)}%</span>
+          <div className="space-y-3 bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-blue-700 font-medium">
+                {progressInfo.phase === 'uploading' ? 'Uploading...' : 'Processing...'}
+              </span>
+              <span className="text-blue-900 font-bold">{Math.round(progressInfo.progress)}%</span>
             </div>
-            <Progress value={progressInfo.progress} className="h-3" />
+            <Progress value={progressInfo.progress} className="h-3 bg-blue-100" />
+            <div className="text-sm text-blue-600">
+              {progressInfo.message || 'Working...'}
+            </div>
             <div className="flex justify-center">
               <Button 
                 variant="destructive" 
