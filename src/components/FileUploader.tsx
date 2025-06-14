@@ -1,23 +1,25 @@
-
 import { useState, useCallback } from "react";
-import { Upload, AlertCircle, File, X } from "lucide-react";
+import { Upload, AlertCircle, File, X, CheckCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/components/ui/use-toast";
-import { uploadFileToStorage } from "@/utils/fileUpload";
+import { uploadFileToStorage, UploadResult } from "@/utils/fileUpload";
 import { useAuth } from "@/contexts/AuthContext";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export const FileUploader = () => {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
   const { toast } = useToast();
   const { currentUser } = useAuth();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
+      setUploadResult(null);
     }
   };
 
@@ -40,10 +42,10 @@ export const FileUploader = () => {
     
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const droppedFile = e.dataTransfer.files[0];
-      // Check file type
       const fileExtension = droppedFile.name.split('.').pop()?.toLowerCase();
       if (fileExtension === 'csv' || fileExtension === 'xls' || fileExtension === 'xlsx') {
         setFile(droppedFile);
+        setUploadResult(null);
       } else {
         toast({
           title: "Invalid file type",
@@ -56,7 +58,7 @@ export const FileUploader = () => {
 
   const clearFile = () => {
     setFile(null);
-    // Reset the file input
+    setUploadResult(null);
     const fileInput = document.getElementById("file-upload") as HTMLInputElement;
     if (fileInput) fileInput.value = "";
   };
@@ -83,8 +85,9 @@ export const FileUploader = () => {
     try {
       setUploading(true);
       setUploadProgress(0);
+      setUploadResult(null);
 
-      await uploadFileToStorage(
+      const result = await uploadFileToStorage(
         file,
         currentUser.uid,
         (progress) => {
@@ -92,19 +95,25 @@ export const FileUploader = () => {
         }
       );
 
-      toast({
-        title: "Upload successful",
-        description: "Your file has been uploaded and is being processed.",
-      });
+      setUploadResult(result);
 
-      // Reset state
-      setFile(null);
-      setUploading(false);
-      setUploadProgress(0);
-      
-      // Reset the file input
-      const fileInput = document.getElementById("file-upload") as HTMLInputElement;
-      if (fileInput) fileInput.value = "";
+      if (result.success) {
+        toast({
+          title: "Upload successful",
+          description: result.message,
+        });
+        
+        // Reset file but keep result visible
+        setFile(null);
+        const fileInput = document.getElementById("file-upload") as HTMLInputElement;
+        if (fileInput) fileInput.value = "";
+      } else {
+        toast({
+          title: "Upload failed",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
       
     } catch (error) {
       console.error("Upload error:", error);
@@ -113,12 +122,14 @@ export const FileUploader = () => {
         description: error instanceof Error ? error.message : "An unknown error occurred.",
         variant: "destructive",
       });
+    } finally {
       setUploading(false);
+      setUploadProgress(0);
     }
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full space-y-4">
       <div className="flex flex-col space-y-4">
         <div 
           className={`border-2 border-dashed rounded-lg p-6 transition-colors ${
@@ -197,14 +208,46 @@ export const FileUploader = () => {
           )}
         </div>
         
-        {uploading && file && (
+        {uploading && (
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Uploading...</span>
+              <span className="text-gray-500">Uploading and processing...</span>
               <span className="text-gray-700 font-medium">{uploadProgress.toFixed(0)}%</span>
             </div>
             <Progress value={uploadProgress} className="h-2" />
           </div>
+        )}
+
+        {uploadResult && (
+          <Alert className={uploadResult.success ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}>
+            <div className="flex items-center">
+              {uploadResult.success ? (
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              ) : (
+                <AlertTriangle className="h-4 w-4 text-red-600" />
+              )}
+            </div>
+            <AlertDescription className="ml-2">
+              <div className="space-y-1">
+                <p className={uploadResult.success ? "text-green-800" : "text-red-800"}>
+                  {uploadResult.message}
+                </p>
+                {uploadResult.errors && uploadResult.errors.length > 0 && (
+                  <details className="text-sm text-amber-700">
+                    <summary className="cursor-pointer">View warnings ({uploadResult.errors.length})</summary>
+                    <ul className="mt-1 list-disc list-inside space-y-1">
+                      {uploadResult.errors.slice(0, 5).map((error, index) => (
+                        <li key={index}>{error}</li>
+                      ))}
+                      {uploadResult.errors.length > 5 && (
+                        <li>... and {uploadResult.errors.length - 5} more</li>
+                      )}
+                    </ul>
+                  </details>
+                )}
+              </div>
+            </AlertDescription>
+          </Alert>
         )}
         
         <div className="flex items-start mt-2">

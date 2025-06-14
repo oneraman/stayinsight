@@ -1,40 +1,46 @@
+
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
+import { collection, getDocs, query, limit } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
 import { CustomerData } from "@/utils/dataProcessing";
-import { Link } from "react-router-dom";
-import { LayoutDashboard, Users, Settings, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import { Loader2 } from "lucide-react";
 import MetricsOverview from "@/components/dashboard/MetricsOverview";
 import DashboardTabs from "@/components/dashboard/DashboardTabs";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileUploader } from "@/components/FileUploader";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import HighRiskCustomersTable from "@/components/dashboard/HighRiskCustomersTable";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
+import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 const Dashboard = () => {
   const [timePeriod, setTimePeriod] = useState("30");
   const [highRiskCustomers, setHighRiskCustomers] = useState<CustomerData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [metrics, setMetrics] = useState({
-    churnRate: 4.2,
-    retentionRate: 95.8,
-    customerLifetimeValue: 842,
-    atRiskRevenue: 24500
-  });
+  const [loadingCustomers, setLoadingCustomers] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  
+  const metrics = useDashboardMetrics(timePeriod);
+
+  // Refresh dashboard when file upload completes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRefreshTrigger(prev => prev + 1);
+    }, 5000); // Check for updates every 5 seconds
+
+    return () => clearInterval(interval);
+  }, []);
   
   useEffect(() => {
     const fetchHighRiskCustomers = async () => {
       try {
-        setLoading(true);
-        console.log("Fetching customers...");
+        setLoadingCustomers(true);
+        console.log("Fetching high-risk customers...");
         
-        // Use a simple query without complex filtering
         const customersQuery = query(
           collection(firestore, "customers"),
-          limit(20) // Get more customers and filter in JavaScript
+          limit(100)
         );
         
         const snapshot = await getDocs(customersQuery);
@@ -42,7 +48,6 @@ const Dashboard = () => {
         
         const customerData = snapshot.docs.map(doc => {
           const data = doc.data() as CustomerData;
-          console.log("Processing customer:", data);
           
           if (data.lastPurchaseDate && 
               typeof data.lastPurchaseDate === 'object' && 
@@ -56,23 +61,22 @@ const Dashboard = () => {
           };
         });
         
-        // Filter and sort high-risk customers in JavaScript
         const highRisk = customerData
-          .filter(customer => customer.riskScore && customer.riskScore > 70)
+          .filter(customer => customer.riskScore && customer.riskScore >= 70)
           .sort((a, b) => (b.riskScore || 0) - (a.riskScore || 0))
-          .slice(0, 5);
+          .slice(0, 10);
         
         console.log("High risk customers:", highRisk);
         setHighRiskCustomers(highRisk);
       } catch (err) {
         console.error("Error fetching customers:", err);
       } finally {
-        setLoading(false);
+        setLoadingCustomers(false);
       }
     };
 
     fetchHighRiskCustomers();
-  }, []);
+  }, [refreshTrigger]);
 
   return (
     <DashboardLayout>
@@ -95,23 +99,41 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-6 animate-fade-in">
-        <MetricsOverview metrics={metrics} />
+        {metrics.error && (
+          <Alert className="border-amber-200 bg-amber-50">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-800">
+              {metrics.error}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <MetricsOverview 
+          metrics={{
+            churnRate: metrics.churnRate,
+            retentionRate: metrics.retentionRate,
+            customerLifetimeValue: metrics.customerLifetimeValue,
+            atRiskRevenue: metrics.atRiskRevenue
+          }}
+          loading={metrics.loading}
+        />
         
         <DashboardTabs />
         
         <Card>
           <CardHeader>
-            <CardTitle>High Risk Customers</CardTitle>
+            <CardTitle>High Risk Customers ({highRiskCustomers.length})</CardTitle>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {loadingCustomers ? (
               <div className="flex justify-center items-center h-64">
                 <Loader2 className="h-8 w-8 text-primary animate-spin" />
               </div>
             ) : highRiskCustomers.length === 0 ? (
-              <div className="text-center py-4">
-                <p className="text-gray-500">No high-risk customers found.</p>
-                <p className="text-sm text-gray-400 mt-1">Upload customer data to identify at-risk customers.</p>
+              <div className="text-center py-8">
+                <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500 text-lg">No high-risk customers found.</p>
+                <p className="text-sm text-gray-400 mt-1">Upload customer data below to identify at-risk customers.</p>
               </div>
             ) : (
               <HighRiskCustomersTable customers={highRiskCustomers} />
@@ -119,10 +141,14 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-          <h2 className="text-lg font-semibold mb-4">Import Data</h2>
-          <FileUploader />
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Import Customer Data</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FileUploader />
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );
