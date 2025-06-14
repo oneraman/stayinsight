@@ -1,32 +1,22 @@
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-
-interface Customer {
-  id: string;
-  name: string;
-  company: string;
-  email: string;
-  risk: "low" | "medium" | "high";
-  score: number;
-  subscriptionValue: number;
-}
+import { CustomerData } from "@/utils/dataProcessing";
 
 interface CustomerRiskTableProps {
-  customers?: Customer[];
+  customers?: CustomerData[];
 }
 
 const CustomerRiskTable = ({ customers = [] }: CustomerRiskTableProps) => {
-  const getRiskBadge = (risk: string) => {
-    switch (risk) {
-      case "high":
-        return <Badge className="bg-churnify-red hover:bg-red-600">High</Badge>;
-      case "medium":
-        return <Badge className="bg-churnify-amber hover:bg-amber-600">Medium</Badge>;
-      case "low":
-        return <Badge className="bg-churnify-green hover:bg-green-600">Low</Badge>;
-      default:
-        return null;
+  const getRiskBadge = (riskScore: number | undefined) => {
+    if (!riskScore) return null;
+    
+    if (riskScore >= 70) {
+      return <Badge className="bg-red-500 hover:bg-red-600">High</Badge>;
+    } else if (riskScore >= 30) {
+      return <Badge className="bg-amber-500 hover:bg-amber-600">Medium</Badge>;
+    } else {
+      return <Badge className="bg-green-500 hover:bg-green-600">Low</Badge>;
     }
   };
 
@@ -36,10 +26,10 @@ const CustomerRiskTable = ({ customers = [] }: CustomerRiskTableProps) => {
         <TableHeader>
           <TableRow>
             <TableHead>Customer</TableHead>
-            <TableHead>Company</TableHead>
+            <TableHead>Email</TableHead>
             <TableHead>Risk Level</TableHead>
             <TableHead>Risk Score</TableHead>
-            <TableHead className="text-right">Subscription Value</TableHead>
+            <TableHead className="text-right">Spent Value</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -47,10 +37,10 @@ const CustomerRiskTable = ({ customers = [] }: CustomerRiskTableProps) => {
             customers.map((customer) => (
               <TableRow key={customer.id}>
                 <TableCell className="font-medium">{customer.name}</TableCell>
-                <TableCell>{customer.company}</TableCell>
-                <TableCell>{getRiskBadge(customer.risk)}</TableCell>
-                <TableCell>{customer.score}%</TableCell>
-                <TableCell className="text-right">${customer.subscriptionValue.toLocaleString()}</TableCell>
+                <TableCell>{customer.email}</TableCell>
+                <TableCell>{getRiskBadge(customer.riskScore)}</TableCell>
+                <TableCell>{customer.riskScore}%</TableCell>
+                <TableCell className="text-right">${customer.totalSpent?.toLocaleString()}</TableCell>
               </TableRow>
             ))
           ) : (

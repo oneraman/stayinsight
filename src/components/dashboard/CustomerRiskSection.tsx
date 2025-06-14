@@ -2,10 +2,14 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Filter } from "lucide-react";
-import CustomerRiskTable from "@/components/CustomerRiskTable";
+import CustomerRiskTable from "@/components/dashboard/CustomerRiskTable";
 import { customerData } from "@/data/dashboardData";
+import { CustomerData } from "@/utils/dataProcessing";
 
 const CustomerRiskSection = () => {
+  // Transform the customer data to match the expected structure
+  const formattedCustomers: CustomerData[] = customerData;
+
   return (
     <Card className="p-6">
       <div className="flex justify-between items-center mb-4">
@@ -17,7 +21,7 @@ const CustomerRiskSection = () => {
           Filter
         </Button>
       </div>
-      <CustomerRiskTable customers={customerData} />
+      <CustomerRiskTable customers={formattedCustomers} />
     </Card>
   );
 };
