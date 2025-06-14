@@ -32,10 +32,16 @@ export interface UploadResult {
   message: string;
 }
 
+export interface UploadProgress {
+  phase: 'uploading' | 'processing';
+  progress: number;
+  message: string;
+}
+
 export const uploadFileToStorage = async (
   file: File,
   userId: string,
-  onProgress?: (progress: number, uploadTask?: any) => void
+  onProgress?: (progressInfo: UploadProgress, uploadTask?: any) => void
 ): Promise<UploadResult> => {
   return new Promise((resolve, reject) => {
     try {
@@ -83,7 +89,11 @@ export const uploadFileToStorage = async (
           const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
           console.log("Upload progress:", progress.toFixed(2) + "%");
           if (onProgress) {
-            onProgress(progress, uploadTask);
+            onProgress({
+              phase: 'uploading',
+              progress,
+              message: `Uploading file... ${progress.toFixed(0)}%`
+            }, uploadTask);
           }
         },
         (error) => {
@@ -106,9 +116,27 @@ export const uploadFileToStorage = async (
             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
             console.log("Download URL obtained:", downloadURL);
             
+            // Update progress to processing phase
+            if (onProgress) {
+              onProgress({
+                phase: 'processing',
+                progress: 0,
+                message: "Processing customer data..."
+              });
+            }
+            
             console.log("Starting file processing...");
             const processingResult = await processCustomerDataFile(downloadURL);
             console.log("File processing completed:", processingResult);
+            
+            // Complete processing
+            if (onProgress) {
+              onProgress({
+                phase: 'processing',
+                progress: 100,
+                message: "Processing complete!"
+              });
+            }
             
             resolve({
               success: true,
