@@ -1,4 +1,3 @@
-
 import {
   createContext,
   ReactNode,
@@ -69,14 +68,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Add Google sign-in method
+  // Enhanced Google sign-in method with better error handling
   const signInWithGoogle = async (): Promise<User | null> => {
     try {
+      console.log('Attempting Google sign-in...');
       const result = await signInWithPopup(auth, googleProvider);
+      console.log('Google sign-in successful:', result.user);
       toast.success("Successfully signed in with Google!");
       return result.user;
     } catch (error: any) {
-      toast.error(error.message);
+      console.error('Google sign-in error:', error);
+      
+      // Handle specific Google auth errors
+      if (error.code === 'auth/popup-closed-by-user') {
+        toast.error("Sign-in was cancelled");
+      } else if (error.code === 'auth/popup-blocked') {
+        toast.error("Popup was blocked by browser. Please allow popups and try again.");
+      } else if (error.code === 'auth/unauthorized-domain') {
+        toast.error("This domain is not authorized for Google sign-in");
+      } else {
+        toast.error(error.message || "Failed to sign in with Google");
+      }
       return null;
     }
   };

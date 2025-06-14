@@ -19,6 +19,13 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const storage = getStorage(app);
 const firestore = getFirestore(app);
+
+// Configure Google provider with additional settings
 const googleProvider = new GoogleAuthProvider();
+googleProvider.addScope('email');
+googleProvider.addScope('profile');
+googleProvider.setCustomParameters({
+  prompt: 'select_account'
+});
 
 export { auth, storage, firestore, googleProvider };
