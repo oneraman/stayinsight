@@ -35,7 +35,7 @@ export interface UploadResult {
 export const uploadFileToStorage = async (
   file: File,
   userId: string,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number, uploadTask?: any) => void
 ): Promise<UploadResult> => {
   return new Promise((resolve, reject) => {
     try {
@@ -83,15 +83,22 @@ export const uploadFileToStorage = async (
           const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
           console.log("Upload progress:", progress.toFixed(2) + "%");
           if (onProgress) {
-            onProgress(progress);
+            onProgress(progress, uploadTask);
           }
         },
         (error) => {
           console.error("Upload error:", error);
-          resolve({
-            success: false,
-            message: `Upload failed: ${error.message}`
-          });
+          if (error.code === 'storage/canceled') {
+            resolve({
+              success: false,
+              message: "Upload was cancelled"
+            });
+          } else {
+            resolve({
+              success: false,
+              message: `Upload failed: ${error.message}`
+            });
+          }
         },
         async () => {
           console.log("Upload completed, getting download URL");

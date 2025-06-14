@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+
+import { useState, useCallback, useRef } from "react";
 import { Upload, AlertCircle, File, X, CheckCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -13,6 +14,7 @@ export const FileUploader = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
+  const uploadTaskRef = useRef<any>(null);
   const { toast } = useToast();
   const { currentUser } = useAuth();
 
@@ -63,6 +65,20 @@ export const FileUploader = () => {
     if (fileInput) fileInput.value = "";
   };
 
+  const cancelUpload = () => {
+    if (uploadTaskRef.current) {
+      uploadTaskRef.current.cancel();
+      uploadTaskRef.current = null;
+      setUploading(false);
+      setUploadProgress(0);
+      toast({
+        title: "Upload cancelled",
+        description: "File upload has been cancelled.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleUpload = async () => {
     if (!file) {
       toast({
@@ -90,11 +106,13 @@ export const FileUploader = () => {
       const result = await uploadFileToStorage(
         file,
         currentUser.uid,
-        (progress) => {
+        (progress, uploadTask) => {
+          uploadTaskRef.current = uploadTask;
           setUploadProgress(progress);
         }
       );
 
+      uploadTaskRef.current = null;
       setUploadResult(result);
 
       if (result.success) {
@@ -117,6 +135,7 @@ export const FileUploader = () => {
       
     } catch (error) {
       console.error("Upload error:", error);
+      uploadTaskRef.current = null;
       toast({
         title: "Upload failed",
         description: error instanceof Error ? error.message : "An unknown error occurred.",
@@ -198,10 +217,20 @@ export const FileUploader = () => {
                     </Button>
                   </>
                 ) : (
-                  <div className="flex items-center w-24">
-                    <span className="text-xs text-gray-500 mr-2">{uploadProgress.toFixed(0)}%</span>
-                    <Progress value={uploadProgress} className="h-2 w-full" />
-                  </div>
+                  <>
+                    <div className="flex items-center w-24">
+                      <span className="text-xs text-gray-500 mr-2">{uploadProgress.toFixed(0)}%</span>
+                      <Progress value={uploadProgress} className="h-2 w-full" />
+                    </div>
+                    <Button 
+                      variant="destructive" 
+                      size="sm" 
+                      onClick={cancelUpload}
+                      className="h-8"
+                    >
+                      Cancel
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
