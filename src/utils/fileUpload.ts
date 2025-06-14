@@ -108,6 +108,7 @@ export const uploadFileToStorage = async (
           try {
             console.log("Upload completed, getting download URL");
             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            console.log("Download URL obtained:", downloadURL);
             
             // Start processing with progress updates
             onProgress?.({
@@ -116,9 +117,11 @@ export const uploadFileToStorage = async (
               message: 'Starting file processing...'
             });
             
+            console.log("Starting file processing...");
             const processingResult = await processCustomerDataFile(
               downloadURL,
               (progress, message) => {
+                console.log(`Processing progress: ${progress}% - ${message}`);
                 onProgress?.({
                   phase: 'processing',
                   progress,
@@ -127,6 +130,7 @@ export const uploadFileToStorage = async (
               }
             );
             
+            console.log("Processing completed:", processingResult);
             resolve({
               success: true,
               downloadURL,
