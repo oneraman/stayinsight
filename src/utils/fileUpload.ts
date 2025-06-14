@@ -83,12 +83,16 @@ export const uploadFileToStorage = async (
         "state_changed",
         (snapshot) => {
           const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          console.log("Upload progress:", progress.toFixed(2) + "%");
-          onProgress?.({
-            phase: 'uploading',
-            progress,
-            message: `Uploading file... ${Math.round(progress)}%`
-          }, uploadTask);
+          console.log("Firebase upload progress:", progress.toFixed(2) + "%");
+          
+          // Call progress callback immediately
+          if (onProgress) {
+            onProgress({
+              phase: 'uploading',
+              progress,
+              message: `Uploading file... ${Math.round(progress)}%`
+            }, uploadTask);
+          }
         },
         (error) => {
           console.error("Upload error:", error);
@@ -110,23 +114,27 @@ export const uploadFileToStorage = async (
             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
             console.log("Download URL obtained:", downloadURL);
             
-            // Start processing with progress updates
-            onProgress?.({
-              phase: 'processing',
-              progress: 0,
-              message: 'Starting file processing...'
-            });
+            // Update progress to processing phase
+            if (onProgress) {
+              onProgress({
+                phase: 'processing',
+                progress: 0,
+                message: 'Starting file processing...'
+              });
+            }
             
             console.log("Starting file processing...");
             const processingResult = await processCustomerDataFile(
               downloadURL,
               (progress, message) => {
                 console.log(`Processing progress: ${progress}% - ${message}`);
-                onProgress?.({
-                  phase: 'processing',
-                  progress,
-                  message
-                });
+                if (onProgress) {
+                  onProgress({
+                    phase: 'processing',
+                    progress,
+                    message
+                  });
+                }
               }
             );
             

@@ -4,30 +4,33 @@ import { Upload, AlertCircle, File, X, CheckCircle, AlertTriangle } from "lucide
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { uploadFileToStorage, UploadResult, UploadProgress } from "@/utils/fileUpload";
+import { uploadFileToStorage, UploadResult } from "@/utils/fileUpload";
 import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export const FileUploader = () => {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [progressInfo, setProgressInfo] = useState<UploadProgress>({ 
-    phase: 'uploading', 
-    progress: 0, 
-    message: '' 
-  });
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadPhase, setUploadPhase] = useState<'uploading' | 'processing'>('uploading');
+  const [statusMessage, setStatusMessage] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
   const uploadTaskRef = useRef<any>(null);
   const { toast } = useToast();
   const { currentUser } = useAuth();
 
+  const resetUploadState = () => {
+    setUploadProgress(0);
+    setUploadPhase('uploading');
+    setStatusMessage('');
+    setUploadResult(null);
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
-      setUploadResult(null);
-      // Reset progress when new file is selected
-      setProgressInfo({ phase: 'uploading', progress: 0, message: '' });
+      resetUploadState();
     }
   };
 
@@ -53,8 +56,7 @@ export const FileUploader = () => {
       const fileExtension = droppedFile.name.split('.').pop()?.toLowerCase();
       if (fileExtension === 'csv' || fileExtension === 'xls' || fileExtension === 'xlsx') {
         setFile(droppedFile);
-        setUploadResult(null);
-        setProgressInfo({ phase: 'uploading', progress: 0, message: '' });
+        resetUploadState();
       } else {
         toast({
           title: "Invalid file type",
@@ -67,21 +69,20 @@ export const FileUploader = () => {
 
   const clearFile = () => {
     setFile(null);
-    setUploadResult(null);
-    setProgressInfo({ phase: 'uploading', progress: 0, message: '' });
+    resetUploadState();
     const fileInput = document.getElementById("file-upload") as HTMLInputElement;
     if (fileInput) fileInput.value = "";
   };
 
   const cancelUpload = () => {
-    console.log("Cancelling upload, current phase:", progressInfo.phase);
-    if (uploadTaskRef.current && progressInfo.phase === 'uploading') {
+    console.log("Cancelling upload, current phase:", uploadPhase);
+    if (uploadTaskRef.current && uploadPhase === 'uploading') {
       console.log("Cancelling Firebase upload task");
       uploadTaskRef.current.cancel();
       uploadTaskRef.current = null;
     }
     setUploading(false);
-    setProgressInfo({ phase: 'uploading', progress: 0, message: 'Upload cancelled' });
+    setStatusMessage('Upload cancelled');
     toast({
       title: "Upload cancelled",
       description: "File upload has been cancelled.",
@@ -111,16 +112,22 @@ export const FileUploader = () => {
     try {
       console.log("Starting upload process for file:", file.name);
       setUploading(true);
-      setProgressInfo({ phase: 'uploading', progress: 0, message: 'Preparing upload...' });
+      setUploadProgress(0);
+      setUploadPhase('uploading');
+      setStatusMessage('Preparing upload...');
       setUploadResult(null);
 
       const result = await uploadFileToStorage(
         file,
         currentUser.uid,
-        (progress, uploadTask) => {
-          console.log("Progress update received:", progress);
+        (progressInfo, uploadTask) => {
+          console.log("Progress update received:", progressInfo);
           uploadTaskRef.current = uploadTask;
-          setProgressInfo(progress);
+          
+          // Update state directly for immediate UI response
+          setUploadProgress(progressInfo.progress);
+          setUploadPhase(progressInfo.phase);
+          setStatusMessage(progressInfo.message);
         }
       );
 
@@ -156,7 +163,6 @@ export const FileUploader = () => {
       });
     } finally {
       setUploading(false);
-      setProgressInfo({ phase: 'uploading', progress: 0, message: '' });
     }
   };
 
@@ -232,17 +238,17 @@ export const FileUploader = () => {
                 ) : (
                   <>
                     <div className="flex items-center w-24">
-                      <span className="text-xs text-gray-500 mr-2">{Math.round(progressInfo.progress)}%</span>
-                      <Progress value={progressInfo.progress} className="h-2 w-full" />
+                      <span className="text-xs text-gray-500 mr-2">{Math.round(uploadProgress)}%</span>
+                      <Progress value={uploadProgress} className="h-2 w-full" />
                     </div>
                     <Button 
                       variant="destructive" 
                       size="sm" 
                       onClick={cancelUpload}
-                      disabled={progressInfo.phase === 'processing'}
+                      disabled={uploadPhase === 'processing'}
                       className="h-8"
                     >
-                      {progressInfo.phase === 'processing' ? 'Processing...' : 'Cancel'}
+                      {uploadPhase === 'processing' ? 'Processing...' : 'Cancel'}
                     </Button>
                   </>
                 )}
@@ -255,22 +261,22 @@ export const FileUploader = () => {
           <div className="space-y-3 bg-blue-50 p-4 rounded-lg border border-blue-200">
             <div className="flex justify-between items-center text-sm">
               <span className="text-blue-700 font-medium">
-                {progressInfo.phase === 'uploading' ? 'Uploading...' : 'Processing...'}
+                {uploadPhase === 'uploading' ? 'Uploading File...' : 'Processing Data...'}
               </span>
-              <span className="text-blue-900 font-bold">{Math.round(progressInfo.progress)}%</span>
+              <span className="text-blue-900 font-bold">{Math.round(uploadProgress)}%</span>
             </div>
-            <Progress value={progressInfo.progress} className="h-3 bg-blue-100" />
+            <Progress value={uploadProgress} className="h-3 bg-blue-100" />
             <div className="text-sm text-blue-600">
-              {progressInfo.message || 'Working...'}
+              {statusMessage || 'Working...'}
             </div>
             <div className="flex justify-center">
               <Button 
                 variant="destructive" 
                 size="sm" 
                 onClick={cancelUpload}
-                disabled={progressInfo.phase === 'processing'}
+                disabled={uploadPhase === 'processing'}
               >
-                {progressInfo.phase === 'processing' ? 'Processing...' : 'Cancel Upload'}
+                {uploadPhase === 'processing' ? 'Processing...' : 'Cancel Upload'}
               </Button>
             </div>
           </div>
