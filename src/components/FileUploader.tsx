@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useRef } from "react";
 import { Upload, AlertCircle, File, X, CheckCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 export const FileUploader = () => {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [progressInfo, setProgressInfo] = useState<UploadProgress>({ phase: 'uploading', progress: 0, message: '' });
+  const [progressInfo, setProgressInfo] = useState<UploadProgress>({ 
+    phase: 'uploading', 
+    progress: 0, 
+    message: '' 
+  });
   const [isDragging, setIsDragging] = useState(false);
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
   const uploadTaskRef = useRef<any>(null);
@@ -65,17 +70,17 @@ export const FileUploader = () => {
   };
 
   const cancelUpload = () => {
-    if (uploadTaskRef.current) {
+    if (uploadTaskRef.current && progressInfo.phase === 'uploading') {
       uploadTaskRef.current.cancel();
       uploadTaskRef.current = null;
-      setUploading(false);
-      setProgressInfo({ phase: 'uploading', progress: 0, message: '' });
-      toast({
-        title: "Upload cancelled",
-        description: "File upload has been cancelled.",
-        variant: "destructive",
-      });
     }
+    setUploading(false);
+    setProgressInfo({ phase: 'uploading', progress: 0, message: '' });
+    toast({
+      title: "Upload cancelled",
+      description: "File upload has been cancelled.",
+      variant: "destructive",
+    });
   };
 
   const handleUpload = async () => {
@@ -218,16 +223,17 @@ export const FileUploader = () => {
                 ) : (
                   <>
                     <div className="flex items-center w-24">
-                      <span className="text-xs text-gray-500 mr-2">{progressInfo.progress.toFixed(0)}%</span>
+                      <span className="text-xs text-gray-500 mr-2">{Math.round(progressInfo.progress)}%</span>
                       <Progress value={progressInfo.progress} className="h-2 w-full" />
                     </div>
                     <Button 
                       variant="destructive" 
                       size="sm" 
                       onClick={cancelUpload}
+                      disabled={progressInfo.phase === 'processing'}
                       className="h-8"
                     >
-                      Cancel
+                      {progressInfo.phase === 'processing' ? 'Processing...' : 'Cancel'}
                     </Button>
                   </>
                 )}
@@ -239,10 +245,10 @@ export const FileUploader = () => {
         {uploading && (
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">{progressInfo.message}</span>
-              <span className="text-gray-700 font-medium">{progressInfo.progress.toFixed(0)}%</span>
+              <span className="text-gray-600">{progressInfo.message}</span>
+              <span className="text-gray-700 font-medium">{Math.round(progressInfo.progress)}%</span>
             </div>
-            <Progress value={progressInfo.progress} className="h-2" />
+            <Progress value={progressInfo.progress} className="h-3" />
             <div className="flex justify-center">
               <Button 
                 variant="destructive" 
@@ -250,7 +256,7 @@ export const FileUploader = () => {
                 onClick={cancelUpload}
                 disabled={progressInfo.phase === 'processing'}
               >
-                {progressInfo.phase === 'processing' ? 'Processing...' : 'Cancel'}
+                {progressInfo.phase === 'processing' ? 'Processing...' : 'Cancel Upload'}
               </Button>
             </div>
           </div>

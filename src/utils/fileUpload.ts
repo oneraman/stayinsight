@@ -1,3 +1,4 @@
+
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { storage } from "@/lib/firebase";
 import { processCustomerDataFile } from "./dataProcessing";
@@ -46,7 +47,7 @@ export const uploadFileToStorage = async (
     try {
       console.log("Starting file upload for:", file.name);
       
-      // Validate file extension
+      // Validate file
       if (!isValidFileExtension(file.name)) {
         resolve({
           success: false,
@@ -55,7 +56,6 @@ export const uploadFileToStorage = async (
         return;
       }
 
-      // Validate file type
       if (!isValidFileType(file.type) && file.type !== "") {
         resolve({
           success: false,
@@ -64,7 +64,6 @@ export const uploadFileToStorage = async (
         return;
       }
 
-      // Validate file size
       if (!isValidFileSize(file.size)) {
         resolve({
           success: false,
@@ -78,8 +77,6 @@ export const uploadFileToStorage = async (
       const fileName = `customer_data_${timestamp}.${fileExtension}`;
       const storageRef = ref(storage, `customer_data/${userId}/${fileName}`);
 
-      console.log("Upload reference created:", fileName);
-
       const uploadTask = uploadBytesResumable(storageRef, file);
 
       uploadTask.on(
@@ -87,13 +84,11 @@ export const uploadFileToStorage = async (
         (snapshot) => {
           const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
           console.log("Upload progress:", progress.toFixed(2) + "%");
-          if (onProgress) {
-            onProgress({
-              phase: 'uploading',
-              progress,
-              message: `Uploading file... ${progress.toFixed(0)}%`
-            }, uploadTask);
-          }
+          onProgress?.({
+            phase: 'uploading',
+            progress,
+            message: `Uploading file... ${Math.round(progress)}%`
+          }, uploadTask);
         },
         (error) => {
           console.error("Upload error:", error);
@@ -110,26 +105,27 @@ export const uploadFileToStorage = async (
           }
         },
         async () => {
-          console.log("Upload completed, getting download URL");
           try {
+            console.log("Upload completed, getting download URL");
             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            console.log("Download URL obtained:", downloadURL);
             
-            console.log("Starting file processing...");
+            // Start processing with progress updates
+            onProgress?.({
+              phase: 'processing',
+              progress: 0,
+              message: 'Starting file processing...'
+            });
+            
             const processingResult = await processCustomerDataFile(
-              downloadURL, 
+              downloadURL,
               (progress, message) => {
-                if (onProgress) {
-                  onProgress({
-                    phase: 'processing',
-                    progress,
-                    message
-                  });
-                }
+                onProgress?.({
+                  phase: 'processing',
+                  progress,
+                  message
+                });
               }
             );
-            
-            console.log("File processing completed:", processingResult);
             
             resolve({
               success: true,

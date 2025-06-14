@@ -1,3 +1,4 @@
+
 import { collection, addDoc, serverTimestamp, writeBatch, doc } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
 import { getDownloadURL, ref } from "firebase/storage";
@@ -110,62 +111,6 @@ const validateCustomerData = (row: any, index: number): { isValid: boolean; erro
   };
 };
 
-// Process Excel file data
-const processExcelData = (data: any[], onProgress?: (progress: number, message: string) => void): { customers: CustomerData[]; errors: string[] } => {
-  console.log("Processing Excel data:", data.length, "rows");
-  
-  const customers: CustomerData[] = [];
-  const allErrors: string[] = [];
-  
-  data.forEach((row, index) => {
-    // Report progress every 100 rows
-    if (onProgress && index % 100 === 0) {
-      const progress = (index / data.length) * 100;
-      onProgress(progress, `Processing row ${index + 1} of ${data.length}...`);
-    }
-    
-    console.log(`Processing row ${index + 1}:`, row);
-    
-    const validation = validateCustomerData(row, index);
-    if (!validation.isValid) {
-      allErrors.push(...validation.errors);
-      return;
-    }
-    
-    try {
-      const customerData: CustomerData = {
-        customerId: row.customer_id || row.customerId || row.id || `C${Math.random().toString(36).substring(2, 10)}`,
-        email: row.email || row.email_address,
-        name: row.name || row.customer_name || row.fullname || `${row.first_name || ''} ${row.last_name || ''}`.trim(),
-        lastPurchaseDate: parseDate(row.last_purchase_date || row.lastPurchaseDate || row.last_order_date),
-        purchaseCount: Number(row.purchase_count || row.purchaseCount || row.order_count) || undefined,
-        totalSpent: Number(row.total_spent || row.totalSpent || row.lifetime_value) || undefined,
-        avgOrderValue: Number(row.avg_order_value || row.avgOrderValue) || undefined
-      };
-      
-      customerData.riskScore = calculateRiskScore(
-        customerData.lastPurchaseDate,
-        customerData.purchaseCount,
-        customerData.totalSpent
-      );
-      
-      customerData.segment = determineSegment(customerData.riskScore);
-      
-      console.log(`Processed customer:`, customerData);
-      customers.push(customerData);
-    } catch (error) {
-      console.error(`Error processing row ${index + 1}:`, error);
-      allErrors.push(`Row ${index + 1}: Processing error - ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  });
-  
-  if (onProgress) {
-    onProgress(100, `Completed processing ${customers.length} customers`);
-  }
-  
-  return { customers, errors: allErrors };
-};
-
 // Main function to process customer data from uploaded file
 export const processCustomerDataFile = async (
   fileUrl: string, 
@@ -180,22 +125,15 @@ export const processCustomerDataFile = async (
       throw new Error(`Failed to fetch file: ${response.statusText}`);
     }
     
-    onProgress?.(20, "Parsing file data...");
+    onProgress?.(20, "Reading file data...");
     const fileBlob = await response.blob();
-    console.log("File blob created, size:", fileBlob.size);
-    
     const arrayBuffer = await fileBlob.arrayBuffer();
-    console.log("Array buffer created, size:", arrayBuffer.byteLength);
     
-    onProgress?.(30, "Reading spreadsheet...");
+    onProgress?.(30, "Parsing spreadsheet...");
     const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-    console.log("Workbook parsed, sheets:", workbook.SheetNames);
-    
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
-    
     const data = XLSX.utils.sheet_to_json(worksheet);
-    console.log("Data converted to JSON, rows:", data.length);
     
     if (data.length === 0) {
       throw new Error("The uploaded file appears to be empty or has no valid data rows.");
@@ -203,32 +141,60 @@ export const processCustomerDataFile = async (
     
     onProgress?.(40, "Validating customer data...");
     
-    const { customers, errors } = processExcelData(data, (progress, message) => {
-      // Map processing progress to 40-70% range
-      const mappedProgress = 40 + (progress * 0.3);
-      onProgress?.(mappedProgress, message);
-    });
+    const customers: CustomerData[] = [];
+    const allErrors: string[] = [];
     
-    console.log("Data processed, customers:", customers.length, "errors:", errors.length);
+    data.forEach((row, index) => {
+      // Update progress for every 100 rows
+      if (index % 100 === 0) {
+        const progress = 40 + ((index / data.length) * 30);
+        onProgress?.(progress, `Processing row ${index + 1} of ${data.length}...`);
+      }
+      
+      const validation = validateCustomerData(row, index);
+      if (!validation.isValid) {
+        allErrors.push(...validation.errors);
+        return;
+      }
+      
+      try {
+        const customerData: CustomerData = {
+          customerId: row.customer_id || row.customerId || row.id || `C${Math.random().toString(36).substring(2, 10)}`,
+          email: row.email || row.email_address,
+          name: row.name || row.customer_name || row.fullname || `${row.first_name || ''} ${row.last_name || ''}`.trim(),
+          lastPurchaseDate: parseDate(row.last_purchase_date || row.lastPurchaseDate || row.last_order_date),
+          purchaseCount: Number(row.purchase_count || row.purchaseCount || row.order_count) || undefined,
+          totalSpent: Number(row.total_spent || row.totalSpent || row.lifetime_value) || undefined,
+          avgOrderValue: Number(row.avg_order_value || row.avgOrderValue) || undefined
+        };
+        
+        customerData.riskScore = calculateRiskScore(
+          customerData.lastPurchaseDate,
+          customerData.purchaseCount,
+          customerData.totalSpent
+        );
+        
+        customerData.segment = determineSegment(customerData.riskScore);
+        customers.push(customerData);
+      } catch (error) {
+        console.error(`Error processing row ${index + 1}:`, error);
+        allErrors.push(`Row ${index + 1}: Processing error - ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    });
     
     if (customers.length === 0) {
       throw new Error("No valid customer records found in the file.");
     }
     
     onProgress?.(70, "Storing customer data...");
-    await storeCustomerData(customers, (progress, message) => {
-      // Map storage progress to 70-100% range
-      const mappedProgress = 70 + (progress * 0.3);
-      onProgress?.(mappedProgress, message);
-    });
+    await storeCustomerData(customers, onProgress);
     
     onProgress?.(100, "Processing complete!");
-    console.log("Data stored in Firestore successfully");
     
     return {
       success: true,
       customersProcessed: customers.length,
-      errors
+      errors: allErrors
     };
   } catch (error) {
     console.error("Error processing file:", error);
@@ -267,7 +233,7 @@ const storeCustomerData = async (
     
     // Execute batches with progress tracking
     for (let i = 0; i < batches.length; i++) {
-      const progress = ((i + 1) / batches.length) * 100;
+      const progress = 70 + (((i + 1) / batches.length) * 30);
       onProgress?.(progress, `Storing batch ${i + 1} of ${batches.length}...`);
       
       await batches[i].commit();
