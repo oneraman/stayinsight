@@ -1,4 +1,3 @@
-
 import { collection, addDoc, serverTimestamp, writeBatch, doc } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
 import { getDownloadURL, ref } from "firebase/storage";
@@ -112,13 +111,19 @@ const validateCustomerData = (row: any, index: number): { isValid: boolean; erro
 };
 
 // Process Excel file data
-const processExcelData = (data: any[]): { customers: CustomerData[]; errors: string[] } => {
+const processExcelData = (data: any[], onProgress?: (progress: number, message: string) => void): { customers: CustomerData[]; errors: string[] } => {
   console.log("Processing Excel data:", data.length, "rows");
   
   const customers: CustomerData[] = [];
   const allErrors: string[] = [];
   
   data.forEach((row, index) => {
+    // Report progress every 100 rows
+    if (onProgress && index % 100 === 0) {
+      const progress = (index / data.length) * 100;
+      onProgress(progress, `Processing row ${index + 1} of ${data.length}...`);
+    }
+    
     console.log(`Processing row ${index + 1}:`, row);
     
     const validation = validateCustomerData(row, index);
@@ -154,25 +159,35 @@ const processExcelData = (data: any[]): { customers: CustomerData[]; errors: str
     }
   });
   
+  if (onProgress) {
+    onProgress(100, `Completed processing ${customers.length} customers`);
+  }
+  
   return { customers, errors: allErrors };
 };
 
 // Main function to process customer data from uploaded file
-export const processCustomerDataFile = async (fileUrl: string): Promise<{ success: boolean; customersProcessed: number; errors: string[] }> => {
+export const processCustomerDataFile = async (
+  fileUrl: string, 
+  onProgress?: (progress: number, message: string) => void
+): Promise<{ success: boolean; customersProcessed: number; errors: string[] }> => {
   try {
     console.log("Starting to process file from URL:", fileUrl);
     
+    onProgress?.(10, "Downloading file...");
     const response = await fetch(fileUrl);
     if (!response.ok) {
       throw new Error(`Failed to fetch file: ${response.statusText}`);
     }
     
+    onProgress?.(20, "Parsing file data...");
     const fileBlob = await response.blob();
     console.log("File blob created, size:", fileBlob.size);
     
     const arrayBuffer = await fileBlob.arrayBuffer();
     console.log("Array buffer created, size:", arrayBuffer.byteLength);
     
+    onProgress?.(30, "Reading spreadsheet...");
     const workbook = XLSX.read(arrayBuffer, { type: 'array' });
     console.log("Workbook parsed, sheets:", workbook.SheetNames);
     
@@ -186,14 +201,28 @@ export const processCustomerDataFile = async (fileUrl: string): Promise<{ succes
       throw new Error("The uploaded file appears to be empty or has no valid data rows.");
     }
     
-    const { customers, errors } = processExcelData(data);
+    onProgress?.(40, "Validating customer data...");
+    
+    const { customers, errors } = processExcelData(data, (progress, message) => {
+      // Map processing progress to 40-70% range
+      const mappedProgress = 40 + (progress * 0.3);
+      onProgress?.(mappedProgress, message);
+    });
+    
     console.log("Data processed, customers:", customers.length, "errors:", errors.length);
     
     if (customers.length === 0) {
       throw new Error("No valid customer records found in the file.");
     }
     
-    await storeCustomerData(customers);
+    onProgress?.(70, "Storing customer data...");
+    await storeCustomerData(customers, (progress, message) => {
+      // Map storage progress to 70-100% range
+      const mappedProgress = 70 + (progress * 0.3);
+      onProgress?.(mappedProgress, message);
+    });
+    
+    onProgress?.(100, "Processing complete!");
     console.log("Data stored in Firestore successfully");
     
     return {
@@ -208,14 +237,17 @@ export const processCustomerDataFile = async (fileUrl: string): Promise<{ succes
 };
 
 // Store processed customer data in Firestore using batched writes
-const storeCustomerData = async (customers: CustomerData[]): Promise<void> => {
+const storeCustomerData = async (
+  customers: CustomerData[], 
+  onProgress?: (progress: number, message: string) => void
+): Promise<void> => {
   try {
     console.log(`Starting to store ${customers.length} customers in Firestore`);
     
-    // Use batched writes for better performance
-    const batchSize = 500; // Firestore batch limit
+    const batchSize = 500;
     const batches = [];
     
+    // Create batches
     for (let i = 0; i < customers.length; i += batchSize) {
       const batch = writeBatch(firestore);
       const batchCustomers = customers.slice(i, i + batchSize);
@@ -233,8 +265,15 @@ const storeCustomerData = async (customers: CustomerData[]): Promise<void> => {
       batches.push(batch);
     }
     
-    // Execute all batches
-    await Promise.all(batches.map(batch => batch.commit()));
+    // Execute batches with progress tracking
+    for (let i = 0; i < batches.length; i++) {
+      const progress = ((i + 1) / batches.length) * 100;
+      onProgress?.(progress, `Storing batch ${i + 1} of ${batches.length}...`);
+      
+      await batches[i].commit();
+      console.log(`Batch ${i + 1} committed successfully`);
+    }
+    
     console.log(`Successfully stored ${customers.length} customer records in Firestore`);
   } catch (error) {
     console.error("Error storing customer data:", error);

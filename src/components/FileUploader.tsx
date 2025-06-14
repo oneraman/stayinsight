@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useRef } from "react";
 import { Upload, AlertCircle, File, X, CheckCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -219,8 +218,8 @@ export const FileUploader = () => {
                 ) : (
                   <>
                     <div className="flex items-center w-24">
-                      <span className="text-xs text-gray-500 mr-2">{uploadProgress.toFixed(0)}%</span>
-                      <Progress value={uploadProgress} className="h-2 w-full" />
+                      <span className="text-xs text-gray-500 mr-2">{progressInfo.progress.toFixed(0)}%</span>
+                      <Progress value={progressInfo.progress} className="h-2 w-full" />
                     </div>
                     <Button 
                       variant="destructive" 

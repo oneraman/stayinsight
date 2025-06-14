@@ -1,4 +1,3 @@
-
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { storage } from "@/lib/firebase";
 import { processCustomerDataFile } from "./dataProcessing";
@@ -116,27 +115,21 @@ export const uploadFileToStorage = async (
             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
             console.log("Download URL obtained:", downloadURL);
             
-            // Update progress to processing phase
-            if (onProgress) {
-              onProgress({
-                phase: 'processing',
-                progress: 0,
-                message: "Processing customer data..."
-              });
-            }
-            
             console.log("Starting file processing...");
-            const processingResult = await processCustomerDataFile(downloadURL);
-            console.log("File processing completed:", processingResult);
+            const processingResult = await processCustomerDataFile(
+              downloadURL, 
+              (progress, message) => {
+                if (onProgress) {
+                  onProgress({
+                    phase: 'processing',
+                    progress,
+                    message
+                  });
+                }
+              }
+            );
             
-            // Complete processing
-            if (onProgress) {
-              onProgress({
-                phase: 'processing',
-                progress: 100,
-                message: "Processing complete!"
-              });
-            }
+            console.log("File processing completed:", processingResult);
             
             resolve({
               success: true,
