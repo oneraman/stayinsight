@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, where, Timestamp } from "firebase/firestore";
+import { collection, getDocs, query, Timestamp } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
 import { CustomerData } from "@/utils/dataProcessing";
 
@@ -43,11 +43,16 @@ export const useDashboardMetrics = (timePeriod: string = "30") => {
         const customers: CustomerData[] = snapshot.docs.map(doc => {
           const data = doc.data() as CustomerData;
           
-          // Convert Firestore timestamps to dates
-          if (data.lastPurchaseDate && 
-              typeof data.lastPurchaseDate === 'object' && 
-              'toDate' in data.lastPurchaseDate) {
-            data.lastPurchaseDate = (data.lastPurchaseDate as Timestamp).toDate();
+          // Convert Firestore timestamps to dates properly
+          if (data.lastPurchaseDate) {
+            if (data.lastPurchaseDate instanceof Timestamp) {
+              data.lastPurchaseDate = data.lastPurchaseDate.toDate();
+            } else if (typeof data.lastPurchaseDate === 'object' && 
+                      data.lastPurchaseDate !== null &&
+                      'toDate' in data.lastPurchaseDate &&
+                      typeof data.lastPurchaseDate.toDate === 'function') {
+              data.lastPurchaseDate = data.lastPurchaseDate.toDate();
+            }
           }
           
           return {
