@@ -1,6 +1,6 @@
-
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { storage } from "@/lib/firebase";
+import { processCustomerDataFile } from "./dataProcessing";
 
 // Supported file types
 export const SUPPORTED_FILE_TYPES = [
@@ -34,6 +34,8 @@ export const uploadFileToStorage = async (
 ): Promise<string> => {
   return new Promise((resolve, reject) => {
     try {
+      console.log("Starting file upload for:", file.name);
+      
       // Validate file extension
       if (!isValidFileExtension(file.name)) {
         reject(new Error("Invalid file extension. Only CSV, XLS, and XLSX files are supported."));
@@ -58,6 +60,8 @@ export const uploadFileToStorage = async (
       const fileName = `customer_data_${timestamp}.${fileExtension}`;
       const storageRef = ref(storage, `customer_data/${userId}/${fileName}`);
 
+      console.log("Upload reference created:", fileName);
+
       // Start uploading the file
       const uploadTask = uploadBytesResumable(storageRef, file);
 
@@ -67,21 +71,37 @@ export const uploadFileToStorage = async (
         (snapshot) => {
           // Track upload progress
           const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          console.log("Upload progress:", progress.toFixed(2) + "%");
           if (onProgress) {
             onProgress(progress);
           }
         },
         (error) => {
           // Handle errors
+          console.error("Upload error:", error);
           reject(error);
         },
         async () => {
           // Upload completed successfully
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          resolve(downloadURL);
+          console.log("Upload completed, getting download URL");
+          try {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            console.log("Download URL obtained:", downloadURL);
+            
+            // Process the uploaded file
+            console.log("Starting file processing...");
+            await processCustomerDataFile(downloadURL);
+            console.log("File processing completed successfully");
+            
+            resolve(downloadURL);
+          } catch (processingError) {
+            console.error("Error processing file:", processingError);
+            reject(processingError);
+          }
         }
       );
     } catch (error) {
+      console.error("Upload setup error:", error);
       reject(error);
     }
   });

@@ -87,7 +87,11 @@ const parseDate = (dateStr: string | number): Date | undefined => {
 
 // Process Excel file data
 const processExcelData = (data: any[]): CustomerData[] => {
-  return data.map(row => {
+  console.log("Processing Excel data:", data.length, "rows");
+  
+  return data.map((row, index) => {
+    console.log(`Processing row ${index + 1}:`, row);
+    
     // Map spreadsheet columns to our data structure
     // This mapping assumes certain column names - adjust based on your actual data structure
     const customerData: CustomerData = {
@@ -110,6 +114,7 @@ const processExcelData = (data: any[]): CustomerData[] => {
     // Determine segment
     customerData.segment = determineSegment(customerData.riskScore);
     
+    console.log(`Processed customer:`, customerData);
     return customerData;
   });
 };
@@ -117,26 +122,37 @@ const processExcelData = (data: any[]): CustomerData[] => {
 // Main function to process customer data from uploaded file
 export const processCustomerDataFile = async (fileUrl: string): Promise<CustomerData[]> => {
   try {
+    console.log("Starting to process file from URL:", fileUrl);
+    
     // Fetch the file from Storage URL
     const response = await fetch(fileUrl);
+    console.log("File fetched, size:", response.headers.get('content-length'));
+    
     const fileBlob = await response.blob();
+    console.log("File blob created, size:", fileBlob.size);
     
     // Read the file as array buffer
     const arrayBuffer = await fileBlob.arrayBuffer();
+    console.log("Array buffer created, size:", arrayBuffer.byteLength);
     
     // Parse Excel file
     const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+    console.log("Workbook parsed, sheets:", workbook.SheetNames);
+    
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     
     // Convert to JSON
     const data = XLSX.utils.sheet_to_json(worksheet);
+    console.log("Data converted to JSON, rows:", data.length);
     
     // Process the data
     const processedData = processExcelData(data);
+    console.log("Data processed, customers:", processedData.length);
     
     // Store in Firestore
     await storeCustomerData(processedData);
+    console.log("Data stored in Firestore successfully");
     
     return processedData;
   } catch (error) {
@@ -148,11 +164,14 @@ export const processCustomerDataFile = async (fileUrl: string): Promise<Customer
 // Store processed customer data in Firestore
 const storeCustomerData = async (customers: CustomerData[]): Promise<void> => {
   try {
+    console.log(`Starting to store ${customers.length} customers in Firestore`);
+    
     // Get a reference to the customers collection
     const customersCollection = collection(firestore, "customers");
     
     // Store each customer
-    const promises = customers.map(async (customer) => {
+    const promises = customers.map(async (customer, index) => {
+      console.log(`Storing customer ${index + 1}:`, customer.customerId);
       return addDoc(customersCollection, {
         ...customer,
         lastPurchaseDate: customer.lastPurchaseDate ? customer.lastPurchaseDate : null,

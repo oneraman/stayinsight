@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, orderBy, limit, where } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
 import { CustomerData } from "@/utils/dataProcessing";
 import { Link } from "react-router-dom";
@@ -30,16 +29,21 @@ const Dashboard = () => {
     const fetchHighRiskCustomers = async () => {
       try {
         setLoading(true);
+        console.log("Fetching customers...");
+        
+        // Use a simple query without complex filtering
         const customersQuery = query(
           collection(firestore, "customers"),
-          where("segment", "==", "high-risk"),
-          orderBy("riskScore", "desc"),
-          limit(5)
+          limit(20) // Get more customers and filter in JavaScript
         );
         
         const snapshot = await getDocs(customersQuery);
+        console.log("Customers fetched:", snapshot.docs.length);
+        
         const customerData = snapshot.docs.map(doc => {
           const data = doc.data() as CustomerData;
+          console.log("Processing customer:", data);
+          
           if (data.lastPurchaseDate && 
               typeof data.lastPurchaseDate === 'object' && 
               'toDate' in data.lastPurchaseDate && 
@@ -52,7 +56,14 @@ const Dashboard = () => {
           };
         });
         
-        setHighRiskCustomers(customerData);
+        // Filter and sort high-risk customers in JavaScript
+        const highRisk = customerData
+          .filter(customer => customer.riskScore && customer.riskScore > 70)
+          .sort((a, b) => (b.riskScore || 0) - (a.riskScore || 0))
+          .slice(0, 5);
+        
+        console.log("High risk customers:", highRisk);
+        setHighRiskCustomers(highRisk);
       } catch (err) {
         console.error("Error fetching customers:", err);
       } finally {
