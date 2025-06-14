@@ -1,4 +1,3 @@
-
 import { collection, addDoc, serverTimestamp, writeBatch, doc } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
 import { getDownloadURL, ref } from "firebase/storage";
@@ -19,6 +18,32 @@ export interface CustomerData {
   segment?: 'low-risk' | 'medium-risk' | 'high-risk';
   createdAt?: Date;
   updatedAt?: Date;
+}
+
+// Type for parsed row data from spreadsheet
+interface CustomerRowData {
+  [key: string]: any;
+  customer_id?: string;
+  customerId?: string;
+  id?: string;
+  email?: string;
+  email_address?: string;
+  name?: string;
+  customer_name?: string;
+  fullname?: string;
+  first_name?: string;
+  last_name?: string;
+  last_purchase_date?: string | number;
+  lastPurchaseDate?: string | number;
+  last_order_date?: string | number;
+  purchase_count?: number | string;
+  purchaseCount?: number | string;
+  order_count?: number | string;
+  total_spent?: number | string;
+  totalSpent?: number | string;
+  lifetime_value?: number | string;
+  avg_order_value?: number | string;
+  avgOrderValue?: number | string;
 }
 
 // Calculate risk score based on RFM (Recency, Frequency, Monetary)
@@ -90,7 +115,7 @@ const parseDate = (dateStr: string | number): Date | undefined => {
 };
 
 // Validate customer data
-const validateCustomerData = (row: any, index: number): { isValid: boolean; errors: string[] } => {
+const validateCustomerData = (row: CustomerRowData, index: number): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
   
   if (!row.customer_id && !row.customerId && !row.id) {
@@ -133,7 +158,7 @@ export const processCustomerDataFile = async (
     const workbook = XLSX.read(arrayBuffer, { type: 'array' });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
-    const data = XLSX.utils.sheet_to_json(worksheet);
+    const data = XLSX.utils.sheet_to_json(worksheet) as CustomerRowData[];
     
     if (data.length === 0) {
       throw new Error("The uploaded file appears to be empty or has no valid data rows.");

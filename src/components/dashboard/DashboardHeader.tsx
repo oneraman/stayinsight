@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -11,10 +12,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Settings, LogOut, User } from "lucide-react";
+import { 
+  Settings, 
+  LogOut, 
+  User, 
+  Search,
+  Menu,
+  Bell
+} from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 const DashboardHeader = () => {
   const { currentUser, logOut } = useAuth();
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   
   const getInitials = (name: string | null | undefined) => {
     if (!name) return "U";
@@ -27,32 +37,59 @@ const DashboardHeader = () => {
   };
 
   return (
-    <header className="w-full border-b bg-white">
+    <header className="sticky top-0 z-30 w-full border-b bg-white">
       <div className="container flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-4">
-          <Link to="/dashboard" className="text-xl font-bold text-[#5E5AFF]">
+          <button 
+            className="lg:hidden" 
+            onClick={() => setShowMobileMenu(!showMobileMenu)}
+          >
+            <Menu className="h-6 w-6" />
+          </button>
+          
+          <Link to="/dashboard" className="text-xl font-bold text-primary">
             StayInsights
           </Link>
-          <nav className="hidden md:flex gap-6 text-sm">
-            <Link to="/dashboard" className="text-gray-700 hover:text-[#5E5AFF]">
+          
+          <nav className="hidden lg:flex gap-6 text-sm">
+            <Link to="/dashboard" className="text-gray-900 font-medium">
               Dashboard
             </Link>
-            <Link to="/customers" className="text-gray-700 hover:text-[#5E5AFF]">
+            <Link to="/customers" className="text-gray-500 hover:text-gray-900">
               Customers
+            </Link>
+            <Link to="/campaigns" className="text-gray-500 hover:text-gray-900">
+              Campaigns
+            </Link>
+            <Link to="/insights" className="text-gray-500 hover:text-gray-900">
+              Insights
             </Link>
           </nav>
         </div>
         
-        <div className="flex items-center gap-4">
+        <div className="hidden md:flex items-center relative max-w-md w-full mx-8">
+          <Search className="h-4 w-4 absolute left-3 text-gray-400" />
+          <Input 
+            placeholder="Search customers, reports..." 
+            className="pl-9 bg-gray-50 border-gray-200"
+          />
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" className="relative">
+            <Bell className="h-5 w-5 text-gray-500" />
+            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500"></span>
+          </Button>
+          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                <Avatar className="h-10 w-10">
+              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <Avatar className="h-8 w-8">
                   <AvatarImage 
                     src={currentUser?.photoURL || ""} 
                     alt={currentUser?.displayName || "User"} 
                   />
-                  <AvatarFallback className="bg-[#5E5AFF]/10 text-[#5E5AFF]">
+                  <AvatarFallback className="bg-primary/10 text-primary">
                     {getInitials(currentUser?.displayName)}
                   </AvatarFallback>
                 </Avatar>
@@ -94,6 +131,26 @@ const DashboardHeader = () => {
           </DropdownMenu>
         </div>
       </div>
+      
+      {/* Mobile Navigation */}
+      {showMobileMenu && (
+        <div className="lg:hidden border-t bg-white">
+          <nav className="flex flex-col px-4 py-2">
+            <Link to="/dashboard" className="py-2 text-gray-900 font-medium">
+              Dashboard
+            </Link>
+            <Link to="/customers" className="py-2 text-gray-500 hover:text-gray-900">
+              Customers
+            </Link>
+            <Link to="/campaigns" className="py-2 text-gray-500 hover:text-gray-900">
+              Campaigns
+            </Link>
+            <Link to="/insights" className="py-2 text-gray-500 hover:text-gray-900">
+              Insights
+            </Link>
+          </nav>
+        </div>
+      )}
     </header>
   );
 };

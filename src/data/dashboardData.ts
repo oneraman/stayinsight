@@ -56,47 +56,62 @@ export const segmentData = [
 export const customerData = [
   { 
     id: "c1", 
+    customerId: "c1",
     name: "Sarah Johnson", 
-    company: "Acme Corp", 
     email: "sarah@acmecorp.com", 
-    risk: "high" as "high", 
-    score: 82, 
-    subscriptionValue: 15000 
+    riskScore: 82, 
+    segment: "high-risk" as const,
+    totalSpent: 15000,
+    lastPurchaseDate: new Date(2023, 1, 15),
+    purchaseCount: 12,
+    avgOrderValue: 1250
   },
   { 
     id: "c2", 
+    customerId: "c2",
     name: "Tom Martinez", 
-    company: "Globex Inc", 
     email: "tom@globex.com", 
-    risk: "medium" as "medium", 
-    score: 58, 
-    subscriptionValue: 8500 
+    riskScore: 58, 
+    segment: "medium-risk" as const,
+    totalSpent: 8500,
+    lastPurchaseDate: new Date(2023, 3, 22),
+    purchaseCount: 8,
+    avgOrderValue: 1062.50
   },
   { 
     id: "c3", 
+    customerId: "c3",
     name: "Emma Wilson", 
-    company: "Stark Industries", 
     email: "emma@stark.com", 
-    risk: "high" as "high", 
-    score: 76, 
-    subscriptionValue: 22000 
+    riskScore: 76, 
+    segment: "high-risk" as const,
+    totalSpent: 22000,
+    lastPurchaseDate: new Date(2023, 2, 8),
+    purchaseCount: 15,
+    avgOrderValue: 1466.67
   },
   { 
     id: "c4", 
+    customerId: "c4",
     name: "David Chen", 
-    company: "Wayne Enterprises", 
     email: "david@wayne.com", 
-    risk: "low" as "low", 
-    score: 32, 
-    subscriptionValue: 5000 
+    riskScore: 32, 
+    segment: "medium-risk" as const,
+    totalSpent: 5000,
+    lastPurchaseDate: new Date(2023, 5, 10),
+    purchaseCount: 4,
+    avgOrderValue: 1250
   },
   { 
     id: "c5", 
+    customerId: "c5",
     name: "Lisa Park", 
-    company: "Hooli", 
     email: "lisa@hooli.com", 
-    risk: "medium" as "medium", 
-    score: 62, 
-    subscriptionValue: 10000 
+    riskScore: 62, 
+    segment: "medium-risk" as const,
+    totalSpent: 10000,
+    lastPurchaseDate: new Date(2023, 4, 15),
+    purchaseCount: 9,
+    avgOrderValue: 1111.11
   },
 ];
