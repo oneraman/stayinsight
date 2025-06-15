@@ -38,7 +38,7 @@ export interface UploadProgress {
   message: string;
 }
 
-export const uploadFileToStorage = async (
+export const uploadFileToStorageEnhanced = async (
   file: File,
   userId: string,
   onProgress?: (progressInfo: UploadProgress, uploadTask?: any) => void

@@ -1,10 +1,11 @@
+
 import { useState, useEffect, useRef } from "react";
 import { collection, getDocs, query, limit } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
 import { CustomerData } from "@/utils/dataProcessing";
 import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileUploader } from "@/components/FileUploader";
+import EnhancedFileUploader from "@/components/EnhancedFileUploader";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -27,11 +28,24 @@ const Dashboard = () => {
   const metrics = useDashboardMetrics(timePeriod);
   const customerRiskTableRef = useRef<HTMLDivElement>(null);
 
-  // Refresh dashboard when file upload completes
+  // Listen for upload completion and refresh data
+  useEffect(() => {
+    const handleDataUploaded = () => {
+      console.log("Data uploaded event received, refreshing dashboard...");
+      setRefreshTrigger(prev => prev + 1);
+      setShowUploadDialog(false);
+    };
+
+    window.addEventListener('dataUploaded', handleDataUploaded);
+    return () => window.removeEventListener('dataUploaded', handleDataUploaded);
+  }, []);
+
+  // Refresh dashboard periodically
   useEffect(() => {
     const interval = setInterval(() => {
+      console.log("Periodic dashboard refresh...");
       setRefreshTrigger(prev => prev + 1);
-    }, 5000); // Check for updates every 5 seconds
+    }, 30000); // Check for updates every 30 seconds
 
     return () => clearInterval(interval);
   }, []);
@@ -40,7 +54,7 @@ const Dashboard = () => {
     const fetchHighRiskCustomers = async () => {
       try {
         setLoadingCustomers(true);
-        console.log("Fetching high-risk customers...");
+        console.log("Fetching high-risk customers with enhanced logging...");
         
         const customersQuery = query(
           collection(firestore, "customers"),
@@ -48,7 +62,14 @@ const Dashboard = () => {
         );
         
         const snapshot = await getDocs(customersQuery);
-        console.log("Customers fetched:", snapshot.docs.length);
+        console.log("Enhanced customers fetched:", snapshot.docs.length);
+        
+        if (snapshot.docs.length === 0) {
+          console.log("No customers found in database");
+          setHighRiskCustomers([]);
+          setLoadingCustomers(false);
+          return;
+        }
         
         const customerData = snapshot.docs.map(doc => {
           const data = doc.data() as CustomerData;
@@ -70,10 +91,10 @@ const Dashboard = () => {
           .sort((a, b) => (b.riskScore || 0) - (a.riskScore || 0))
           .slice(0, 10);
         
-        console.log("High risk customers:", highRisk);
+        console.log("Enhanced high risk customers found:", highRisk.length);
         setHighRiskCustomers(highRisk);
       } catch (err) {
-        console.error("Error fetching customers:", err);
+        console.error("Enhanced error fetching customers:", err);
       } finally {
         setLoadingCustomers(false);
       }
@@ -173,13 +194,13 @@ const Dashboard = () => {
         </div>
       </div>
       
-      {/* Upload Dialog */}
+      {/* Enhanced Upload Dialog */}
       <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Upload Customer Data</DialogTitle>
           </DialogHeader>
-          <FileUploader />
+          <EnhancedFileUploader />
         </DialogContent>
       </Dialog>
     </DashboardLayout>
