@@ -1,4 +1,3 @@
-
 import { ReactNode, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
@@ -39,7 +38,7 @@ const DashboardLayout = ({
       <div className={`bg-[#1A1F2C] text-white transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'w-20' : 'w-64'} flex flex-col fixed h-full z-10`}>
         <div className="flex items-center p-4 border-b border-gray-800">
           <Link to="/dashboard" className={`text-xl font-bold text-[#5E5AFF] flex items-center ${sidebarCollapsed ? 'justify-center' : ''}`}>
-            {sidebarCollapsed ? "SI" : "stayInsights"}
+            {sidebarCollapsed ? "SAI" : "stayInsightAI"}
           </Link>
         </div>
         

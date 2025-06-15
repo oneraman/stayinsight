@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,7 @@ const Navbar = () => {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <Link to="/" className="flex items-center">
-              <span className="text-2xl font-bold text-[#5E5AFF]">stayInsights</span>
+              <span className="text-2xl font-bold text-[#5E5AFF]">stayInsightAI</span>
             </Link>
             <div className="hidden md:ml-10 md:flex md:space-x-8">
               <Link

@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
@@ -51,7 +50,7 @@ const Index = () => {
               <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
                 <img 
                   src="/lovable-uploads/98af3396-d23f-4b1e-a715-e34c0ae29717.png" 
-                  alt="StayInsights Dashboard" 
+                  alt="StayInsightAI Dashboard" 
                   className="w-full h-auto"
                 />
               </div>
@@ -64,7 +63,7 @@ const Index = () => {
       <section className="py-20 bg-gray-50">
         <div className="container px-4 mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">How StayInsights Works</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">How StayInsightAI Works</h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Our powerful AI analyzes your customer data to identify patterns and predict which customers are at risk.
             </p>
@@ -124,7 +123,7 @@ const Index = () => {
               Ready to reduce churn and increase revenue?
             </h2>
             <p className="text-xl mb-8 text-gray-300">
-              Join thousands of businesses that use StayInsights to retain customers and maximize lifetime value.
+              Join thousands of businesses that use StayInsightAI to retain customers and maximize lifetime value.
             </p>
             <Link to="/signup">
               <Button className="text-lg py-6 px-8 bg-[#5E5AFF] hover:bg-[#4B48CC]">

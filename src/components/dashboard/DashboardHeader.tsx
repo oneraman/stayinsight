@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -48,7 +47,7 @@ const DashboardHeader = () => {
           </button>
           
           <Link to="/dashboard" className="text-xl font-bold text-primary">
-            StayInsights
+            StayInsightAI
           </Link>
           
           <nav className="hidden lg:flex gap-6 text-sm">
