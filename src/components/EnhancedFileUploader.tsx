@@ -1,46 +1,26 @@
 import { useState, useCallback, useRef } from "react";
-import { Upload, AlertCircle, File, X, CheckCircle, AlertTriangle } from "lucide-react";
+import { Upload, AlertCircle, File, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { uploadFileToStorage, UploadResult } from "@/utils/fileUpload";
 import { useAuth } from "@/contexts/AuthContext";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useUploadProgress } from "@/hooks/useUploadProgress";
+import UploadResult as UploadResultComponent from "@/components/upload/UploadResult";
+import UploadProgressDisplay from "@/components/upload/UploadProgressDisplay";
 
 export const EnhancedFileUploader = () => {
   const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadPhase, setUploadPhase] = useState<'uploading' | 'processing'>('uploading');
-  const [statusMessage, setStatusMessage] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
   const uploadTaskRef = useRef<any>(null);
   const { toast } = useToast();
   const { currentUser } = useAuth();
+  const progressState = useUploadProgress();
 
   const resetUploadState = () => {
-    setUploadProgress(0);
-    setUploadPhase('uploading');
-    setStatusMessage('');
+    progressState.resetProgress();
     setUploadResult(null);
   };
-
-  const updateProgress = useCallback((progress: number, phase: 'uploading' | 'processing', message: string) => {
-    console.log(`Progress update: ${progress}% - Phase: ${phase} - Message: ${message}`);
-    
-    // Force immediate state updates
-    setUploadProgress(progress);
-    setUploadPhase(phase);
-    setStatusMessage(message);
-    
-    // Force React to flush updates immediately
-    if (typeof window !== 'undefined' && 'requestAnimationFrame' in window) {
-      requestAnimationFrame(() => {
-        // This ensures the UI updates are processed immediately
-      });
-    }
-  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -90,14 +70,13 @@ export const EnhancedFileUploader = () => {
   };
 
   const cancelUpload = () => {
-    console.log("Cancelling upload, current phase:", uploadPhase);
-    if (uploadTaskRef.current && uploadPhase === 'uploading') {
+    console.log("Cancelling upload, current phase:", progressState.phase);
+    if (uploadTaskRef.current && progressState.phase === 'uploading') {
       console.log("Cancelling Firebase upload task");
       uploadTaskRef.current.cancel();
       uploadTaskRef.current = null;
     }
-    setUploading(false);
-    updateProgress(0, 'uploading', 'Upload cancelled');
+    progressState.resetProgress();
     toast({
       title: "Upload cancelled",
       description: "File upload has been cancelled.",
@@ -126,9 +105,8 @@ export const EnhancedFileUploader = () => {
 
     try {
       console.log("Starting enhanced upload process for file:", file.name);
-      setUploading(true);
       resetUploadState();
-      updateProgress(0, 'uploading', 'Preparing upload...');
+      progressState.updateProgress(0, 'uploading', 'Preparing upload...');
 
       const result = await uploadFileToStorage(
         file,
@@ -136,7 +114,7 @@ export const EnhancedFileUploader = () => {
         (progressInfo, uploadTask) => {
           console.log("Enhanced progress update received:", progressInfo);
           uploadTaskRef.current = uploadTask;
-          updateProgress(progressInfo.progress, progressInfo.phase, progressInfo.message);
+          progressState.updateProgress(progressInfo.progress, progressInfo.phase, progressInfo.message);
         }
       );
 
@@ -145,7 +123,7 @@ export const EnhancedFileUploader = () => {
       setUploadResult(result);
 
       if (result.success) {
-        updateProgress(100, 'processing', 'Upload completed successfully!');
+        progressState.completeUpload('Upload completed successfully!');
         toast({
           title: "Upload successful",
           description: result.message,
@@ -159,6 +137,7 @@ export const EnhancedFileUploader = () => {
         // Trigger dashboard refresh
         window.dispatchEvent(new CustomEvent('dataUploaded'));
       } else {
+        progressState.resetProgress();
         toast({
           title: "Upload failed",
           description: result.message,
@@ -169,13 +148,12 @@ export const EnhancedFileUploader = () => {
     } catch (error) {
       console.error("Enhanced upload error:", error);
       uploadTaskRef.current = null;
+      progressState.resetProgress();
       toast({
         title: "Upload failed",
         description: error instanceof Error ? error.message : "An unknown error occurred.",
         variant: "destructive",
       });
-    } finally {
-      setUploading(false);
     }
   };
 
@@ -204,12 +182,12 @@ export const EnhancedFileUploader = () => {
                 className="hidden"
                 accept=".csv,.xls,.xlsx"
                 onChange={handleFileChange}
-                disabled={uploading}
+                disabled={progressState.isUploading}
               />
               <Button 
                 variant="outline" 
                 onClick={() => document.getElementById("enhanced-file-upload")?.click()}
-                disabled={uploading}
+                disabled={progressState.isUploading}
                 className="mt-2"
               >
                 Browse files
@@ -229,7 +207,7 @@ export const EnhancedFileUploader = () => {
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                {!uploading ? (
+                {!progressState.isUploading ? (
                   <>
                     <Button 
                       variant="ghost" 
@@ -249,95 +227,23 @@ export const EnhancedFileUploader = () => {
                     </Button>
                   </>
                 ) : (
-                  <>
-                    <div className="flex items-center w-32">
-                      <span className="text-xs text-gray-500 mr-2 font-mono">
-                        {Math.round(uploadProgress)}%
-                      </span>
-                      <Progress value={uploadProgress} className="h-2 w-full" />
-                    </div>
-                    <Button 
-                      variant="destructive" 
-                      size="sm" 
-                      onClick={cancelUpload}
-                      disabled={uploadPhase === 'processing'}
-                      className="h-8"
-                    >
-                      {uploadPhase === 'processing' ? 'Processing...' : 'Cancel'}
-                    </Button>
-                  </>
+                  <span className="text-xs text-gray-500">Uploading...</span>
                 )}
               </div>
             </div>
           )}
         </div>
         
-        {uploading && (
-          <div className="space-y-3 bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-blue-700 font-medium">
-                {uploadPhase === 'uploading' ? '📤 Uploading File...' : '⚙️ Processing Data...'}
-              </span>
-              <span className="text-blue-900 font-bold font-mono">
-                {Math.round(uploadProgress)}%
-              </span>
-            </div>
-            <div className="space-y-2">
-              <Progress value={uploadProgress} className="h-4 bg-blue-100" />
-              <div className="text-sm text-blue-600 font-medium">
-                {statusMessage || 'Working...'}
-              </div>
-            </div>
-            <div className="flex justify-center">
-              <Button 
-                variant="destructive" 
-                size="sm" 
-                onClick={cancelUpload}
-                disabled={uploadPhase === 'processing'}
-              >
-                {uploadPhase === 'processing' ? 'Processing...' : 'Cancel Upload'}
-              </Button>
-            </div>
-          </div>
+        {progressState.isUploading && (
+          <UploadProgressDisplay
+            progressState={progressState}
+            onCancel={cancelUpload}
+            fileName={file?.name || 'Unknown file'}
+          />
         )}
 
         {uploadResult && (
-          <Alert className={uploadResult.success ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}>
-            <div className="flex items-center">
-              {uploadResult.success ? (
-                <CheckCircle className="h-4 w-4 text-green-600" />
-              ) : (
-                <AlertTriangle className="h-4 w-4 text-red-600" />
-              )}
-            </div>
-            <AlertDescription className="ml-2">
-              <div className="space-y-1">
-                <p className={uploadResult.success ? "text-green-800 font-medium" : "text-red-800 font-medium"}>
-                  {uploadResult.message}
-                </p>
-                {uploadResult.customersProcessed && (
-                  <p className="text-sm text-green-700">
-                    ✅ Successfully processed {uploadResult.customersProcessed} customer records
-                  </p>
-                )}
-                {uploadResult.errors && uploadResult.errors.length > 0 && (
-                  <details className="text-sm text-amber-700">
-                    <summary className="cursor-pointer font-medium">
-                      ⚠️ View warnings ({uploadResult.errors.length})
-                    </summary>
-                    <ul className="mt-1 list-disc list-inside space-y-1">
-                      {uploadResult.errors.slice(0, 5).map((error, index) => (
-                        <li key={index}>{error}</li>
-                      ))}
-                      {uploadResult.errors.length > 5 && (
-                        <li>... and {uploadResult.errors.length - 5} more</li>
-                      )}
-                    </ul>
-                  </details>
-                )}
-              </div>
-            </AlertDescription>
-          </Alert>
+          <UploadResultComponent result={uploadResult} />
         )}
         
         <div className="flex items-start mt-2">

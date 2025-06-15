@@ -3,6 +3,7 @@ import { firestore } from "@/lib/firebase";
 import { getDownloadURL, ref } from "firebase/storage";
 import { storage } from "@/lib/firebase";
 import * as XLSX from "xlsx";
+import { validateFileData, CustomerRowData } from "./dataValidation";
 
 // Customer data interface
 export interface CustomerData {
@@ -114,28 +115,6 @@ const parseDate = (dateStr: string | number): Date | undefined => {
   }
 };
 
-// Validate customer data
-const validateCustomerData = (row: CustomerRowData, index: number): { isValid: boolean; errors: string[] } => {
-  const errors: string[] = [];
-  
-  if (!row.customer_id && !row.customerId && !row.id) {
-    errors.push(`Row ${index + 1}: Missing customer ID`);
-  }
-  
-  if (row.total_spent && isNaN(Number(row.total_spent))) {
-    errors.push(`Row ${index + 1}: Invalid total spent value`);
-  }
-  
-  if (row.purchase_count && isNaN(Number(row.purchase_count))) {
-    errors.push(`Row ${index + 1}: Invalid purchase count value`);
-  }
-  
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
-};
-
 // Main function to process customer data from uploaded file
 export const processCustomerDataFile = async (
   fileUrl: string, 
@@ -160,26 +139,23 @@ export const processCustomerDataFile = async (
     const worksheet = workbook.Sheets[sheetName];
     const data = XLSX.utils.sheet_to_json(worksheet) as CustomerRowData[];
     
-    if (data.length === 0) {
-      throw new Error("The uploaded file appears to be empty or has no valid data rows.");
+    onProgress?.(40, "Validating data...");
+    const validation = validateFileData(data);
+    
+    if (!validation.isValid) {
+      throw new Error(`Data validation failed: ${validation.errors.join(', ')}`);
     }
     
-    onProgress?.(40, "Validating customer data...");
+    onProgress?.(50, "Processing customer records...");
     
     const customers: CustomerData[] = [];
-    const allErrors: string[] = [];
+    const allErrors: string[] = [...validation.warnings];
     
     data.forEach((row, index) => {
       // Update progress for every 100 rows
       if (index % 100 === 0) {
-        const progress = 40 + ((index / data.length) * 30);
-        onProgress?.(progress, `Processing row ${index + 1} of ${data.length}...`);
-      }
-      
-      const validation = validateCustomerData(row, index);
-      if (!validation.isValid) {
-        allErrors.push(...validation.errors);
-        return;
+        const progress = 50 + ((index / data.length) * 20);
+        onProgress?.(progress, `Processing customer ${index + 1} of ${data.length}...`);
       }
       
       try {
