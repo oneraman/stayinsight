@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useRef } from "react";
 import { Upload, AlertCircle, File, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { uploadFileToStorage, UploadResult } from "@/utils/fileUpload";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUploadProgress } from "@/hooks/useUploadProgress";
-import UploadResultComponent from "@/components/upload/UploadResult";
+import UploadResult from "@/components/upload/UploadResult";
 import UploadProgressDisplay from "@/components/upload/UploadProgressDisplay";
 
 export const EnhancedFileUploader = () => {
@@ -18,13 +19,17 @@ export const EnhancedFileUploader = () => {
   const progressState = useUploadProgress();
 
   const resetUploadState = () => {
+    console.log('🔄 Resetting upload state');
     progressState.resetProgress();
     setUploadResult(null);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('📁 File selected via input');
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      console.log('Selected file:', selectedFile.name, selectedFile.size, selectedFile.type);
+      setFile(selectedFile);
       resetUploadState();
     }
   };
@@ -46,13 +51,18 @@ export const EnhancedFileUploader = () => {
     e.stopPropagation();
     setIsDragging(false);
     
+    console.log('📁 File dropped');
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const droppedFile = e.dataTransfer.files[0];
+      console.log('Dropped file:', droppedFile.name, droppedFile.size, droppedFile.type);
+      
       const fileExtension = droppedFile.name.split('.').pop()?.toLowerCase();
       if (fileExtension === 'csv' || fileExtension === 'xls' || fileExtension === 'xlsx') {
         setFile(droppedFile);
         resetUploadState();
+        console.log('✅ Valid file type accepted');
       } else {
+        console.log('❌ Invalid file type:', fileExtension);
         toast({
           title: "Invalid file type",
           description: "Please upload a CSV, XLS, or XLSX file.",
@@ -63,6 +73,7 @@ export const EnhancedFileUploader = () => {
   }, [toast]);
 
   const clearFile = () => {
+    console.log('🗑️ Clearing selected file');
     setFile(null);
     resetUploadState();
     const fileInput = document.getElementById("enhanced-file-upload") as HTMLInputElement;
@@ -70,7 +81,7 @@ export const EnhancedFileUploader = () => {
   };
 
   const cancelUpload = () => {
-    console.log("Cancelling upload, current phase:", progressState.phase);
+    console.log("🛑 Cancelling upload, current phase:", progressState.phase);
     if (uploadTaskRef.current && progressState.phase === 'uploading') {
       console.log("Cancelling Firebase upload task");
       uploadTaskRef.current.cancel();
@@ -85,7 +96,11 @@ export const EnhancedFileUploader = () => {
   };
 
   const handleUpload = async () => {
+    console.log('🚀 Starting upload process');
+    
+    // Pre-upload validation
     if (!file) {
+      console.log('❌ No file selected');
       toast({
         title: "No file selected",
         description: "Please select a file to upload.",
@@ -95,6 +110,7 @@ export const EnhancedFileUploader = () => {
     }
 
     if (!currentUser) {
+      console.log('❌ User not authenticated');
       toast({
         title: "Authentication required",
         description: "Please log in to upload files.",
@@ -103,8 +119,11 @@ export const EnhancedFileUploader = () => {
       return;
     }
 
+    console.log('✅ Pre-upload validation passed');
+    console.log('User:', currentUser.uid);
+    console.log('File:', file.name, file.size, 'bytes');
+
     try {
-      console.log("Starting enhanced upload process for file:", file.name);
       resetUploadState();
       progressState.updateProgress(0, 'uploading', 'Preparing upload...');
 
@@ -112,13 +131,13 @@ export const EnhancedFileUploader = () => {
         file,
         currentUser.uid,
         (progressInfo, uploadTask) => {
-          console.log("Enhanced progress update received:", progressInfo);
+          console.log("📊 Progress update received:", progressInfo);
           uploadTaskRef.current = uploadTask;
           progressState.updateProgress(progressInfo.progress, progressInfo.phase, progressInfo.message);
         }
       );
 
-      console.log("Enhanced upload process completed with result:", result);
+      console.log("🎉 Upload process completed with result:", result);
       uploadTaskRef.current = null;
       setUploadResult(result);
 
@@ -135,8 +154,10 @@ export const EnhancedFileUploader = () => {
         if (fileInput) fileInput.value = "";
         
         // Trigger dashboard refresh
+        console.log('📡 Dispatching dataUploaded event');
         window.dispatchEvent(new CustomEvent('dataUploaded'));
       } else {
+        console.log('❌ Upload failed:', result.message);
         progressState.resetProgress();
         toast({
           title: "Upload failed",
@@ -146,7 +167,7 @@ export const EnhancedFileUploader = () => {
       }
       
     } catch (error) {
-      console.error("Enhanced upload error:", error);
+      console.error("💥 Upload error:", error);
       uploadTaskRef.current = null;
       progressState.resetProgress();
       toast({
@@ -156,6 +177,16 @@ export const EnhancedFileUploader = () => {
       });
     }
   };
+
+  // Debug output
+  console.log('🔍 FileUploader state:', {
+    hasFile: !!file,
+    fileName: file?.name,
+    isDragging,
+    progressState,
+    hasResult: !!uploadResult,
+    isAuthenticated: !!currentUser
+  });
 
   return (
     <div className="w-full space-y-4">
@@ -192,6 +223,9 @@ export const EnhancedFileUploader = () => {
               >
                 Browse files
               </Button>
+              {!currentUser && (
+                <p className="text-xs text-red-500 mt-2">Please log in to upload files</p>
+              )}
             </div>
           ) : (
             <div className="flex items-center justify-between bg-white p-3 rounded-md shadow-sm">
@@ -221,13 +255,14 @@ export const EnhancedFileUploader = () => {
                       size="sm" 
                       onClick={handleUpload}
                       className="h-8"
+                      disabled={!currentUser}
                     >
                       <Upload className="mr-2 h-4 w-4" />
                       Upload
                     </Button>
                   </>
                 ) : (
-                  <span className="text-xs text-gray-500">Uploading...</span>
+                  <span className="text-xs text-gray-500">Processing...</span>
                 )}
               </div>
             </div>
@@ -243,7 +278,7 @@ export const EnhancedFileUploader = () => {
         )}
 
         {uploadResult && (
-          <UploadResultComponent result={uploadResult} />
+          <UploadResult result={uploadResult} />
         )}
         
         <div className="flex items-start mt-2">
@@ -251,6 +286,7 @@ export const EnhancedFileUploader = () => {
           <div className="text-sm text-gray-500">
             <p>Your file should include customer ID, email, name, purchase history, and spend data.</p>
             <p>Maximum file size: 10MB. Supported formats: CSV, XLS, XLSX</p>
+            <p className="text-xs mt-1">Example columns: customer_id, email, name, last_purchase_date, purchase_count, total_spent</p>
           </div>
         </div>
       </div>
