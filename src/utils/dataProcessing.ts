@@ -21,32 +21,6 @@ export interface CustomerData {
   updatedAt?: Date;
 }
 
-// Type for parsed row data from spreadsheet
-interface CustomerRowData {
-  [key: string]: any;
-  customer_id?: string;
-  customerId?: string;
-  id?: string;
-  email?: string;
-  email_address?: string;
-  name?: string;
-  customer_name?: string;
-  fullname?: string;
-  first_name?: string;
-  last_name?: string;
-  last_purchase_date?: string | number;
-  lastPurchaseDate?: string | number;
-  last_order_date?: string | number;
-  purchase_count?: number | string;
-  purchaseCount?: number | string;
-  order_count?: number | string;
-  total_spent?: number | string;
-  totalSpent?: number | string;
-  lifetime_value?: number | string;
-  avg_order_value?: number | string;
-  avgOrderValue?: number | string;
-}
-
 // Calculate risk score based on RFM (Recency, Frequency, Monetary)
 const calculateRiskScore = (
   lastPurchaseDate: Date | undefined, 
