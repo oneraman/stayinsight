@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useRef } from "react";
 import { Upload, AlertCircle, File, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { uploadFileToStorage, UploadResult } from "@/utils/fileUpload";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUploadProgress } from "@/hooks/useUploadProgress";
-import UploadResult from "@/components/upload/UploadResult";
+import UploadResultComponent from "@/components/upload/UploadResult";
 import UploadProgressDisplay from "@/components/upload/UploadProgressDisplay";
 
 export const EnhancedFileUploader = () => {
@@ -278,7 +277,7 @@ export const EnhancedFileUploader = () => {
         )}
 
         {uploadResult && (
-          <UploadResult result={uploadResult} />
+          <UploadResultComponent result={uploadResult} />
         )}
         
         <div className="flex items-start mt-2">
