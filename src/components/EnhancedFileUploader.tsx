@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { uploadFileToStorage, UploadResult } from "@/utils/fileUpload";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUploadProgress } from "@/hooks/useUploadProgress";
-import UploadResult as UploadResultComponent from "@/components/upload/UploadResult";
+import UploadResultComponent from "@/components/upload/UploadResult";
 import UploadProgressDisplay from "@/components/upload/UploadProgressDisplay";
 
 export const EnhancedFileUploader = () => {
