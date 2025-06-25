@@ -131,7 +131,7 @@ const FileDiagnostics = ({ file, onAnalysisComplete }: FileDiagnosticsProps) => 
             </div>
           </div>
         )}
-      </Content>
+      </CardContent>
     </Card>
   );
 };
