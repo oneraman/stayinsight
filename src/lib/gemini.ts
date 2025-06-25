@@ -1,4 +1,3 @@
-
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const API_KEY = 'AIzaSyDlpRe9eVvkCEeUXoLVN--a6IRlhfa8rIo';
@@ -70,6 +69,34 @@ export const generateDataSummary = async (customers: any[]) => {
     return response.text();
   } catch (error) {
     console.error('Error generating data summary:', error);
+    throw error;
+  }
+};
+
+export const analyzeFileStructure = async (fileData: any) => {
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    
+    const prompt = `
+    Analyze this customer data file structure and content for processing issues:
+    
+    ${JSON.stringify(fileData, null, 2)}
+    
+    Please provide:
+    1. Data quality assessment
+    2. Potential processing issues
+    3. Missing or problematic fields
+    4. Recommendations for successful import
+    5. Column mapping suggestions
+    
+    Focus on common customer data processing problems and provide actionable solutions.
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text();
+  } catch (error) {
+    console.error('Error analyzing file structure:', error);
     throw error;
   }
 };

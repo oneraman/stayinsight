@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { Upload, AlertCircle, File, X } from "lucide-react";
+import { Upload, AlertCircle, File, X, FileSearch } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { uploadFileToStorage, UploadResult } from "@/utils/fileUpload";
@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUploadProgress } from "@/hooks/useUploadProgress";
 import UploadResultComponent from "@/components/upload/UploadResult";
 import UploadProgressDisplay from "@/components/upload/UploadProgressDisplay";
+import FileDiagnostics from "@/components/upload/FileDiagnostics";
 
 export const EnhancedFileUploader = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -16,6 +17,7 @@ export const EnhancedFileUploader = () => {
   const { toast } = useToast();
   const { currentUser } = useAuth();
   const progressState = useUploadProgress();
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
 
   const resetUploadState = () => {
     console.log('🔄 Resetting upload state');
@@ -124,6 +126,7 @@ export const EnhancedFileUploader = () => {
 
     try {
       resetUploadState();
+      setShowDiagnostics(false); // Hide diagnostics when starting upload
       progressState.updateProgress(0, 'uploading', 'Preparing upload...');
 
       const result = await uploadFileToStorage(
@@ -169,10 +172,24 @@ export const EnhancedFileUploader = () => {
       console.error("💥 Upload error:", error);
       uploadTaskRef.current = null;
       progressState.resetProgress();
+      
+      // Show diagnostics on upload failure
+      setShowDiagnostics(true);
+      
       toast({
         title: "Upload failed",
         description: error instanceof Error ? error.message : "An unknown error occurred.",
         variant: "destructive",
+      });
+    }
+  };
+
+  const handleAnalysisComplete = (result: any) => {
+    console.log('📊 File analysis completed:', result);
+    if (result.success) {
+      toast({
+        title: "File Analysis Complete",
+        description: "Check the recommendations below before uploading.",
       });
     }
   };
@@ -278,6 +295,29 @@ export const EnhancedFileUploader = () => {
 
         {uploadResult && (
           <UploadResultComponent result={uploadResult} />
+        )}
+
+        {/* Add diagnostics section */}
+        {file && showDiagnostics && (
+          <FileDiagnostics 
+            file={file} 
+            onAnalysisComplete={handleAnalysisComplete}
+          />
+        )}
+
+        {/* Add button to show diagnostics */}
+        {file && !progressState.isUploading && !uploadResult && (
+          <div className="flex justify-center">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowDiagnostics(!showDiagnostics)}
+              className="gap-2"
+            >
+              <FileSearch className="h-4 w-4" />
+              {showDiagnostics ? 'Hide' : 'Show'} AI File Analysis
+            </Button>
+          </div>
         )}
         
         <div className="flex items-start mt-2">
