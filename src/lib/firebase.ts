@@ -1,4 +1,3 @@
-
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getStorage } from "firebase/storage";
@@ -11,7 +10,7 @@ const firebaseConfig = {
   storageBucket: "stayinsight0.appspot.com",
   messagingSenderId: "198296844866",
   appId: "1:198296844866:web:ccb518b3a8f84481030bdb",
-  measurementId: "G-VT887HFH91"
+  measurementId: "G-VT887HFH87"
 };
 
 // Initialize Firebase
@@ -20,12 +19,13 @@ const auth = getAuth(app);
 const storage = getStorage(app);
 const firestore = getFirestore(app);
 
-// Configure Google provider with additional settings
+// Configure Google provider with proper settings
 const googleProvider = new GoogleAuthProvider();
 googleProvider.addScope('email');
 googleProvider.addScope('profile');
 googleProvider.setCustomParameters({
-  prompt: 'select_account'
+  prompt: 'select_account',
+  hd: undefined // Remove any domain restrictions
 });
 
 export { auth, storage, firestore, googleProvider };
