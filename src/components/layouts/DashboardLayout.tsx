@@ -35,70 +35,70 @@ const DashboardLayout = ({
   return (
     <div className="min-h-screen bg-gray-50 flex dark:bg-gray-900 transition-colors duration-300">
       {/* Sidebar */}
-      <div className={`bg-gradient-to-b from-slate-800 to-slate-900 text-white transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'w-20' : 'w-72'} flex flex-col fixed h-full z-10 shadow-2xl`}>
-        <div className="flex items-center p-6 border-b border-slate-700">
-          <Link to="/dashboard" className={`text-xl font-bold bg-gradient-to-r from-indigo-400 to-teal-400 bg-clip-text text-transparent flex items-center ${sidebarCollapsed ? 'justify-center' : ''}`}>
+      <div className={`bg-[#1A1F2C] text-white transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'w-20' : 'w-64'} flex flex-col fixed h-full z-10`}>
+        <div className="flex items-center p-4 border-b border-gray-800">
+          <Link to="/dashboard" className={`text-xl font-bold text-[#5E5AFF] flex items-center ${sidebarCollapsed ? 'justify-center' : ''}`}>
             {sidebarCollapsed ? "SIA" : "stayInsightAI"}
           </Link>
         </div>
         
-        <nav className="flex-1 pt-8">
-          <ul className="space-y-3 px-4">
+        <nav className="flex-1 pt-5">
+          <ul className="space-y-2 px-2">
             <li>
-              <Link to="/dashboard" className="flex items-center gap-4 px-6 py-4 rounded-2xl bg-indigo-600 text-white shadow-lg transition-all duration-300 hover:bg-indigo-700 hover:scale-105">
-                <LayoutDashboard className="h-6 w-6" />
-                {!sidebarCollapsed && <span className="font-medium">Dashboard</span>}
+              <Link to="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-md bg-[#262c3a] text-white">
+                <LayoutDashboard className="h-5 w-5 text-primary" />
+                {!sidebarCollapsed && <span>Dashboard</span>}
               </Link>
             </li>
             <li>
-              <Link to="/customers" className="flex items-center gap-4 px-6 py-4 rounded-2xl text-slate-300 hover:text-white hover:bg-slate-700 transition-all duration-300 hover:scale-105">
-                <Users className="h-6 w-6" />
-                {!sidebarCollapsed && <span className="font-medium">Customers</span>}
+              <Link to="/customers" className="flex items-center gap-3 px-4 py-3 rounded-md hover:bg-[#262c3a] text-gray-300 hover:text-white transition-colors">
+                <Users className="h-5 w-5" />
+                {!sidebarCollapsed && <span>Customers</span>}
               </Link>
             </li>
             <li>
-              <Link to="/settings" className="flex items-center gap-4 px-6 py-4 rounded-2xl text-slate-300 hover:text-white hover:bg-slate-700 transition-all duration-300 hover:scale-105">
-                <Settings className="h-6 w-6" />
-                {!sidebarCollapsed && <span className="font-medium">Settings</span>}
+              <Link to="/settings" className="flex items-center gap-3 px-4 py-3 rounded-md hover:bg-[#262c3a] text-gray-300 hover:text-white transition-colors">
+                <Settings className="h-5 w-5" />
+                {!sidebarCollapsed && <span>Settings</span>}
               </Link>
             </li>
           </ul>
         </nav>
         
         {/* Import Data Button */}
-        <div className={`p-6 ${sidebarCollapsed ? 'flex justify-center' : ''}`}>
+        <div className={`p-4 ${sidebarCollapsed ? 'flex justify-center' : ''}`}>
           <Link to="/customers">
-            <Button className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white gap-3 py-4 rounded-2xl font-medium transition-all duration-300 hover:scale-105 shadow-lg">
-              <Upload className="h-5 w-5" />
+            <Button className="w-full bg-[#5E5AFF] hover:bg-[#4840FF] text-white gap-2">
+              <Upload className="h-4 w-4" />
               {!sidebarCollapsed && <span>Import Data</span>}
             </Button>
           </Link>
         </div>
         
         {/* Logout Button */}
-        <div className="p-6 border-t border-slate-700">
+        <div className="p-4 border-t border-gray-800">
           <Button 
             variant="ghost" 
             onClick={handleLogout} 
-            className="w-full flex items-center justify-center gap-3 text-slate-300 hover:text-white hover:bg-slate-700 py-4 rounded-2xl transition-all duration-300 hover:scale-105"
+            className="w-full flex items-center justify-center gap-2 text-gray-300 hover:text-white hover:bg-[#262c3a]"
           >
-            <LogOut className="h-5 w-5" />
-            {!sidebarCollapsed && <span className="font-medium">Log Out</span>}
+            <LogOut className="h-4 w-4" />
+            {!sidebarCollapsed && <span>Log Out</span>}
           </Button>
         </div>
         
-        <div className="p-6 border-t border-slate-700">
-          <Button variant="ghost" onClick={toggleSidebar} className="w-full flex items-center justify-center gap-3 text-slate-300 hover:text-white hover:bg-slate-700 py-4 rounded-2xl transition-all duration-300 hover:scale-105">
-            {sidebarCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
-            {!sidebarCollapsed && <span className="font-medium">Hide Sidebar</span>}
+        <div className="p-4 border-t border-gray-800">
+          <Button variant="ghost" onClick={toggleSidebar} className="w-full flex items-center justify-center gap-2 text-gray-300 hover:text-white hover:bg-[#262c3a]">
+            {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            {!sidebarCollapsed && <span>Hide Sidebar</span>}
           </Button>
         </div>
       </div>
 
       {/* Main content */}
-      <div className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'ml-20' : 'ml-72'}`}>
+      <div className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'ml-20' : 'ml-64'}`}>
         <DashboardHeader />
-        <main className="flex-1 p-8">
+        <main className="flex-1 p-6">
           {children}
         </main>
       </div>

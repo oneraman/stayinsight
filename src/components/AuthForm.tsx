@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -61,22 +62,22 @@ const AuthForm = ({ type, onSubmit, onGoogleSignIn }: AuthFormProps) => {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto bg-white shadow-2xl border-0 rounded-3xl overflow-hidden">
-      <CardHeader className="bg-gradient-to-br from-indigo-50 to-teal-50 pb-8">
-        <CardTitle className="text-3xl font-bold text-center text-slate-800">
-          {type === "login" ? "Welcome Back" : "Create Account"}
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle className="text-2xl">
+          {type === "login" ? "Sign In" : "Create an Account"}
         </CardTitle>
-        <CardDescription className="text-center text-slate-600 text-base mt-2">
+        <CardDescription>
           {type === "login"
             ? "Enter your credentials to access your account"
             : "Fill in the details below to create your account"}
         </CardDescription>
       </CardHeader>
-      <CardContent className="p-8">
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email" className="flex items-center gap-2 text-slate-700 font-medium">
-              <Mail className="h-4 w-4 text-indigo-500" />
+            <Label htmlFor="email" className="flex items-center gap-2">
+              <Mail className="h-4 w-4" />
               Email
             </Label>
             <Input
@@ -86,12 +87,11 @@ const AuthForm = ({ type, onSubmit, onGoogleSignIn }: AuthFormProps) => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="form-input"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password" className="flex items-center gap-2 text-slate-700 font-medium">
-              <Lock className="h-4 w-4 text-indigo-500" />
+            <Label htmlFor="password" className="flex items-center gap-2">
+              <Lock className="h-4 w-4" />
               Password
             </Label>
             <Input
@@ -100,13 +100,12 @@ const AuthForm = ({ type, onSubmit, onGoogleSignIn }: AuthFormProps) => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="form-input"
             />
           </div>
           {type === "signup" && (
             <div className="space-y-2">
-              <Label htmlFor="confirm-password" className="flex items-center gap-2 text-slate-700 font-medium">
-                <Lock className="h-4 w-4 text-indigo-500" />
+              <Label htmlFor="confirm-password" className="flex items-center gap-2">
+                <Lock className="h-4 w-4" />
                 Confirm Password
               </Label>
               <Input
@@ -115,13 +114,12 @@ const AuthForm = ({ type, onSubmit, onGoogleSignIn }: AuthFormProps) => {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
-                className="form-input"
               />
             </div>
           )}
           <Button
             type="submit"
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-4 rounded-2xl transition-all duration-300 hover:scale-105 hover:shadow-lg"
+            className="w-full bg-[#5E5AFF] hover:bg-[#4B48CC]"
             disabled={loading}
           >
             {loading
@@ -134,10 +132,10 @@ const AuthForm = ({ type, onSubmit, onGoogleSignIn }: AuthFormProps) => {
           {onGoogleSignIn && (
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-gray-200" />
+                <span className="w-full border-t" />
               </div>
-              <div className="relative flex justify-center text-sm uppercase">
-                <span className="bg-white px-4 text-slate-500 font-medium">
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
                   Or continue with
                 </span>
               </div>
@@ -148,12 +146,12 @@ const AuthForm = ({ type, onSubmit, onGoogleSignIn }: AuthFormProps) => {
             <Button
               type="button"
               variant="outline"
-              className="w-full border-2 border-gray-200 hover:border-indigo-200 hover:bg-indigo-50 py-4 rounded-2xl transition-all duration-300 hover:scale-105"
+              className="w-full"
               onClick={onGoogleSignIn}
               disabled={loading}
             >
               <svg
-                className="mr-3 h-5 w-5"
+                className="mr-2 h-4 w-4"
                 aria-hidden="true"
                 focusable="false"
                 data-prefix="fab"
@@ -167,23 +165,23 @@ const AuthForm = ({ type, onSubmit, onGoogleSignIn }: AuthFormProps) => {
                   d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"
                 ></path>
               </svg>
-              <span className="font-medium">Sign in with Google</span>
+              Sign in with Google
             </Button>
           )}
         </form>
       </CardContent>
-      <CardFooter className="flex justify-center bg-gray-50 py-6">
+      <CardFooter className="flex justify-center">
         {type === "login" ? (
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-gray-500">
             Don't have an account?{" "}
-            <Link to="/signup" className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors duration-300">
+            <Link to="/signup" className="text-[#5E5AFF] hover:underline">
               Sign up
             </Link>
           </p>
         ) : (
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-gray-500">
             Already have an account?{" "}
-            <Link to="/login" className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors duration-300">
+            <Link to="/login" className="text-[#5E5AFF] hover:underline">
               Sign in
             </Link>
           </p>
