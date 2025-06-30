@@ -19,7 +19,12 @@ type AuthContextType = {
   signInWithGoogle: () => Promise<User | null>;
   logOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
-  updateUserProfile: (updates: { display_name?: string; avatar_url?: string; phone_number?: string; company?: string }) => Promise<void>;
+  updateUserProfile: (updates: { 
+    display_name?: string; 
+    avatar_url?: string; 
+    phone_number?: string; 
+    company?: string;
+  }) => Promise<void>;
 };
 
 export const AuthContext = createContext<AuthContextType>({
@@ -120,10 +125,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log('🔄 Starting Google sign-in with Supabase...');
       
+      // Get the current URL and determine the correct redirect URL
+      const currentUrl = window.location.origin;
+      const redirectUrl = `${currentUrl}/dashboard`;
+      
+      console.log('🔗 Using redirect URL:', redirectUrl);
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: redirectUrl,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
