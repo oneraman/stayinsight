@@ -2,15 +2,16 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { FileUploadWizard } from "./upload/FileUploadWizard";
-import { uploadFileToStorageEnhanced } from "@/utils/enhancedFileUpload";
+import { processFileWithSupabase, ProcessingProgress } from "@/utils/supabaseDataProcessor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, Database } from "lucide-react";
+import { CheckCircle, Database, AlertTriangle } from "lucide-react";
 
 export const EnhancedFileUploader = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
   const [processingMessage, setProcessingMessage] = useState('');
+  const [processingPhase, setProcessingPhase] = useState<'uploading' | 'processing' | 'storing'>('uploading');
   const [isComplete, setIsComplete] = useState(false);
   const [processingResult, setProcessingResult] = useState<any>(null);
   const { currentUser } = useAuth();
@@ -26,19 +27,21 @@ export const EnhancedFileUploader = () => {
       return;
     }
 
-    console.log('📁 File selected for processing:', file.name);
+    console.log('📁 File selected for Supabase processing:', file.name);
     
     setIsProcessing(true);
     setProcessingProgress(0);
-    setProcessingMessage('Preparing to upload and process file...');
+    setProcessingMessage('Preparing to process file with Supabase...');
+    setProcessingPhase('uploading');
 
     try {
-      const result = await uploadFileToStorageEnhanced(
+      const result = await processFileWithSupabase(
         file,
         currentUser.uid,
-        (progressInfo) => {
-          setProcessingProgress(progressInfo.progress);
-          setProcessingMessage(progressInfo.message);
+        (progress: ProcessingProgress) => {
+          setProcessingProgress(progress.progress);
+          setProcessingMessage(progress.message);
+          setProcessingPhase(progress.phase);
         }
       );
 
@@ -48,7 +51,7 @@ export const EnhancedFileUploader = () => {
         setIsComplete(true);
         toast({
           title: "Success!",
-          description: result.message,
+          description: `Successfully processed ${result.customersProcessed} customers with Supabase!`,
         });
         
         // Trigger dashboard refresh
@@ -56,16 +59,16 @@ export const EnhancedFileUploader = () => {
       } else {
         toast({
           title: "Processing Failed",
-          description: result.message,
+          description: "Failed to process the uploaded file.",
           variant: "destructive",
         });
       }
       
     } catch (error) {
-      console.error('❌ Upload and processing failed:', error);
+      console.error('❌ Supabase upload and processing failed:', error);
       toast({
         title: "Upload Failed",
-        description: error instanceof Error ? error.message : "Failed to upload and process file.",
+        description: error instanceof Error ? error.message : "Failed to upload and process file with Supabase.",
         variant: "destructive",
       });
     } finally {
@@ -77,8 +80,35 @@ export const EnhancedFileUploader = () => {
     setIsProcessing(false);
     setProcessingProgress(0);
     setProcessingMessage('');
+    setProcessingPhase('uploading');
     setIsComplete(false);
     setProcessingResult(null);
+  };
+
+  const getPhaseIcon = () => {
+    switch (processingPhase) {
+      case 'uploading':
+        return '📤';
+      case 'processing':
+        return '⚙️';
+      case 'storing':
+        return '💾';
+      default:
+        return '📁';
+    }
+  };
+
+  const getPhaseTitle = () => {
+    switch (processingPhase) {
+      case 'uploading':
+        return 'Uploading & Reading File...';
+      case 'processing':
+        return 'Processing Customer Data...';
+      case 'storing':
+        return 'Storing in Supabase Database...';
+      default:
+        return 'Processing...';
+    }
   };
 
   if (isComplete && processingResult?.success) {
@@ -87,23 +117,24 @@ export const EnhancedFileUploader = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CheckCircle className="h-5 w-5 text-green-600" />
-            Upload Complete!
+            Supabase Upload Complete!
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            <p className="text-green-700">
-              {processingResult.message}
+            <p className="text-green-700 font-medium">
+              ✅ Successfully processed {processingResult.customersProcessed} customer records with Supabase!
             </p>
-            {processingResult.customersProcessed && (
-              <p className="text-sm text-gray-600">
-                Successfully processed {processingResult.customersProcessed} customer records.
-              </p>
-            )}
+            <div className="text-sm text-gray-600 space-y-1">
+              <p>• Data stored in Supabase PostgreSQL database</p>
+              <p>• Real-time analytics ready</p>
+              <p>• Enhanced churn analysis enabled</p>
+            </div>
             {processingResult.errors && processingResult.errors.length > 0 && (
               <details className="text-sm">
-                <summary className="cursor-pointer text-amber-700">
-                  View {processingResult.errors.length} warnings
+                <summary className="cursor-pointer text-amber-700 flex items-center gap-1">
+                  <AlertTriangle className="h-4 w-4" />
+                  View {processingResult.errors.length} processing notes
                 </summary>
                 <ul className="mt-2 list-disc list-inside space-y-1 ml-4 text-xs text-amber-600">
                   {processingResult.errors.slice(0, 5).map((error: string, index: number) => (
@@ -133,14 +164,26 @@ export const EnhancedFileUploader = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Database className="h-5 w-5 text-blue-600" />
-            Processing Customer Data...
+            {getPhaseTitle()}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="flex items-center justify-between text-sm">
+            <span className="flex items-center gap-2">
+              <span className="text-xl">{getPhaseIcon()}</span>
+              <span className="font-medium text-blue-700">Supabase Processing</span>
+            </span>
+            <span className="font-bold text-blue-900">{Math.round(processingProgress)}%</span>
+          </div>
           <Progress value={processingProgress} className="h-3" />
           <p className="text-sm text-gray-600">
             {processingMessage} ({processingProgress}%)
           </p>
+          <div className="text-xs text-gray-500 space-y-1">
+            <p>• Using Supabase PostgreSQL for optimal performance</p>
+            <p>• Real-time row-level security enabled</p>
+            <p>• Enhanced churn analysis features active</p>
+          </div>
         </CardContent>
       </Card>
     );
@@ -153,10 +196,16 @@ export const EnhancedFileUploader = () => {
       {!currentUser && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <p className="text-sm text-yellow-800">
-            <strong>Note:</strong> Please log in to upload and process your customer data.
+            <strong>Note:</strong> Please log in to upload and process your customer data with Supabase.
           </p>
         </div>
       )}
+      
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <p className="text-sm text-blue-800">
+          <strong>Powered by Supabase:</strong> Your data will be processed and stored in a secure PostgreSQL database with real-time capabilities.
+        </p>
+      </div>
     </div>
   );
 };

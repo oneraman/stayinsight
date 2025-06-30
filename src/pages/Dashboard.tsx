@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { collection, getDocs, query, limit } from "firebase/firestore";
-import { firestore } from "@/lib/firebase";
+import { supabase } from "@/lib/supabase";
 import { CustomerData } from "@/utils/dataProcessing";
 import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,7 +31,7 @@ const Dashboard = () => {
   // Listen for upload completion and refresh data
   useEffect(() => {
     const handleDataUploaded = () => {
-      console.log("Data uploaded event received, refreshing dashboard...");
+      console.log("📊 Data uploaded event received, refreshing Supabase dashboard...");
       setRefreshTrigger(prev => prev + 1);
       setShowUploadDialog(false);
     };
@@ -44,7 +43,7 @@ const Dashboard = () => {
   // Refresh dashboard periodically
   useEffect(() => {
     const interval = setInterval(() => {
-      console.log("Periodic dashboard refresh...");
+      console.log("🔄 Periodic Supabase dashboard refresh...");
       setRefreshTrigger(prev => prev + 1);
     }, 30000); // Check for updates every 30 seconds
 
@@ -55,38 +54,47 @@ const Dashboard = () => {
     const fetchCustomers = async () => {
       try {
         setLoadingCustomers(true);
-        console.log("Fetching customers with enhanced logging...");
+        console.log("📊 Fetching customers from Supabase...");
         
-        const customersQuery = query(
-          collection(firestore, "customers"),
-          limit(100)
-        );
+        // Fetch customers from Supabase
+        const { data: customers, error } = await supabase
+          .from('customers')
+          .select('*')
+          .order('risk_score', { ascending: false })
+          .limit(100);
+
+        if (error) {
+          throw new Error(`Supabase query failed: ${error.message}`);
+        }
         
-        const snapshot = await getDocs(customersQuery);
-        console.log("Enhanced customers fetched:", snapshot.docs.length);
+        console.log("✅ Supabase customers fetched:", customers?.length || 0);
         
-        if (snapshot.docs.length === 0) {
-          console.log("No customers found in database");
+        if (!customers || customers.length === 0) {
+          console.log("No customers found in Supabase database");
           setHighRiskCustomers([]);
           setAllCustomers([]);
           setLoadingCustomers(false);
           return;
         }
         
-        const customerData = snapshot.docs.map(doc => {
-          const data = doc.data() as CustomerData;
-          
-          if (data.lastPurchaseDate && 
-              typeof data.lastPurchaseDate === 'object' && 
-              'toDate' in data.lastPurchaseDate && 
-              typeof data.lastPurchaseDate.toDate === 'function') {
-            data.lastPurchaseDate = data.lastPurchaseDate.toDate();
-          }
-          return {
-            ...data,
-            id: doc.id
-          };
-        });
+        // Transform Supabase data to match our CustomerData interface
+        const customerData: CustomerData[] = customers.map(customer => ({
+          id: customer.id,
+          customerId: customer.customer_id,
+          email: customer.email,
+          name: customer.name,
+          lastPurchaseDate: customer.last_purchase_date ? new Date(customer.last_purchase_date) : undefined,
+          purchaseCount: customer.purchase_count,
+          totalSpent: customer.total_spent,
+          avgOrderValue: customer.avg_order_value,
+          riskScore: customer.risk_score,
+          segment: customer.segment as 'low-risk' | 'medium-risk' | 'high-risk',
+          age: customer.age,
+          gender: customer.gender,
+          tenure: customer.tenure,
+          createdAt: customer.created_at ? new Date(customer.created_at) : undefined,
+          updatedAt: customer.updated_at ? new Date(customer.updated_at) : undefined
+        }));
         
         setAllCustomers(customerData);
         
@@ -95,10 +103,10 @@ const Dashboard = () => {
           .sort((a, b) => (b.riskScore || 0) - (a.riskScore || 0))
           .slice(0, 10);
         
-        console.log("Enhanced high risk customers found:", highRisk.length);
+        console.log("🚨 High risk customers found:", highRisk.length);
         setHighRiskCustomers(highRisk);
       } catch (err) {
-        console.error("Enhanced error fetching customers:", err);
+        console.error("❌ Error fetching Supabase customers:", err);
       } finally {
         setLoadingCustomers(false);
       }
@@ -207,7 +215,7 @@ const Dashboard = () => {
       <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-hidden">
           <DialogHeader>
-            <DialogTitle>Upload Customer Data</DialogTitle>
+            <DialogTitle>Upload Customer Data to Supabase</DialogTitle>
           </DialogHeader>
           <div className="max-h-[70vh] overflow-y-auto">
             <EnhancedFileUploader />

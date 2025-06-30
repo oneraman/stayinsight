@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { doc, getDoc } from "firebase/firestore";
-import { firestore } from "@/lib/firebase";
+import { supabase } from "@/lib/supabase";
 import { CustomerData } from "@/utils/dataProcessing";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -34,20 +33,51 @@ const CustomerProfile = () => {
 
       try {
         setLoading(true);
-        const customerDoc = await getDoc(doc(firestore, "customers", customerId));
+        console.log("📊 Fetching customer from Supabase:", customerId);
         
-        if (customerDoc.exists()) {
-          const data = customerDoc.data() as CustomerData;
-          setCustomer({
-            ...data,
-            id: customerDoc.id
-          });
+        const { data: supabaseCustomer, error } = await supabase
+          .from('customers')
+          .select('*')
+          .eq('id', customerId)
+          .single();
+        
+        if (error) {
+          if (error.code === 'PGRST116') {
+            setError("Customer not found");
+          } else {
+            throw new Error(`Supabase query failed: ${error.message}`);
+          }
+          return;
+        }
+
+        if (supabaseCustomer) {
+          // Transform Supabase data to match our CustomerData interface
+          const customerData: CustomerData = {
+            id: supabaseCustomer.id,
+            customerId: supabaseCustomer.customer_id,
+            email: supabaseCustomer.email,
+            name: supabaseCustomer.name,
+            lastPurchaseDate: supabaseCustomer.last_purchase_date ? new Date(supabaseCustomer.last_purchase_date) : undefined,
+            purchaseCount: supabaseCustomer.purchase_count,
+            totalSpent: supabaseCustomer.total_spent,
+            avgOrderValue: supabaseCustomer.avg_order_value,
+            riskScore: supabaseCustomer.risk_score,
+            segment: supabaseCustomer.segment as 'low-risk' | 'medium-risk' | 'high-risk',
+            age: supabaseCustomer.age,
+            gender: supabaseCustomer.gender,
+            tenure: supabaseCustomer.tenure,
+            createdAt: supabaseCustomer.created_at ? new Date(supabaseCustomer.created_at) : undefined,
+            updatedAt: supabaseCustomer.updated_at ? new Date(supabaseCustomer.updated_at) : undefined
+          };
+          
+          console.log("✅ Supabase customer loaded:", customerData);
+          setCustomer(customerData);
         } else {
           setError("Customer not found");
         }
       } catch (err) {
-        console.error("Error fetching customer:", err);
-        setError("Failed to load customer data");
+        console.error("❌ Error fetching Supabase customer:", err);
+        setError("Failed to load customer data from Supabase");
       } finally {
         setLoading(false);
       }

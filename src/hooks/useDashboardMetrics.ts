@@ -1,8 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, Timestamp } from "firebase/firestore";
-import { firestore } from "@/lib/firebase";
-import { CustomerData } from "@/utils/dataProcessing";
+import { supabase } from "@/lib/supabase";
 
 interface DashboardMetrics {
   churnRate: number;
@@ -36,32 +33,19 @@ export const useDashboardMetrics = (timePeriod: string = "30") => {
       try {
         setMetrics(prev => ({ ...prev, loading: true, error: null }));
         
-        // Get all customers
-        const customersQuery = query(collection(firestore, "customers"));
-        const snapshot = await getDocs(customersQuery);
+        console.log('📊 Fetching customer data from Supabase...');
         
-        const customers: CustomerData[] = snapshot.docs.map(doc => {
-          const data = doc.data() as CustomerData;
-          
-          // Convert Firestore timestamps to dates properly
-          if (data.lastPurchaseDate) {
-            if (data.lastPurchaseDate instanceof Timestamp) {
-              data.lastPurchaseDate = data.lastPurchaseDate.toDate();
-            } else if (typeof data.lastPurchaseDate === 'object' && 
-                      data.lastPurchaseDate !== null &&
-                      'toDate' in data.lastPurchaseDate &&
-                      typeof data.lastPurchaseDate.toDate === 'function') {
-              data.lastPurchaseDate = data.lastPurchaseDate.toDate();
-            }
-          }
-          
-          return {
-            ...data,
-            id: doc.id
-          };
-        });
+        // Get all customers from Supabase
+        const { data: customers, error } = await supabase
+          .from('customers')
+          .select('*')
+          .order('risk_score', { ascending: false });
 
-        if (customers.length === 0) {
+        if (error) {
+          throw new Error(`Supabase query failed: ${error.message}`);
+        }
+
+        if (!customers || customers.length === 0) {
           setMetrics(prev => ({ 
             ...prev, 
             loading: false,
@@ -70,7 +54,7 @@ export const useDashboardMetrics = (timePeriod: string = "30") => {
           return;
         }
 
-        console.log("Calculating metrics for", customers.length, "customers");
+        console.log("📈 Calculating metrics for", customers.length, "customers from Supabase");
 
         // Calculate date boundaries
         const now = new Date();
@@ -79,14 +63,15 @@ export const useDashboardMetrics = (timePeriod: string = "30") => {
 
         // Filter customers by time period if they have purchase dates
         const periodCustomers = customers.filter(customer => {
-          if (!customer.lastPurchaseDate) return true; // Include customers without dates
-          return customer.lastPurchaseDate >= periodStart;
+          if (!customer.last_purchase_date) return true;
+          const lastPurchaseDate = new Date(customer.last_purchase_date);
+          return lastPurchaseDate >= periodStart;
         });
 
         // Risk segmentation
-        const highRisk = customers.filter(c => (c.riskScore || 0) >= 70);
-        const mediumRisk = customers.filter(c => (c.riskScore || 0) >= 30 && (c.riskScore || 0) < 70);
-        const lowRisk = customers.filter(c => (c.riskScore || 0) < 30);
+        const highRisk = customers.filter(c => (c.risk_score || 0) >= 70);
+        const mediumRisk = customers.filter(c => (c.risk_score || 0) >= 30 && (c.risk_score || 0) < 70);
+        const lowRisk = customers.filter(c => (c.risk_score || 0) < 30);
 
         // Calculate churn rate (customers with high risk score)
         const churnRate = customers.length > 0 ? (highRisk.length / customers.length) * 100 : 0;
@@ -95,11 +80,11 @@ export const useDashboardMetrics = (timePeriod: string = "30") => {
         const retentionRate = 100 - churnRate;
 
         // Calculate average customer lifetime value
-        const totalRevenue = customers.reduce((sum, c) => sum + (c.totalSpent || 0), 0);
+        const totalRevenue = customers.reduce((sum, c) => sum + (c.total_spent || 0), 0);
         const avgCustomerLifetimeValue = customers.length > 0 ? totalRevenue / customers.length : 0;
 
         // Calculate at-risk revenue (revenue from high-risk customers)
-        const atRiskRevenue = highRisk.reduce((sum, c) => sum + (c.totalSpent || 0), 0);
+        const atRiskRevenue = highRisk.reduce((sum, c) => sum + (c.total_spent || 0), 0);
 
         const calculatedMetrics = {
           churnRate: Math.round(churnRate * 10) / 10,
@@ -114,11 +99,11 @@ export const useDashboardMetrics = (timePeriod: string = "30") => {
           error: null
         };
 
-        console.log("Calculated metrics:", calculatedMetrics);
+        console.log("✅ Supabase metrics calculated:", calculatedMetrics);
         setMetrics(calculatedMetrics);
 
       } catch (error) {
-        console.error("Error calculating metrics:", error);
+        console.error("❌ Error calculating Supabase metrics:", error);
         setMetrics(prev => ({ 
           ...prev, 
           loading: false, 

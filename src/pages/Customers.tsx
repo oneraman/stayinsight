@@ -1,7 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
-import { firestore } from "@/lib/firebase";
+import { supabase } from "@/lib/supabase";
 import { CustomerData } from "@/utils/dataProcessing";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,33 +19,43 @@ const Customers = () => {
     const fetchCustomers = async () => {
       try {
         setLoading(true);
-        const customersQuery = query(
-          collection(firestore, "customers"),
-          orderBy("riskScore", "desc"),
-          limit(50)
-        );
+        console.log("📊 Fetching customers from Supabase...");
         
-        const snapshot = await getDocs(customersQuery);
-        const customerData = snapshot.docs.map(doc => {
-          const data = doc.data() as CustomerData;
-          // Convert timestamps to dates - safely check if toDate method exists
-          if (data.lastPurchaseDate && 
-              typeof data.lastPurchaseDate === 'object' && 
-              'toDate' in data.lastPurchaseDate && 
-              typeof data.lastPurchaseDate.toDate === 'function') {
-            data.lastPurchaseDate = data.lastPurchaseDate.toDate();
-          }
-          return {
-            ...data,
-            id: doc.id
-          };
-        });
+        const { data: supabaseCustomers, error } = await supabase
+          .from('customers')
+          .select('*')
+          .order('risk_score', { ascending: false })
+          .limit(50);
         
+        if (error) {
+          throw new Error(`Supabase query failed: ${error.message}`);
+        }
+
+        // Transform Supabase data to match our CustomerData interface
+        const customerData: CustomerData[] = (supabaseCustomers || []).map(customer => ({
+          id: customer.id,
+          customerId: customer.customer_id,
+          email: customer.email,
+          name: customer.name,
+          lastPurchaseDate: customer.last_purchase_date ? new Date(customer.last_purchase_date) : undefined,
+          purchaseCount: customer.purchase_count,
+          totalSpent: customer.total_spent,
+          avgOrderValue: customer.avg_order_value,
+          riskScore: customer.risk_score,
+          segment: customer.segment as 'low-risk' | 'medium-risk' | 'high-risk',
+          age: customer.age,
+          gender: customer.gender,
+          tenure: customer.tenure,
+          createdAt: customer.created_at ? new Date(customer.created_at) : undefined,
+          updatedAt: customer.updated_at ? new Date(customer.updated_at) : undefined
+        }));
+        
+        console.log("✅ Supabase customers loaded:", customerData.length);
         setCustomers(customerData);
         setFilteredCustomers(customerData);
       } catch (err: any) {
-        console.error("Error fetching customers:", err);
-        setError(err.message || "Failed to load customer data");
+        console.error("❌ Error fetching Supabase customers:", err);
+        setError(err.message || "Failed to load customer data from Supabase");
       } finally {
         setLoading(false);
       }
@@ -78,7 +86,7 @@ const Customers = () => {
     <DashboardLayout>
       <div className="p-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold mb-4 md:mb-0">Customer Data</h1>
+          <h1 className="text-2xl font-bold mb-4 md:mb-0">Customer Data (Supabase)</h1>
           <div className="w-full md:w-80">
             <CustomerSearch customers={customers} onSearch={handleSearchResults} />
           </div>
@@ -86,7 +94,7 @@ const Customers = () => {
         
         <Card>
           <CardHeader>
-            <CardTitle>Processed Customer Data</CardTitle>
+            <CardTitle>Customer Records from Supabase Database</CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -99,7 +107,7 @@ const Customers = () => {
               </div>
             ) : filteredCustomers.length === 0 ? (
               <div className="text-center p-4">
-                No customer data found. Upload a file to get started.
+                No customer data found in Supabase. Upload a file to get started.
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -119,7 +127,7 @@ const Customers = () => {
                   <TableBody>
                     {filteredCustomers.map((customer) => (
                       <TableRow 
-                        key={customer.customerId}
+                        key={customer.id}
                         className={`
                           cursor-pointer
                           ${customer.segment === 'high-risk' 
