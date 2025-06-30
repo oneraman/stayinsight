@@ -12,9 +12,9 @@ import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import Customers from "./pages/Customers";
 import CustomerProfile from "./pages/CustomerProfile";
+import DataChat from "./pages/DataChat";
 import Settings from "./pages/Settings";
 import UploadHistory from "./pages/UploadHistory";
-import DataChat from "./pages/DataChat";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
