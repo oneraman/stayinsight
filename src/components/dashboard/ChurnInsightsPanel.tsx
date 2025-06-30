@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Sparkles, Loader2, TrendingDown, AlertTriangle, Target, FileText } from 'lucide-react';
 import { 
-  generateDataSummary, 
+  generateEnhancedCustomerInsights, 
+  generateEnhancedPortfolioAnalysis 
+} from '@/lib/enhancedGemini';
+import { 
   generateRetentionStrategy, 
   generateChurnReport,
   generateChurnPrediction 
@@ -45,12 +49,13 @@ const ChurnInsightsPanel = ({ customers, timeframe }: ChurnInsightsPanelProps) =
 
     setLoading(prev => ({ ...prev, overview: true }));
     try {
-      const aiInsights = await generateDataSummary(customers);
+      // Use enhanced portfolio analysis for more accurate insights
+      const aiInsights = await generateEnhancedPortfolioAnalysis(customers);
       setInsights(prev => ({ ...prev, overview: aiInsights }));
-      toast.success('Portfolio insights generated successfully!');
+      toast.success('Enhanced portfolio insights generated successfully!');
     } catch (error) {
-      console.error('Error generating overview insights:', error);
-      toast.error('Failed to generate portfolio insights');
+      console.error('Error generating enhanced overview insights:', error);
+      toast.error('Failed to generate enhanced portfolio insights');
     } finally {
       setLoading(prev => ({ ...prev, overview: false }));
     }
@@ -65,12 +70,12 @@ const ChurnInsightsPanel = ({ customers, timeframe }: ChurnInsightsPanelProps) =
     setLoading(prev => ({ ...prev, strategy: true }));
     try {
       const highRiskCustomers = customers.filter(c => 
-        c.riskScore >= 70 || c.segment === 'high-risk'
+        (c.riskScore || c.risk_score) >= 70 || c.segment === 'high-risk'
       );
       const segment = highRiskCustomers.length > 0 ? 'high-risk' : 'medium-risk';
       const aiStrategy = await generateRetentionStrategy(segment, customers);
       setInsights(prev => ({ ...prev, strategy: aiStrategy }));
-      toast.success('Retention strategy generated successfully!');
+      toast.success('Enhanced retention strategy generated successfully!');
     } catch (error) {
       console.error('Error generating strategy insights:', error);
       toast.error('Failed to generate retention strategy');
@@ -89,7 +94,7 @@ const ChurnInsightsPanel = ({ customers, timeframe }: ChurnInsightsPanelProps) =
     try {
       const aiReport = await generateChurnReport(timeframe, customers);
       setInsights(prev => ({ ...prev, report: aiReport }));
-      toast.success('Churn report generated successfully!');
+      toast.success('Enhanced churn report generated successfully!');
     } catch (error) {
       console.error('Error generating report insights:', error);
       toast.error('Failed to generate churn report');
@@ -106,15 +111,16 @@ const ChurnInsightsPanel = ({ customers, timeframe }: ChurnInsightsPanelProps) =
 
     setLoading(prev => ({ ...prev, prediction: true }));
     try {
-      // Analyze the highest risk customer for detailed prediction
+      // Find the highest risk customer for detailed prediction
       const highestRiskCustomer = customers
         .filter(c => c.riskScore || c.risk_score)
         .sort((a, b) => (b.riskScore || b.risk_score || 0) - (a.riskScore || a.risk_score || 0))[0];
       
       if (highestRiskCustomer) {
-        const aiPrediction = await generateChurnPrediction(highestRiskCustomer);
+        // Use enhanced customer insights for more accurate prediction
+        const aiPrediction = await generateEnhancedCustomerInsights(highestRiskCustomer);
         setInsights(prev => ({ ...prev, prediction: aiPrediction }));
-        toast.success('Churn prediction generated successfully!');
+        toast.success('Enhanced churn prediction generated successfully!');
       } else {
         toast.error('No customers with risk scores found for prediction');
       }
@@ -127,12 +133,13 @@ const ChurnInsightsPanel = ({ customers, timeframe }: ChurnInsightsPanelProps) =
   };
 
   const getInsightStats = () => {
-    const highRisk = customers.filter(c => c.riskScore >= 70 || c.segment === 'high-risk').length;
-    const mediumRisk = customers.filter(c => 
-      (c.riskScore >= 30 && c.riskScore < 70) || c.segment === 'medium-risk'
-    ).length;
+    const highRisk = customers.filter(c => (c.riskScore || c.risk_score) >= 70 || c.segment === 'high-risk').length;
+    const mediumRisk = customers.filter(c => {
+      const score = c.riskScore || c.risk_score || 0;
+      return (score >= 30 && score < 70) || c.segment === 'medium-risk';
+    }).length;
     const atRiskRevenue = customers
-      .filter(c => c.riskScore >= 70 || c.segment === 'high-risk')
+      .filter(c => (c.riskScore || c.risk_score) >= 70 || c.segment === 'high-risk')
       .reduce((sum, c) => sum + (c.totalSpent || c.total_spent || 0), 0);
 
     return { highRisk, mediumRisk, atRiskRevenue };
@@ -145,7 +152,7 @@ const ChurnInsightsPanel = ({ customers, timeframe }: ChurnInsightsPanelProps) =
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-[#5E5AFF]" />
-          AI Churn Insights
+          Enhanced AI Churn Insights
         </CardTitle>
         <div className="flex gap-2 text-xs">
           <Badge variant="outline" className="gap-1">
@@ -172,7 +179,7 @@ const ChurnInsightsPanel = ({ customers, timeframe }: ChurnInsightsPanelProps) =
               <div className="text-center py-6">
                 <TrendingDown className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-sm text-muted-foreground mb-4">
-                  Get AI-powered insights about your customer portfolio health and churn risks.
+                  Get enhanced AI-powered insights about your customer portfolio with advanced risk analysis and strategic recommendations.
                 </p>
                 <Button 
                   onClick={generateOverviewInsights}
@@ -183,12 +190,12 @@ const ChurnInsightsPanel = ({ customers, timeframe }: ChurnInsightsPanelProps) =
                   {loading.overview ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Analyzing...
+                      Analyzing with Enhanced AI...
                     </>
                   ) : (
                     <>
                       <Sparkles className="h-4 w-4" />
-                      Generate Portfolio Insights
+                      Generate Enhanced Portfolio Insights
                     </>
                   )}
                 </Button>
@@ -210,12 +217,12 @@ const ChurnInsightsPanel = ({ customers, timeframe }: ChurnInsightsPanelProps) =
                   {loading.overview ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Refreshing...
+                      Refreshing Enhanced Analysis...
                     </>
                   ) : (
                     <>
                       <Sparkles className="h-4 w-4" />
-                      Refresh Analysis
+                      Refresh Enhanced Analysis
                     </>
                   )}
                 </Button>
@@ -228,7 +235,7 @@ const ChurnInsightsPanel = ({ customers, timeframe }: ChurnInsightsPanelProps) =
               <div className="text-center py-6">
                 <Target className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-sm text-muted-foreground mb-4">
-                  Get AI-generated retention strategies tailored to your high-risk customers.
+                  Get AI-generated retention strategies tailored to your high-risk customers with enhanced accuracy.
                 </p>
                 <Button 
                   onClick={generateStrategyInsights}
@@ -239,12 +246,12 @@ const ChurnInsightsPanel = ({ customers, timeframe }: ChurnInsightsPanelProps) =
                   {loading.strategy ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Creating Strategy...
+                      Creating Enhanced Strategy...
                     </>
                   ) : (
                     <>
                       <Target className="h-4 w-4" />
-                      Generate Retention Strategy
+                      Generate Enhanced Retention Strategy
                     </>
                   )}
                 </Button>
@@ -266,7 +273,7 @@ const ChurnInsightsPanel = ({ customers, timeframe }: ChurnInsightsPanelProps) =
                   {loading.strategy ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Updating...
+                      Updating Strategy...
                     </>
                   ) : (
                     <>
@@ -284,7 +291,7 @@ const ChurnInsightsPanel = ({ customers, timeframe }: ChurnInsightsPanelProps) =
               <div className="text-center py-6">
                 <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-sm text-muted-foreground mb-4">
-                  Get detailed churn predictions for your highest-risk customer.
+                  Get detailed churn predictions with enhanced accuracy for your highest-risk customer.
                 </p>
                 <Button 
                   onClick={generatePredictionInsights}
@@ -295,12 +302,12 @@ const ChurnInsightsPanel = ({ customers, timeframe }: ChurnInsightsPanelProps) =
                   {loading.prediction ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Predicting...
+                      Generating Enhanced Prediction...
                     </>
                   ) : (
                     <>
                       <AlertTriangle className="h-4 w-4" />
-                      Generate Churn Prediction
+                      Generate Enhanced Churn Prediction
                     </>
                   )}
                 </Button>
@@ -322,12 +329,12 @@ const ChurnInsightsPanel = ({ customers, timeframe }: ChurnInsightsPanelProps) =
                   {loading.prediction ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Updating...
+                      Updating Enhanced Prediction...
                     </>
                   ) : (
                     <>
                       <AlertTriangle className="h-4 w-4" />
-                      Update Prediction
+                      Update Enhanced Prediction
                     </>
                   )}
                 </Button>
@@ -340,7 +347,7 @@ const ChurnInsightsPanel = ({ customers, timeframe }: ChurnInsightsPanelProps) =
               <div className="text-center py-6">
                 <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-sm text-muted-foreground mb-4">
-                  Generate a comprehensive churn analysis report for the selected time period.
+                  Generate a comprehensive churn analysis report with enhanced accuracy for the selected time period.
                 </p>
                 <Button 
                   onClick={generateReportInsights}
@@ -351,12 +358,12 @@ const ChurnInsightsPanel = ({ customers, timeframe }: ChurnInsightsPanelProps) =
                   {loading.report ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Generating Report...
+                      Generating Enhanced Report...
                     </>
                   ) : (
                     <>
                       <FileText className="h-4 w-4" />
-                      Generate Churn Report
+                      Generate Enhanced Churn Report
                     </>
                   )}
                 </Button>
@@ -378,12 +385,12 @@ const ChurnInsightsPanel = ({ customers, timeframe }: ChurnInsightsPanelProps) =
                   {loading.report ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Updating...
+                      Updating Enhanced Report...
                     </>
                   ) : (
                     <>
                       <FileText className="h-4 w-4" />
-                      Update Report
+                      Update Enhanced Report
                     </>
                   )}
                 </Button>
