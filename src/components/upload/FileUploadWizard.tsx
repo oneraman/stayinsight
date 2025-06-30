@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Upload, FileText, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Upload, FileText, CheckCircle, AlertTriangle, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { processFileClientSide } from '@/utils/clientFileProcessor';
 import { useToast } from '@/hooks/use-toast';
 
@@ -101,6 +102,14 @@ export const FileUploadWizard = ({ onComplete }: FileUploadWizardProps) => {
                 Choose File
               </Button>
             </div>
+            
+            <Alert className="mt-4">
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Tip:</strong> Your file should contain customer information like email, name, purchase history, or customer behavior data. 
+                Customer IDs will be generated automatically if not present.
+              </AlertDescription>
+            </Alert>
           </CardContent>
         </Card>
       )}
@@ -119,7 +128,7 @@ export const FileUploadWizard = ({ onComplete }: FileUploadWizardProps) => {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
               <div>
                 <p className="text-sm font-medium">File Name</p>
-                <p className="text-sm text-gray-600">{selectedFile.name}</p>
+                <p className="text-sm text-gray-600 truncate">{selectedFile.name}</p>
               </div>
               <div>
                 <p className="text-sm font-medium">Size</p>
@@ -127,7 +136,7 @@ export const FileUploadWizard = ({ onComplete }: FileUploadWizardProps) => {
               </div>
               <div>
                 <p className="text-sm font-medium">Type</p>
-                <p className="text-sm text-gray-600">{selectedFile.type || 'Unknown'}</p>
+                <p className="text-sm text-gray-600">{selectedFile.type || 'CSV/Excel'}</p>
               </div>
             </div>
 
@@ -137,7 +146,7 @@ export const FileUploadWizard = ({ onComplete }: FileUploadWizardProps) => {
                 <div className="grid grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg">
                   <div>
                     <p className="text-sm font-medium">Rows Detected</p>
-                    <p className="text-lg font-bold text-blue-600">{filePreview.fileInfo.totalRows}</p>
+                    <p className="text-lg font-bold text-blue-600">{filePreview.fileInfo.totalRows.toLocaleString()}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium">Columns Detected</p>
@@ -149,52 +158,67 @@ export const FileUploadWizard = ({ onComplete }: FileUploadWizardProps) => {
                 <div>
                   <h4 className="font-medium mb-2">Detected Columns</h4>
                   <div className="flex flex-wrap gap-2">
-                    {filePreview.fileInfo.columns.slice(0, 8).map((col: string) => (
+                    {filePreview.fileInfo.columns.slice(0, 10).map((col: string) => (
                       <Badge key={col} variant="outline" className="text-xs">
                         {col}
                       </Badge>
                     ))}
-                    {filePreview.fileInfo.columns.length > 8 && (
+                    {filePreview.fileInfo.columns.length > 10 && (
                       <Badge variant="outline" className="text-xs">
-                        +{filePreview.fileInfo.columns.length - 8} more
+                        +{filePreview.fileInfo.columns.length - 10} more
                       </Badge>
                     )}
                   </div>
                 </div>
 
+                {/* Processing Info */}
+                <Alert className="border-green-200 bg-green-50">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <AlertDescription className="text-green-800">
+                    <strong>Ready for Processing:</strong> This file can be processed for customer churn analysis. 
+                    {filePreview.fileInfo.totalRows > 10000 && (
+                      <span> Large file detected - processing may take a few minutes.</span>
+                    )}
+                  </AlertDescription>
+                </Alert>
+
                 {/* Validation Results */}
-                {filePreview.errors.length > 0 && (
-                  <div className="border border-red-200 bg-red-50 p-4 rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <AlertTriangle className="h-4 w-4 text-red-600" />
-                      <h4 className="font-medium text-red-800">Issues Found</h4>
-                    </div>
-                    <ul className="list-disc list-inside text-sm text-red-700 space-y-1">
-                      {filePreview.errors.slice(0, 3).map((error: string, i: number) => (
-                        <li key={i}>{error}</li>
-                      ))}
-                      {filePreview.errors.length > 3 && (
-                        <li>... and {filePreview.errors.length - 3} more issues</li>
-                      )}
-                    </ul>
-                  </div>
+                {filePreview.warnings.length > 0 && (
+                  <Alert className="border-yellow-200 bg-yellow-50">
+                    <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                    <AlertDescription className="text-yellow-800">
+                      <div className="space-y-2">
+                        <strong>Processing Notes:</strong>
+                        <ul className="list-disc list-inside text-sm space-y-1">
+                          {filePreview.warnings.slice(0, 3).map((warning: string, i: number) => (
+                            <li key={i}>{warning}</li>
+                          ))}
+                          {filePreview.warnings.length > 3 && (
+                            <li>... and {filePreview.warnings.length - 3} more notes</li>
+                          )}
+                        </ul>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
                 )}
 
-                {filePreview.warnings.length > 0 && (
-                  <div className="border border-yellow-200 bg-yellow-50 p-4 rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                      <h4 className="font-medium text-yellow-800">Warnings</h4>
-                    </div>
-                    <ul className="list-disc list-inside text-sm text-yellow-700 space-y-1">
-                      {filePreview.warnings.slice(0, 2).map((warning: string, i: number) => (
-                        <li key={i}>{warning}</li>
-                      ))}
-                      {filePreview.warnings.length > 2 && (
-                        <li>... and {filePreview.warnings.length - 2} more warnings</li>
-                      )}
-                    </ul>
-                  </div>
+                {filePreview.errors.length > 0 && (
+                  <Alert className="border-red-200 bg-red-50">
+                    <AlertTriangle className="h-4 w-4 text-red-600" />
+                    <AlertDescription className="text-red-800">
+                      <div className="space-y-2">
+                        <strong>Issues Found:</strong>
+                        <ul className="list-disc list-inside text-sm space-y-1">
+                          {filePreview.errors.slice(0, 3).map((error: string, i: number) => (
+                            <li key={i}>{error}</li>
+                          ))}
+                          {filePreview.errors.length > 3 && (
+                            <li>... and {filePreview.errors.length - 3} more issues</li>
+                          )}
+                        </ul>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
                 )}
               </div>
             )}
@@ -205,9 +229,10 @@ export const FileUploadWizard = ({ onComplete }: FileUploadWizardProps) => {
               </Button>
               <Button 
                 onClick={handleContinue} 
-                disabled={isAnalyzing || (filePreview && !filePreview.success)}
+                disabled={isAnalyzing}
+                className="flex-1"
               >
-                {isAnalyzing ? 'Analyzing...' : 'Continue to Upload'}
+                {isAnalyzing ? 'Analyzing...' : 'Continue to Upload & Process'}
               </Button>
             </div>
           </CardContent>

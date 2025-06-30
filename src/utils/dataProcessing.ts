@@ -1,10 +1,9 @@
-
 import { collection, addDoc, serverTimestamp, writeBatch, doc } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
 import { getDownloadURL, ref } from "firebase/storage";
 import { storage } from "@/lib/firebase";
 import * as XLSX from "xlsx";
-import { validateFileData, CustomerRowData } from "./dataValidation";
+import { validateFileData, CustomerRowData, findCustomerIdColumn, generateCustomerId } from "./dataValidation";
 
 // Customer data interface
 export interface CustomerData {
@@ -20,51 +19,91 @@ export interface CustomerData {
   segment?: 'low-risk' | 'medium-risk' | 'high-risk';
   createdAt?: Date;
   updatedAt?: Date;
+  // Additional fields for enhanced analysis
+  age?: number;
+  gender?: string;
+  tenure?: number;
+  usageFrequency?: string;
+  supportCalls?: number;
+  paymentDelay?: number;
+  subscriptionType?: string;
 }
 
-// Calculate risk score based on RFM (Recency, Frequency, Monetary)
+// Calculate risk score based on multiple factors
 const calculateRiskScore = (
   lastPurchaseDate: Date | undefined, 
   purchaseCount: number | undefined, 
-  totalSpent: number | undefined
+  totalSpent: number | undefined,
+  age?: number,
+  tenure?: number,
+  supportCalls?: number,
+  paymentDelay?: number,
+  usageFrequency?: string
 ): number => {
-  console.log("Calculating risk score for:", { lastPurchaseDate, purchaseCount, totalSpent });
+  console.log("Calculating enhanced risk score for:", { 
+    lastPurchaseDate, purchaseCount, totalSpent, age, tenure, supportCalls, paymentDelay, usageFrequency 
+  });
+  
   let score = 50; // Default medium risk
   const now = new Date();
   
-  // Recency factor - more recent purchases lower the risk
+  // Recency factor (30% weight)
   if (lastPurchaseDate) {
     const daysSinceLastPurchase = Math.floor((now.getTime() - lastPurchaseDate.getTime()) / (1000 * 60 * 60 * 24));
     console.log("Days since last purchase:", daysSinceLastPurchase);
-    if (daysSinceLastPurchase < 30) score -= 20;
-    else if (daysSinceLastPurchase < 90) score -= 10;
+    if (daysSinceLastPurchase < 30) score -= 15;
+    else if (daysSinceLastPurchase < 90) score -= 5;
     else if (daysSinceLastPurchase > 180) score += 20;
+    else if (daysSinceLastPurchase > 365) score += 30;
   } else {
-    score += 25;
+    score += 20;
   }
   
-  // Frequency factor
-  if (purchaseCount) {
+  // Frequency factor (25% weight)
+  if (purchaseCount !== undefined && purchaseCount !== null) {
     console.log("Purchase count:", purchaseCount);
     if (purchaseCount > 10) score -= 15;
     else if (purchaseCount > 5) score -= 10;
+    else if (purchaseCount > 2) score -= 5;
     else if (purchaseCount < 2) score += 15;
-  } else {
-    score += 15;
-  }
-  
-  // Monetary factor
-  if (totalSpent) {
-    console.log("Total spent:", totalSpent);
-    if (totalSpent > 1000) score -= 15;
-    else if (totalSpent > 500) score -= 10;
-    else if (totalSpent < 100) score += 10;
   } else {
     score += 10;
   }
   
+  // Monetary factor (25% weight)
+  if (totalSpent !== undefined && totalSpent !== null) {
+    console.log("Total spent:", totalSpent);
+    if (totalSpent > 1000) score -= 15;
+    else if (totalSpent > 500) score -= 10;
+    else if (totalSpent > 100) score -= 5;
+    else if (totalSpent < 50) score += 15;
+  } else {
+    score += 10;
+  }
+  
+  // Support calls factor (10% weight)
+  if (supportCalls !== undefined && supportCalls !== null) {
+    if (supportCalls > 5) score += 10;
+    else if (supportCalls > 2) score += 5;
+    else if (supportCalls === 0) score -= 5;
+  }
+  
+  // Payment delay factor (5% weight)
+  if (paymentDelay !== undefined && paymentDelay !== null) {
+    if (paymentDelay > 30) score += 15;
+    else if (paymentDelay > 7) score += 10;
+    else if (paymentDelay === 0) score -= 5;
+  }
+  
+  // Usage frequency factor (5% weight)
+  if (usageFrequency) {
+    const freq = usageFrequency.toLowerCase();
+    if (freq.includes('low') || freq.includes('rarely')) score += 10;
+    else if (freq.includes('high') || freq.includes('frequent')) score -= 10;
+  }
+  
   const finalScore = Math.max(0, Math.min(100, score));
-  console.log("Final risk score:", finalScore);
+  console.log("Final enhanced risk score:", finalScore);
   return finalScore;
 };
 
@@ -85,9 +124,8 @@ const parseDate = (dateStr: string | number): Date | undefined => {
     // Handle Excel serial number dates
     if (typeof dateStr === 'number') {
       console.log("Processing Excel serial date number:", dateStr);
-      // Excel epoch starts at 1900-01-01, but there's a leap year bug
       const excelEpoch = new Date(1900, 0, 1);
-      const days = dateStr - 1; // Adjust for Excel's 1-based indexing
+      const days = dateStr - 1;
       const result = new Date(excelEpoch.getTime() + days * 24 * 60 * 60 * 1000);
       console.log("Converted Excel date to:", result);
       return result;
@@ -95,11 +133,10 @@ const parseDate = (dateStr: string | number): Date | undefined => {
     
     // Handle string dates
     if (typeof dateStr === 'string') {
-      // Try multiple date formats
       const formats = [
-        dateStr, // Original format
-        dateStr.replace(/[-]/g, '/'), // Convert dashes to slashes
-        dateStr.replace(/[/]/g, '-'), // Convert slashes to dashes
+        dateStr,
+        dateStr.replace(/[-]/g, '/'),
+        dateStr.replace(/[/]/g, '-'),
       ];
       
       for (const format of formats) {
@@ -119,12 +156,19 @@ const parseDate = (dateStr: string | number): Date | undefined => {
   }
 };
 
+// Safe number parsing
+const parseNumber = (value: any): number | undefined => {
+  if (value === undefined || value === null || value === '') return undefined;
+  const num = Number(value);
+  return isNaN(num) ? undefined : num;
+};
+
 // Main function to process customer data from uploaded file
 export const processCustomerDataFile = async (
   fileUrl: string, 
   onProgress?: (progress: number, message: string) => void
 ): Promise<{ success: boolean; customersProcessed: number; errors: string[] }> => {
-  console.log("🚀 Starting file processing pipeline...");
+  console.log("🚀 Starting enhanced file processing pipeline...");
   console.log("File URL:", fileUrl);
   
   try {
@@ -173,50 +217,76 @@ export const processCustomerDataFile = async (
     const allErrors: string[] = [...validation.warnings];
     let processedCount = 0;
     
-    for (let index = 0; index < data.length; index++) {
-      const row = data[index];
-      processedCount++;
+    // Process in batches for large files
+    const batchSize = 1000;
+    const totalBatches = Math.ceil(data.length / batchSize);
+    
+    for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+      const startIndex = batchIndex * batchSize;
+      const endIndex = Math.min(startIndex + batchSize, data.length);
+      const batchData = data.slice(startIndex, endIndex);
       
-      // Update progress every 50 rows or on last row
-      if (index % 50 === 0 || index === data.length - 1) {
-        const progress = 50 + ((index / data.length) * 30);
-        onProgress?.(progress, `Processing customer ${index + 1} of ${data.length}...`);
-        console.log(`Processing progress: ${index + 1}/${data.length} (${Math.round(progress)}%)`);
-      }
+      console.log(`Processing batch ${batchIndex + 1}/${totalBatches}: rows ${startIndex + 1}-${endIndex}`);
       
-      try {
-        console.log(`Processing row ${index + 1}:`, row);
+      for (let i = 0; i < batchData.length; i++) {
+        const row = batchData[i];
+        const globalIndex = startIndex + i;
+        processedCount++;
         
-        const customerData: CustomerData = {
-          customerId: row.customer_id || row.customerId || row.id || `C${Date.now()}_${index}`,
-          email: row.email || row.email_address || undefined,
-          name: row.name || row.customer_name || row.fullname || 
-                `${row.first_name || ''} ${row.last_name || ''}`.trim() || undefined,
-          lastPurchaseDate: parseDate(row.last_purchase_date || row.lastPurchaseDate || row.last_order_date),
-          purchaseCount: row.purchase_count || row.purchaseCount || row.order_count ? 
-                        Number(row.purchase_count || row.purchaseCount || row.order_count) : undefined,
-          totalSpent: row.total_spent || row.totalSpent || row.lifetime_value ? 
-                     Number(row.total_spent || row.totalSpent || row.lifetime_value) : undefined,
-          avgOrderValue: row.avg_order_value || row.avgOrderValue ? 
-                        Number(row.avg_order_value || row.avgOrderValue) : undefined
-        };
+        // Update progress
+        if (globalIndex % 1000 === 0 || globalIndex === data.length - 1) {
+          const progress = 50 + ((globalIndex / data.length) * 30);
+          onProgress?.(progress, `Processing customer ${globalIndex + 1} of ${data.length}...`);
+        }
         
-        console.log(`Customer data for row ${index + 1}:`, customerData);
-        
-        // Calculate risk score
-        customerData.riskScore = calculateRiskScore(
-          customerData.lastPurchaseDate,
-          customerData.purchaseCount,
-          customerData.totalSpent
-        );
-        
-        customerData.segment = determineSegment(customerData.riskScore);
-        console.log(`Customer ${customerData.customerId} assigned to ${customerData.segment} segment with risk score ${customerData.riskScore}`);
-        
-        customers.push(customerData);
-      } catch (error) {
-        console.error(`❌ Error processing row ${index + 1}:`, error);
-        allErrors.push(`Row ${index + 1}: ${error instanceof Error ? error.message : 'Processing error'}`);
+        try {
+          console.log(`Processing row ${globalIndex + 1}:`, row);
+          
+          // Get or generate customer ID
+          const idColumn = findCustomerIdColumn(row);
+          const customerId = idColumn ? String(row[idColumn]) : generateCustomerId(row, globalIndex);
+          
+          const customerData: CustomerData = {
+            customerId,
+            email: row.email || row.email_address || undefined,
+            name: row.name || row.customer_name || row.fullname || 
+                  `${row.first_name || ''} ${row.last_name || ''}`.trim() || undefined,
+            lastPurchaseDate: parseDate(row.last_purchase_date || row.lastPurchaseDate || row.last_order_date),
+            purchaseCount: parseNumber(row.purchase_count || row.purchaseCount || row.order_count),
+            totalSpent: parseNumber(row.total_spent || row.totalSpent || row.lifetime_value),
+            avgOrderValue: parseNumber(row.avg_order_value || row.avgOrderValue),
+            // Enhanced fields
+            age: parseNumber(row.Age),
+            gender: row.Gender || undefined,
+            tenure: parseNumber(row.Tenure),
+            usageFrequency: row['Usage Frequency'] || undefined,
+            supportCalls: parseNumber(row['Support Calls']),
+            paymentDelay: parseNumber(row['Payment Delay']),
+            subscriptionType: row['Subscription Type'] || undefined
+          };
+          
+          console.log(`Enhanced customer data for row ${globalIndex + 1}:`, customerData);
+          
+          // Calculate enhanced risk score
+          customerData.riskScore = calculateRiskScore(
+            customerData.lastPurchaseDate,
+            customerData.purchaseCount,
+            customerData.totalSpent,
+            customerData.age,
+            customerData.tenure,
+            customerData.supportCalls,
+            customerData.paymentDelay,
+            customerData.usageFrequency
+          );
+          
+          customerData.segment = determineSegment(customerData.riskScore);
+          console.log(`Customer ${customerData.customerId} assigned to ${customerData.segment} segment with risk score ${customerData.riskScore}`);
+          
+          customers.push(customerData);
+        } catch (error) {
+          console.error(`❌ Error processing row ${globalIndex + 1}:`, error);
+          allErrors.push(`Row ${globalIndex + 1}: ${error instanceof Error ? error.message : 'Processing error'}`);
+        }
       }
     }
     
@@ -231,7 +301,7 @@ export const processCustomerDataFile = async (
     await storeCustomerData(customers, onProgress);
     
     onProgress?.(100, "Processing complete!");
-    console.log("🎉 File processing pipeline completed successfully!");
+    console.log("🎉 Enhanced file processing pipeline completed successfully!");
     
     return {
       success: true,
@@ -239,7 +309,7 @@ export const processCustomerDataFile = async (
       errors: allErrors
     };
   } catch (error) {
-    console.error("💥 Error in file processing pipeline:", error);
+    console.error("💥 Error in enhanced file processing pipeline:", error);
     throw new Error(`Failed to process customer data file: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };
@@ -256,7 +326,6 @@ const storeCustomerData = async (
     const totalBatches = Math.ceil(customers.length / batchSize);
     console.log(`Creating ${totalBatches} batches of max ${batchSize} customers each`);
     
-    // Create and execute batches
     for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
       const startIndex = batchIndex * batchSize;
       const endIndex = Math.min(startIndex + batchSize, customers.length);
