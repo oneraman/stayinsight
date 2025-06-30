@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase, testSupabaseConnection, validateSupabaseConfig } from "@/lib/supabase";
 import { CustomerData } from "@/utils/dataProcessing";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import EnhancedFileUploader from "@/components/EnhancedFileUploader";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
@@ -17,6 +17,19 @@ import ActionInsightsSection from "@/components/dashboard/ActionInsightsSection"
 import ChurnInsightsPanel from "@/components/dashboard/ChurnInsightsPanel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const Dashboard = () => {
   const [timePeriod, setTimePeriod] = useState("30");
@@ -28,9 +41,11 @@ const Dashboard = () => {
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
   const [configError, setConfigError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   const metrics = useDashboardMetrics(timePeriod);
   const customerRiskTableRef = useRef<HTMLDivElement>(null);
+  const { currentUser } = useAuth();
 
   // Validate configuration on component mount
   useEffect(() => {
@@ -91,6 +106,57 @@ const Dashboard = () => {
       setConnectionError(error instanceof Error ? error.message : "Connection test failed");
     } finally {
       setIsRetrying(false);
+    }
+  };
+
+  const handleRefreshData = async () => {
+    if (!currentUser) {
+      toast.error("Please log in to refresh data");
+      return;
+    }
+
+    setIsRefreshing(true);
+    
+    try {
+      console.log("🗑️ Starting data refresh - clearing all customer data and upload sessions...");
+      
+      // Delete all customer data for the current user
+      const { error: customersError } = await supabase
+        .from('customers')
+        .delete()
+        .eq('user_id', currentUser.id);
+
+      if (customersError) {
+        throw new Error(`Failed to clear customer data: ${customersError.message}`);
+      }
+
+      // Delete all upload sessions for the current user
+      const { error: sessionsError } = await supabase
+        .from('upload_sessions')
+        .delete()
+        .eq('user_id', currentUser.id);
+
+      if (sessionsError) {
+        console.warn("Warning: Failed to clear upload sessions:", sessionsError.message);
+        // Don't throw error for upload sessions as it's not critical
+      }
+
+      console.log("✅ Data refresh completed successfully");
+      
+      // Clear local state
+      setHighRiskCustomers([]);
+      setAllCustomers([]);
+      
+      // Trigger a refresh of the dashboard
+      setRefreshTrigger(prev => prev + 1);
+      
+      toast.success("Dashboard refreshed! All data cleared. You can now upload new files.");
+      
+    } catch (error) {
+      console.error("❌ Error refreshing data:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to refresh data");
+    } finally {
+      setIsRefreshing(false);
     }
   };
   
@@ -221,7 +287,52 @@ const Dashboard = () => {
       <div className="max-w-7xl mx-auto px-4">
         {/* Top stats section */}
         <div className="mb-6 mt-4">
-          <h1 className="text-2xl font-bold mb-6">Customer Retention Dashboard</h1>
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-2xl font-bold">Customer Retention Dashboard</h1>
+            
+            {/* Refresh Button */}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  className="gap-2"
+                  disabled={isRefreshing || !currentUser}
+                >
+                  {isRefreshing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Refreshing...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-4 w-4" />
+                      Refresh Dashboard
+                    </>
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Refresh Dashboard</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete all your current customer data and upload history. 
+                    You'll be able to upload new files and get fresh insights.
+                    <br /><br />
+                    <strong>This action cannot be undone.</strong>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleRefreshData}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Clear All Data
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
           
           {/* Configuration Error Alert */}
           {configError && (
