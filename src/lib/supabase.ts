@@ -155,14 +155,20 @@ const testRawSupabaseConnection = async (): Promise<boolean> => {
     const apiUrl = `${supabaseUrl}/rest/v1/customers?limit=1`;
     console.log('📍 Testing URL:', apiUrl);
     
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
     const response = await fetch(apiUrl, {
       method: 'GET',
       headers: {
         'apikey': supabaseAnonKey,
         'Authorization': `Bearer ${supabaseAnonKey}`,
         'Content-Type': 'application/json'
-      }
+      },
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
     
     console.log('📊 Raw fetch response status:', response.status);
     console.log('📊 Raw fetch response headers:', Object.fromEntries(response.headers.entries()));
@@ -188,6 +194,10 @@ const testRawSupabaseConnection = async (): Promise<boolean> => {
     
   } catch (error) {
     console.error('❌ Raw fetch test failed:', error);
+    
+    if (error.name === 'AbortError') {
+      throw new Error('Connection timeout: Request took too long to complete. Please check your internet connection.');
+    }
     
     if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
       throw new Error('Network connectivity issue: Cannot reach Supabase servers. Please check your .env file configuration, internet connection and firewall settings.');
