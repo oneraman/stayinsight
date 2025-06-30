@@ -19,7 +19,7 @@ type AuthContextType = {
   signInWithGoogle: () => Promise<User | null>;
   logOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
-  updateUserProfile: (updates: { display_name?: string; avatar_url?: string }) => Promise<void>;
+  updateUserProfile: (updates: { display_name?: string; avatar_url?: string; phone_number?: string; company?: string }) => Promise<void>;
 };
 
 export const AuthContext = createContext<AuthContextType>({
@@ -135,7 +135,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error('❌ Google sign-in error:', error);
         
         if (error.message.includes('OAuth')) {
-          toast.error("Google sign-in is not configured. Please contact support or use email/password.");
+          toast.error("Google sign-in is not properly configured. Please use email/password or contact support.");
+        } else if (error.message.includes('popup')) {
+          toast.error("Popup was blocked. Please allow popups for this site and try again.");
         } else {
           toast.error(error.message || "Failed to sign in with Google");
         }
@@ -144,10 +146,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // OAuth redirect will handle the rest
       console.log('✅ Google OAuth redirect initiated');
+      toast.success("Redirecting to Google...");
       return null;
     } catch (error: any) {
       console.error('❌ Google sign-in error:', error);
-      toast.error("Failed to sign in with Google");
+      toast.error("Failed to sign in with Google. Please try again or use email/password.");
       return null;
     }
   };
@@ -188,7 +191,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const updateUserProfile = async (updates: { display_name?: string; avatar_url?: string }): Promise<void> => {
+  const updateUserProfile = async (updates: { 
+    display_name?: string; 
+    avatar_url?: string; 
+    phone_number?: string; 
+    company?: string;
+  }): Promise<void> => {
     try {
       const { error } = await supabase.auth.updateUser({
         data: updates,
@@ -240,6 +248,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Handle specific auth events
         if (event === 'SIGNED_IN') {
           console.log('✅ User signed in:', session?.user?.email);
+          
+          // Check if this is a Google OAuth sign-in
+          if (session?.user?.app_metadata?.provider === 'google') {
+            toast.success(`Welcome back, ${session.user.user_metadata?.name || session.user.email}!`);
+          }
         } else if (event === 'SIGNED_OUT') {
           console.log('👋 User signed out');
         } else if (event === 'TOKEN_REFRESHED') {
