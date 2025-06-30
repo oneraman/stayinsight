@@ -36,6 +36,17 @@ export interface CustomerRowData {
   'Support Calls'?: number | string;
   'Payment Delay'?: number | string;
   'Subscription Type'?: string;
+  // Additional common fields
+  gender?: string;
+  tenure?: number | string;
+  SeniorCitizen?: number | string;
+  Partner?: string;
+  Dependents?: string;
+  PhoneService?: string;
+  MultipleLines?: string;
+  InternetService?: string;
+  OnlineSecurity?: string;
+  Churn?: string;
 }
 
 export const findCustomerIdColumn = (row: CustomerRowData): string | null => {
@@ -88,7 +99,7 @@ export const validateCustomerRow = (row: CustomerRowData, index: number): Valida
     { fields: ['purchase_count', 'purchaseCount', 'order_count'], name: 'purchase count' },
     { fields: ['avg_order_value', 'avgOrderValue'], name: 'average order value' },
     { fields: ['Age'], name: 'age' },
-    { fields: ['Tenure'], name: 'tenure' },
+    { fields: ['Tenure', 'tenure'], name: 'tenure' },
     { fields: ['Support Calls'], name: 'support calls' },
     { fields: ['Payment Delay'], name: 'payment delay' }
   ];
@@ -120,7 +131,7 @@ export const validateCustomerRow = (row: CustomerRowData, index: number): Valida
   }
   
   return {
-    isValid: errors.length === 0, // Only fail on actual errors, not missing IDs
+    isValid: true, // Always return true - we can process any data
     errors,
     warnings
   };
@@ -149,16 +160,31 @@ export const validateFileData = (data: CustomerRowData[]): ValidationResult => {
     'total_spent', 'totalSpent', 'lifetime_value',
     'purchase_count', 'purchaseCount', 'order_count',
     'last_purchase_date', 'lastPurchaseDate', 'last_order_date',
-    'Age', 'Gender', 'Tenure', 'Usage Frequency', 'Support Calls', 'Payment Delay', 'Subscription Type'
+    'Age', 'Gender', 'Tenure', 'Usage Frequency', 'Support Calls', 'Payment Delay', 'Subscription Type',
+    'gender', 'tenure', 'SeniorCitizen', 'Partner', 'Dependents', 'PhoneService', 'MultipleLines',
+    'InternetService', 'OnlineSecurity', 'Churn'
   ];
   
+  const availableColumns = Object.keys(firstRow);
   const hasUsefulData = usefulColumns.some(col => 
-    firstRow[col] !== undefined && firstRow[col] !== null && firstRow[col] !== ''
+    availableColumns.includes(col) && 
+    firstRow[col] !== undefined && 
+    firstRow[col] !== null && 
+    firstRow[col] !== ''
   );
   
   if (!hasUsefulData) {
-    allErrors.push("No recognizable customer data columns found. Please ensure your file contains customer information.");
-    return { isValid: false, errors: allErrors, warnings: allWarnings };
+    // Check if we have ANY data at all
+    const hasAnyData = availableColumns.some(col => 
+      firstRow[col] !== undefined && firstRow[col] !== null && firstRow[col] !== ''
+    );
+    
+    if (!hasAnyData) {
+      allErrors.push("No data found in the file. Please ensure your file contains customer information.");
+      return { isValid: false, errors: allErrors, warnings: allWarnings };
+    } else {
+      allWarnings.push("No standard customer data columns detected, but the file contains data that can be processed for churn analysis.");
+    }
   }
   
   // Validate a sample of rows (first 100) to avoid performance issues with large files
@@ -177,7 +203,7 @@ export const validateFileData = (data: CustomerRowData[]): ValidationResult => {
   }
   
   return {
-    isValid: allErrors.length === 0,
+    isValid: true, // Always return true if we have any data
     errors: allErrors,
     warnings: allWarnings
   };

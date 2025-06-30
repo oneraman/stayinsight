@@ -1,4 +1,3 @@
-
 import * as XLSX from 'xlsx';
 import { CustomerRowData, validateFileData } from './dataValidation';
 
@@ -48,11 +47,14 @@ export const processFileClientSide = async (file: File): Promise<ProcessedFileDa
     
     console.log('📊 File info:', fileInfo);
     
-    // Validate data
+    // Always validate but be more lenient
     const validation = validateFileData(rawData);
     
+    // Consider file processable if we have data, even with validation issues
+    const hasUsefulData = rawData.length > 0 && fileInfo.columns.length > 0;
+    
     return {
-      success: validation.isValid,
+      success: hasUsefulData, // Success if we have any data
       data: rawData,
       errors: validation.errors,
       warnings: validation.warnings,

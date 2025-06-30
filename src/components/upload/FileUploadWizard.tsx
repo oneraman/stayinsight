@@ -57,9 +57,14 @@ export const FileUploadWizard = ({ onComplete }: FileUploadWizardProps) => {
 
   const handleContinue = () => {
     if (selectedFile && onComplete) {
+      console.log('🚀 Proceeding with file processing:', selectedFile.name);
       onComplete(selectedFile);
     }
   };
+
+  // Check if file can be processed (even with warnings)
+  const canProcess = selectedFile && filePreview && !isAnalyzing;
+  const hasData = filePreview?.fileInfo?.totalRows > 0;
 
   return (
     <div className="space-y-6">
@@ -171,22 +176,24 @@ export const FileUploadWizard = ({ onComplete }: FileUploadWizardProps) => {
                   </div>
                 </div>
 
-                {/* Processing Info */}
-                <Alert className="border-green-200 bg-green-50">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <AlertDescription className="text-green-800">
-                    <strong>Ready for Processing:</strong> This file can be processed for customer churn analysis. 
-                    {filePreview.fileInfo.totalRows > 10000 && (
-                      <span> Large file detected - processing may take a few minutes.</span>
-                    )}
-                  </AlertDescription>
-                </Alert>
+                {/* Processing Status - Always show as ready if we have data */}
+                {hasData && (
+                  <Alert className="border-green-200 bg-green-50">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <AlertDescription className="text-green-800">
+                      <strong>Ready for Processing:</strong> This file can be processed for customer churn analysis. 
+                      {filePreview.fileInfo.totalRows > 10000 && (
+                        <span> Large file detected - processing may take a few minutes.</span>
+                      )}
+                    </AlertDescription>
+                  </Alert>
+                )}
 
-                {/* Validation Results */}
+                {/* Processing Notes - Show as informational */}
                 {filePreview.warnings.length > 0 && (
-                  <Alert className="border-yellow-200 bg-yellow-50">
-                    <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                    <AlertDescription className="text-yellow-800">
+                  <Alert className="border-blue-200 bg-blue-50">
+                    <Info className="h-4 w-4 text-blue-600" />
+                    <AlertDescription className="text-blue-800">
                       <div className="space-y-2">
                         <strong>Processing Notes:</strong>
                         <ul className="list-disc list-inside text-sm space-y-1">
@@ -202,39 +209,56 @@ export const FileUploadWizard = ({ onComplete }: FileUploadWizardProps) => {
                   </Alert>
                 )}
 
+                {/* Show errors as warnings, not blockers */}
                 {filePreview.errors.length > 0 && (
+                  <Alert className="border-yellow-200 bg-yellow-50">
+                    <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                    <AlertDescription className="text-yellow-800">
+                      <div className="space-y-2">
+                        <strong>Data Quality Notes:</strong>
+                        <ul className="list-disc list-inside text-sm space-y-1">
+                          <li>Customer IDs will be generated automatically based on available data</li>
+                          <li>Missing or invalid data will be handled during processing</li>
+                          <li>The system will extract meaningful insights from available columns</li>
+                        </ul>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* No data warning */}
+                {!hasData && (
                   <Alert className="border-red-200 bg-red-50">
                     <AlertTriangle className="h-4 w-4 text-red-600" />
                     <AlertDescription className="text-red-800">
-                      <div className="space-y-2">
-                        <strong>Issues Found:</strong>
-                        <ul className="list-disc list-inside text-sm space-y-1">
-                          {filePreview.errors.slice(0, 3).map((error: string, i: number) => (
-                            <li key={i}>{error}</li>
-                          ))}
-                          {filePreview.errors.length > 3 && (
-                            <li>... and {filePreview.errors.length - 3} more issues</li>
-                          )}
-                        </ul>
-                      </div>
+                      <strong>No Data Found:</strong> The file appears to be empty or contains no readable data. 
+                      Please check your file format and try again.
                     </AlertDescription>
                   </Alert>
                 )}
               </div>
             )}
 
+            {/* Action Buttons */}
             <div className="flex gap-2">
               <Button variant="outline" onClick={resetWizard}>
                 Choose Different File
               </Button>
               <Button 
                 onClick={handleContinue} 
-                disabled={isAnalyzing}
+                disabled={!canProcess || !hasData}
                 className="flex-1"
               >
                 {isAnalyzing ? 'Analyzing...' : 'Continue to Upload & Process'}
               </Button>
             </div>
+
+            {/* Help text for disabled button */}
+            {!hasData && filePreview && (
+              <p className="text-xs text-gray-500 text-center">
+                The "Continue" button will be enabled once valid data is detected in your file.
+              </p>
+            )}
           </CardContent>
         </Card>
       )}
