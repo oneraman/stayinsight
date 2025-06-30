@@ -13,8 +13,6 @@ import QuickActionsBar from "@/components/dashboard/QuickActionsBar";
 import ChurnAnalyticsChart from "@/components/dashboard/ChurnAnalyticsChart";
 import CustomerSegmentationChart from "@/components/dashboard/CustomerSegmentationChart";
 import CustomerRiskTable from "@/components/dashboard/CustomerRiskTable";
-import ActionInsightsSection from "@/components/dashboard/ActionInsightsSection";
-import ChurnInsightsPanel from "@/components/dashboard/ChurnInsightsPanel";
 import ExportDialog from "@/components/data-export/ExportDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -439,7 +437,6 @@ const Dashboard = () => {
           {/* Charts section - 3 columns wide */}
           <div className="lg:col-span-3 space-y-6">
             <ChurnAnalyticsChart loading={metrics.loading} />
-            <ActionInsightsSection />
           </div>
           
           {/* Side panel - 2 columns wide */}
@@ -497,11 +494,6 @@ const Dashboard = () => {
               </CardContent>
             </Card>
           </div>
-        </div>
-
-        {/* AI Insights Panel */}
-        <div className="mb-6">
-          <ChurnInsightsPanel customers={allCustomers} timeframe={timePeriod} />
         </div>
       </div>
       
