@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { doc, getDoc } from "firebase/firestore";
-import { firestore } from "@/lib/firebase";
+import { supabase } from "@/lib/supabase";
 import { CustomerData } from "@/utils/dataProcessing";
 import { toast } from "sonner";
 
@@ -17,26 +16,48 @@ export const useCustomerProfile = (customerId: string | undefined) => {
       try {
         setLoading(true);
         
-        // Query Firestore for the customer with matching customerId
-        const customersRef = doc(firestore, "customers", customerId);
-        const customerDoc = await getDoc(customersRef);
+        // Query Supabase for the customer with matching customerId
+        const { data, error } = await supabase
+          .from('customers')
+          .select('*')
+          .eq('customer_id', customerId)
+          .single();
         
-        if (customerDoc.exists()) {
-          const data = customerDoc.data() as CustomerData;
-          
-          // Convert timestamps to dates if necessary
-          if (data.lastPurchaseDate && 
-              typeof data.lastPurchaseDate === 'object' && 
-              'toDate' in data.lastPurchaseDate && 
-              typeof data.lastPurchaseDate.toDate === 'function') {
-            data.lastPurchaseDate = data.lastPurchaseDate.toDate();
+        if (error) {
+          if (error.code === 'PGRST116') {
+            setError("Customer not found");
+            toast.error("Customer not found");
+          } else {
+            console.error("Error fetching customer:", error);
+            setError(error.message || "Failed to load customer data");
+            toast.error("Failed to load customer data");
           }
+          return;
+        }
+
+        if (data) {
+          // Convert the Supabase data to match CustomerData interface
+          const customerData: CustomerData = {
+            id: data.id,
+            customerId: data.customer_id,
+            name: data.name || '',
+            email: data.email || '',
+            totalSpent: data.total_spent || 0,
+            purchaseCount: data.purchase_count || 0,
+            lastPurchaseDate: data.last_purchase_date ? new Date(data.last_purchase_date) : undefined,
+            avgOrderValue: data.avg_order_value || 0,
+            riskScore: data.risk_score || 50,
+            segment: data.segment || 'medium-risk',
+            age: data.age,
+            tenure: data.tenure,
+            supportCalls: data.support_calls || 0,
+            paymentDelay: data.payment_delay || 0,
+            usageFrequency: data.usage_frequency,
+            subscriptionType: data.subscription_type,
+            gender: data.gender
+          };
           
-          // Use functional update to avoid the TypeScript error
-          setCustomer({
-            ...data,
-            id: customerDoc.id
-          });
+          setCustomer(customerData);
         } else {
           setError("Customer not found");
           toast.error("Customer not found");

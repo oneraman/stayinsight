@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -109,8 +110,8 @@ const AIChurnInsights = ({ customers, timeframe }: AIChurnInsightsProps) => {
     try {
       // Analyze the highest risk customer for detailed prediction
       const highestRiskCustomer = customers
-        .filter(c => c.riskScore || c.risk_score)
-        .sort((a, b) => (b.riskScore || b.risk_score || 0) - (a.riskScore || a.risk_score || 0))[0];
+        .filter(c => c.riskScore)
+        .sort((a, b) => (b.riskScore || 0) - (a.riskScore || 0))[0];
       
       if (highestRiskCustomer) {
         const aiPrediction = await generateChurnPrediction(highestRiskCustomer);
