@@ -1,0 +1,400 @@
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Sparkles, Loader2, TrendingDown, AlertTriangle, Target, FileText } from 'lucide-react';
+import { 
+  generateDataSummary, 
+  generateRetentionStrategy, 
+  generateChurnReport,
+  generateChurnPrediction 
+} from '@/lib/gemini';
+import { toast } from 'sonner';
+import { CustomerData } from '@/utils/dataProcessing';
+
+interface AIChurnInsightsProps {
+  customers: CustomerData[];
+  timeframe: string;
+}
+
+const AIChurnInsights = ({ customers, timeframe }: AIChurnInsightsProps) => {
+  const [activeTab, setActiveTab] = useState('overview');
+  const [insights, setInsights] = useState<{
+    overview?: string;
+    strategy?: string;
+    report?: string;
+    prediction?: string;
+  }>({});
+  const [loading, setLoading] = useState<{
+    overview: boolean;
+    strategy: boolean;
+    report: boolean;
+    prediction: boolean;
+  }>({
+    overview: false,
+    strategy: false,
+    report: false,
+    prediction: false
+  });
+
+  const generateOverviewInsights = async () => {
+    if (customers.length === 0) {
+      toast.error('No customer data available for analysis');
+      return;
+    }
+
+    setLoading(prev => ({ ...prev, overview: true }));
+    try {
+      const aiInsights = await generateDataSummary(customers);
+      setInsights(prev => ({ ...prev, overview: aiInsights }));
+      toast.success('Portfolio insights generated successfully!');
+    } catch (error) {
+      console.error('Error generating overview insights:', error);
+      toast.error('Failed to generate portfolio insights');
+    } finally {
+      setLoading(prev => ({ ...prev, overview: false }));
+    }
+  };
+
+  const generateStrategyInsights = async () => {
+    if (customers.length === 0) {
+      toast.error('No customer data available for analysis');
+      return;
+    }
+
+    setLoading(prev => ({ ...prev, strategy: true }));
+    try {
+      const highRiskCustomers = customers.filter(c => 
+        c.riskScore >= 70 || c.segment === 'high-risk'
+      );
+      const segment = highRiskCustomers.length > 0 ? 'high-risk' : 'medium-risk';
+      const aiStrategy = await generateRetentionStrategy(segment, customers);
+      setInsights(prev => ({ ...prev, strategy: aiStrategy }));
+      toast.success('Retention strategy generated successfully!');
+    } catch (error) {
+      console.error('Error generating strategy insights:', error);
+      toast.error('Failed to generate retention strategy');
+    } finally {
+      setLoading(prev => ({ ...prev, strategy: false }));
+    }
+  };
+
+  const generateReportInsights = async () => {
+    if (customers.length === 0) {
+      toast.error('No customer data available for analysis');
+      return;
+    }
+
+    setLoading(prev => ({ ...prev, report: true }));
+    try {
+      const aiReport = await generateChurnReport(timeframe, customers);
+      setInsights(prev => ({ ...prev, report: aiReport }));
+      toast.success('Churn report generated successfully!');
+    } catch (error) {
+      console.error('Error generating report insights:', error);
+      toast.error('Failed to generate churn report');
+    } finally {
+      setLoading(prev => ({ ...prev, report: false }));
+    }
+  };
+
+  const generatePredictionInsights = async () => {
+    if (customers.length === 0) {
+      toast.error('No customer data available for analysis');
+      return;
+    }
+
+    setLoading(prev => ({ ...prev, prediction: true }));
+    try {
+      // Analyze the highest risk customer for detailed prediction
+      const highestRiskCustomer = customers
+        .filter(c => c.riskScore || c.risk_score)
+        .sort((a, b) => (b.riskScore || b.risk_score || 0) - (a.riskScore || a.risk_score || 0))[0];
+      
+      if (highestRiskCustomer) {
+        const aiPrediction = await generateChurnPrediction(highestRiskCustomer);
+        setInsights(prev => ({ ...prev, prediction: aiPrediction }));
+        toast.success('Churn prediction generated successfully!');
+      } else {
+        toast.error('No customers with risk scores found for prediction');
+      }
+    } catch (error) {
+      console.error('Error generating prediction insights:', error);
+      toast.error('Failed to generate churn prediction');
+    } finally {
+      setLoading(prev => ({ ...prev, prediction: false }));
+    }
+  };
+
+  const getInsightStats = () => {
+    const highRisk = customers.filter(c => c.riskScore >= 70 || c.segment === 'high-risk').length;
+    const mediumRisk = customers.filter(c => 
+      (c.riskScore >= 30 && c.riskScore < 70) || c.segment === 'medium-risk'
+    ).length;
+    const atRiskRevenue = customers
+      .filter(c => c.riskScore >= 70 || c.segment === 'high-risk')
+      .reduce((sum, c) => sum + (c.totalSpent || 0), 0);
+
+    return { highRisk, mediumRisk, atRiskRevenue };
+  };
+
+  const stats = getInsightStats();
+
+  return (
+    <Card className="h-full">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-[#5E5AFF]" />
+          AI Churn Insights
+        </CardTitle>
+        <div className="flex gap-2 text-xs">
+          <Badge variant="outline" className="gap-1">
+            <AlertTriangle className="h-3 w-3" />
+            {stats.highRisk} High Risk
+          </Badge>
+          <Badge variant="outline" className="gap-1">
+            <TrendingDown className="h-3 w-3" />
+            ${stats.atRiskRevenue.toLocaleString()} at Risk
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-4 text-xs">
+            <TabsTrigger value="overview" className="text-xs">Overview</TabsTrigger>
+            <TabsTrigger value="strategy" className="text-xs">Strategy</TabsTrigger>
+            <TabsTrigger value="prediction" className="text-xs">Prediction</TabsTrigger>
+            <TabsTrigger value="report" className="text-xs">Report</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="mt-4">
+            {!insights.overview ? (
+              <div className="text-center py-6">
+                <TrendingDown className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-sm text-muted-foreground mb-4">
+                  Get AI-powered insights about your customer portfolio health and churn risks.
+                </p>
+                <Button 
+                  onClick={generateOverviewInsights}
+                  disabled={loading.overview || customers.length === 0}
+                  className="gap-2"
+                  size="sm"
+                >
+                  {loading.overview ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4" />
+                      Generate Portfolio Insights
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="max-h-96 overflow-y-auto">
+                  <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                    {insights.overview}
+                  </div>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={generateOverviewInsights}
+                  disabled={loading.overview}
+                  className="gap-2 w-full"
+                >
+                  {loading.overview ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Refreshing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4" />
+                      Refresh Analysis
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="strategy" className="mt-4">
+            {!insights.strategy ? (
+              <div className="text-center py-6">
+                <Target className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-sm text-muted-foreground mb-4">
+                  Get AI-generated retention strategies tailored to your high-risk customers.
+                </p>
+                <Button 
+                  onClick={generateStrategyInsights}
+                  disabled={loading.strategy || customers.length === 0}
+                  className="gap-2"
+                  size="sm"
+                >
+                  {loading.strategy ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Creating Strategy...
+                    </>
+                  ) : (
+                    <>
+                      <Target className="h-4 w-4" />
+                      Generate Retention Strategy
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="max-h-96 overflow-y-auto">
+                  <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                    {insights.strategy}
+                  </div>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={generateStrategyInsights}
+                  disabled={loading.strategy}
+                  className="gap-2 w-full"
+                >
+                  {loading.strategy ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <Target className="h-4 w-4" />
+                      Update Strategy
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="prediction" className="mt-4">
+            {!insights.prediction ? (
+              <div className="text-center py-6">
+                <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-sm text-muted-foreground mb-4">
+                  Get detailed churn predictions for your highest-risk customer.
+                </p>
+                <Button 
+                  onClick={generatePredictionInsights}
+                  disabled={loading.prediction || customers.length === 0}
+                  className="gap-2"
+                  size="sm"
+                >
+                  {loading.prediction ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Predicting...
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle className="h-4 w-4" />
+                      Generate Churn Prediction
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="max-h-96 overflow-y-auto">
+                  <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                    {insights.prediction}
+                  </div>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={generatePredictionInsights}
+                  disabled={loading.prediction}
+                  className="gap-2 w-full"
+                >
+                  {loading.prediction ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle className="h-4 w-4" />
+                      Update Prediction
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="report" className="mt-4">
+            {!insights.report ? (
+              <div className="text-center py-6">
+                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-sm text-muted-foreground mb-4">
+                  Generate a comprehensive churn analysis report for the selected time period.
+                </p>
+                <Button 
+                  onClick={generateReportInsights}
+                  disabled={loading.report || customers.length === 0}
+                  className="gap-2"
+                  size="sm"
+                >
+                  {loading.report ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Generating Report...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-4 w-4" />
+                      Generate Churn Report
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="max-h-96 overflow-y-auto">
+                  <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                    {insights.report}
+                  </div>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={generateReportInsights}
+                  disabled={loading.report}
+                  className="gap-2 w-full"
+                >
+                  {loading.report ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-4 w-4" />
+                      Update Report
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default AIChurnInsights;

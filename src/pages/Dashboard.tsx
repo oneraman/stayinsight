@@ -13,6 +13,7 @@ import QuickActionsBar from "@/components/dashboard/QuickActionsBar";
 import ChurnAnalyticsChart from "@/components/dashboard/ChurnAnalyticsChart";
 import CustomerSegmentationChart from "@/components/dashboard/CustomerSegmentationChart";
 import CustomerRiskTable from "@/components/dashboard/CustomerRiskTable";
+import AIChurnInsights from "@/components/dashboard/AIChurnInsights";
 import ExportDialog from "@/components/data-export/ExportDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -494,6 +495,11 @@ const Dashboard = () => {
               </CardContent>
             </Card>
           </div>
+        </div>
+
+        {/* AI Insights Panel */}
+        <div className="mb-6">
+          <AIChurnInsights customers={allCustomers} timeframe={timePeriod} />
         </div>
       </div>
       
