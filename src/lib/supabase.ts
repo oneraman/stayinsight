@@ -4,15 +4,10 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase environment variables');
-  console.log('VITE_SUPABASE_URL:', supabaseUrl);
-  console.log('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'Present' : 'Missing');
+  throw new Error('Missing Supabase environment variables. Please check your .env file.');
 }
 
-export const supabase = createClient(
-  supabaseUrl || 'https://zxylftnmwajovdlwzjox.supabase.co',
-  supabaseAnonKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4eWxmdG5td2Fqb3ZkbHd6am94Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU1NTI4NzEsImV4cCI6MjA1MTEyODg3MX0.YLr03l_mzjGfY2Ah79XSL2Yr03l'
-);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Database types
 export interface CustomerRecord {
