@@ -109,71 +109,74 @@ const Customers = () => {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Customer ID</TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Last Purchase</TableHead>
-                      <TableHead>Purchase Count</TableHead>
-                      <TableHead>Total Spent</TableHead>
-                      <TableHead>Risk Score</TableHead>
-                      <TableHead>Segment</TableHead>
+                    <TableRow className="bg-gray-50 border-b border-gray-200 hover:bg-gray-50">
+                      <TableHead className="font-semibold text-gray-700">Customer ID</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Name</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Email</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Last Purchase</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Purchase Count</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Total Spent</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Risk Score</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Segment</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredCustomers.map((customer) => (
-                      <TableRow 
-                        key={customer.id}
-                        className={`
-                          cursor-pointer
-                          ${customer.segment === 'high-risk' 
-                              ? 'bg-red-50' 
-                              : customer.segment === 'medium-risk' 
-                                ? 'bg-yellow-50' 
-                                : ''}
-                        `}
-                        onClick={() => handleRowClick(customer.id || customer.customerId)}
-                      >
-                        <TableCell>{customer.customerId}</TableCell>
-                        <TableCell>{customer.name || 'N/A'}</TableCell>
-                        <TableCell>{customer.email || 'N/A'}</TableCell>
-                        <TableCell>{formatDate(customer.lastPurchaseDate)}</TableCell>
-                        <TableCell>{customer.purchaseCount || 'N/A'}</TableCell>
-                        <TableCell>{formatCurrency(customer.totalSpent)}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center">
-                            <div 
-                              className="h-2 w-full bg-gray-200 rounded-full overflow-hidden mr-2"
-                            >
-                              <div 
-                                className={`h-full ${
-                                  customer.riskScore && customer.riskScore > 70 
-                                    ? 'bg-red-500' 
-                                    : customer.riskScore && customer.riskScore > 30 
-                                      ? 'bg-yellow-500' 
-                                      : 'bg-green-500'
-                                }`}
-                                style={{ width: `${customer.riskScore || 0}%` }}
-                              ></div>
+                    {filteredCustomers.map((customer, index) => {
+                      const isHighRisk = customer.segment === 'high-risk';
+                      const isMediumRisk = customer.segment === 'medium-risk';
+                      
+                      return (
+                        <TableRow 
+                          key={customer.id}
+                          className={`
+                            cursor-pointer border-b border-gray-100 transition-colors duration-200
+                            ${isHighRisk 
+                                ? 'bg-red-50 hover:bg-red-100 text-red-900' 
+                                : isMediumRisk 
+                                  ? 'bg-yellow-50 hover:bg-yellow-100 text-yellow-900' 
+                                  : 'bg-white hover:bg-gray-50 text-gray-900'}
+                          `}
+                          onClick={() => handleRowClick(customer.id || customer.customerId)}
+                        >
+                          <TableCell className="font-medium py-4">{customer.customerId}</TableCell>
+                          <TableCell className="py-4">{customer.name || 'N/A'}</TableCell>
+                          <TableCell className="py-4">{customer.email || 'N/A'}</TableCell>
+                          <TableCell className="py-4">{formatDate(customer.lastPurchaseDate)}</TableCell>
+                          <TableCell className="py-4">{customer.purchaseCount || 'N/A'}</TableCell>
+                          <TableCell className="py-4 font-medium">{formatCurrency(customer.totalSpent)}</TableCell>
+                          <TableCell className="py-4">
+                            <div className="flex items-center">
+                              <div className="h-2 w-16 bg-gray-200 rounded-full overflow-hidden mr-2">
+                                <div 
+                                  className={`h-full ${
+                                    customer.riskScore && customer.riskScore > 70 
+                                      ? 'bg-red-500' 
+                                      : customer.riskScore && customer.riskScore > 30 
+                                        ? 'bg-yellow-500' 
+                                        : 'bg-green-500'
+                                  }`}
+                                  style={{ width: `${customer.riskScore || 0}%` }}
+                                ></div>
+                              </div>
+                              <span className="font-medium">{customer.riskScore}</span>
                             </div>
-                            <span>{customer.riskScore}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span 
-                            className={`px-2 py-1 rounded-full text-xs ${
-                              customer.segment === 'high-risk' 
-                                ? 'bg-red-100 text-red-800' 
-                                : customer.segment === 'medium-risk' 
-                                  ? 'bg-yellow-100 text-yellow-800' 
-                                  : 'bg-green-100 text-green-800'
-                            }`}
-                          >
-                            {customer.segment}
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                          </TableCell>
+                          <TableCell className="py-4">
+                            <span 
+                              className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                customer.segment === 'high-risk' 
+                                  ? 'bg-red-100 text-red-800 border border-red-200' 
+                                  : customer.segment === 'medium-risk' 
+                                    ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' 
+                                    : 'bg-green-100 text-green-800 border border-green-200'
+                              }`}
+                            >
+                              {customer.segment}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
