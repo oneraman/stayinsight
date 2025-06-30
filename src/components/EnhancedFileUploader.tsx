@@ -101,7 +101,7 @@ export const EnhancedFileUploader = () => {
   const getPhaseTitle = () => {
     switch (processingPhase) {
       case 'uploading':
-        return 'Uploading & Reading File...';
+        return 'Reading File...';
       case 'processing':
         return 'Processing Customer Data...';
       case 'storing':
