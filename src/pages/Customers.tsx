@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { CustomerData } from "@/utils/dataProcessing";
+import { formatCurrency } from "@/utils/customerUtils";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -67,11 +68,6 @@ const Customers = () => {
   const formatDate = (date: Date | undefined) => {
     if (!date) return "N/A";
     return new Date(date).toLocaleDateString();
-  };
-
-  const formatCurrency = (value: number | undefined) => {
-    if (value === undefined) return "N/A";
-    return `$${value.toFixed(2)}`;
   };
 
   const handleSearchResults = (results: CustomerData[]) => {
