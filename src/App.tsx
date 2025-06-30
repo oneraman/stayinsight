@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,6 +13,7 @@ import Dashboard from "./pages/Dashboard";
 import Customers from "./pages/Customers";
 import CustomerProfile from "./pages/CustomerProfile";
 import Settings from "./pages/Settings";
+import UploadHistory from "./pages/UploadHistory";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +44,7 @@ const App = () => (
                 <Route path="/customers" element={<Customers />} />
                 <Route path="/customers/:customerId" element={<CustomerProfile />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/history" element={<UploadHistory />} />
               </Route>
               
               {/* Catch all */}
