@@ -1,7 +1,6 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Calendar, Filter, Download, Upload } from "lucide-react";
+import { Calendar, Filter, Upload } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -79,10 +78,6 @@ const QuickActionsBar = ({
         <Button variant="outline" size="sm" className="w-full sm:w-auto">
           <Filter className="h-3 w-3 mr-2" />
           Filter
-        </Button>
-        <Button variant="outline" size="sm" className="w-full sm:w-auto">
-          <Download className="h-3 w-3 mr-2" />
-          Export
         </Button>
         <Button size="sm" onClick={onUploadClick} className="w-full sm:w-auto">
           <Upload className="h-3 w-3 mr-2" />
