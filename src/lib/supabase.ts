@@ -28,7 +28,16 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
   global: {
     headers: {
-      'apikey': supabaseAnonKey
+      'apikey': supabaseAnonKey,
+      'Content-Type': 'application/json'
+    }
+  },
+  db: {
+    schema: 'public'
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10
     }
   }
 });
@@ -96,26 +105,55 @@ const handleSupabaseError = (error: any, operation: string) => {
   throw error;
 };
 
-// Test connection helper with improved error handling
-export const testSupabaseConnection = async () => {
+// Improved connection test with better diagnostics
+export const testSupabaseConnection = async (): Promise<boolean> => {
   try {
     console.log('🔄 Testing Supabase connection...');
     console.log('📍 Supabase URL:', supabaseUrl);
     console.log('🔑 API Key present:', !!supabaseAnonKey);
     
-    // First, try a simple health check
-    const { data, error } = await supabase
-      .from('customers')
-      .select('count')
-      .limit(1);
+    // Create a simple health check query with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
-    if (error) {
-      console.error('❌ Supabase query error:', error);
-      handleSupabaseError(error, 'connection test');
+    try {
+      // First try a simple query to test basic connectivity
+      const { data, error } = await supabase
+        .from('customers')
+        .select('count', { count: 'exact', head: true })
+        .abortSignal(controller.signal);
+      
+      clearTimeout(timeoutId);
+      
+      if (error) {
+        console.error('❌ Supabase query error:', error);
+        
+        // Handle specific error cases
+        if (error.message?.includes('relation "customers" does not exist')) {
+          throw new Error('Database table "customers" does not exist. Please run the database migrations first.');
+        }
+        
+        if (error.message?.includes('JWT')) {
+          throw new Error('Authentication failed. Please check your VITE_SUPABASE_ANON_KEY.');
+        }
+        
+        throw error;
+      }
+      
+      console.log('✅ Supabase connection successful');
+      console.log('📊 Customer table accessible');
+      return true;
+      
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      
+      if (fetchError.name === 'AbortError') {
+        throw new Error('Connection timeout: Supabase is taking too long to respond. Please check your internet connection.');
+      }
+      
+      throw fetchError;
     }
     
-    console.log('✅ Supabase connection successful');
-    return true;
   } catch (error) {
     console.error('❌ Supabase connection test failed:', error);
     
@@ -123,10 +161,15 @@ export const testSupabaseConnection = async () => {
     if (error instanceof Error) {
       if (error.message.includes('Failed to fetch')) {
         console.error('💡 Suggestion: Check if your Supabase project is paused or if there are network restrictions');
+        throw new Error('Network error: Unable to connect to Supabase. Please check your internet connection and verify that your Supabase project is active.');
+      }
+      
+      if (error.message.includes('timeout')) {
+        throw new Error('Connection timeout: Supabase is not responding. Please check your project status and try again.');
       }
     }
     
-    return false;
+    throw error;
   }
 };
 
@@ -135,10 +178,16 @@ export const insertCustomers = async (customers: Omit<CustomerRecord, 'id' | 'cr
   try {
     console.log('🔄 Inserting customers into Supabase:', customers.length);
     
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout for bulk insert
+    
     const { data, error } = await supabase
       .from('customers')
       .insert(customers)
-      .select();
+      .select()
+      .abortSignal(controller.signal);
+    
+    clearTimeout(timeoutId);
     
     if (error) {
       handleSupabaseError(error, 'insert');
@@ -147,6 +196,9 @@ export const insertCustomers = async (customers: Omit<CustomerRecord, 'id' | 'cr
     console.log('✅ Successfully inserted customers:', data?.length || 0);
     return data;
   } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error('Insert operation timed out. Please try with fewer records or check your connection.');
+    }
     handleSupabaseError(error, 'insertCustomers');
   }
 };
@@ -155,11 +207,17 @@ export const getCustomers = async (limit = 100) => {
   try {
     console.log('🔄 Fetching customers from Supabase...');
     
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    
     const { data, error } = await supabase
       .from('customers')
       .select('*')
       .order('risk_score', { ascending: false })
-      .limit(limit);
+      .limit(limit)
+      .abortSignal(controller.signal);
+    
+    clearTimeout(timeoutId);
     
     if (error) {
       handleSupabaseError(error, 'fetch');
@@ -168,6 +226,9 @@ export const getCustomers = async (limit = 100) => {
     console.log('✅ Successfully fetched customers:', data?.length || 0);
     return data;
   } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error('Fetch operation timed out. Please check your connection and try again.');
+    }
     handleSupabaseError(error, 'getCustomers');
   }
 };
@@ -176,11 +237,17 @@ export const getCustomerById = async (id: string) => {
   try {
     console.log('🔄 Fetching customer by ID:', id);
     
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
     const { data, error } = await supabase
       .from('customers')
       .select('*')
       .eq('id', id)
-      .single();
+      .single()
+      .abortSignal(controller.signal);
+    
+    clearTimeout(timeoutId);
     
     if (error) {
       handleSupabaseError(error, 'fetch by ID');
@@ -189,6 +256,9 @@ export const getCustomerById = async (id: string) => {
     console.log('✅ Successfully fetched customer by ID');
     return data;
   } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error('Fetch operation timed out. Please check your connection and try again.');
+    }
     handleSupabaseError(error, 'getCustomerById');
   }
 };
@@ -197,11 +267,17 @@ export const createUploadSession = async (session: Omit<UploadSession, 'id' | 'c
   try {
     console.log('🔄 Creating upload session...');
     
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
     const { data, error } = await supabase
       .from('upload_sessions')
       .insert(session)
       .select()
-      .single();
+      .single()
+      .abortSignal(controller.signal);
+    
+    clearTimeout(timeoutId);
     
     if (error) {
       handleSupabaseError(error, 'session creation');
@@ -210,6 +286,9 @@ export const createUploadSession = async (session: Omit<UploadSession, 'id' | 'c
     console.log('✅ Successfully created upload session:', data?.id);
     return data;
   } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error('Upload session creation timed out. Please try again.');
+    }
     handleSupabaseError(error, 'createUploadSession');
   }
 };
@@ -218,12 +297,18 @@ export const updateUploadSession = async (id: string, updates: Partial<UploadSes
   try {
     console.log('🔄 Updating upload session:', id);
     
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
     const { data, error } = await supabase
       .from('upload_sessions')
       .update(updates)
       .eq('id', id)
       .select()
-      .single();
+      .single()
+      .abortSignal(controller.signal);
+    
+    clearTimeout(timeoutId);
     
     if (error) {
       handleSupabaseError(error, 'session update');
@@ -232,6 +317,38 @@ export const updateUploadSession = async (id: string, updates: Partial<UploadSes
     console.log('✅ Successfully updated upload session');
     return data;
   } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error('Upload session update timed out. Please try again.');
+    }
     handleSupabaseError(error, 'updateUploadSession');
   }
+};
+
+// Add a function to validate environment configuration
+export const validateSupabaseConfig = () => {
+  const issues = [];
+  
+  if (!supabaseUrl) {
+    issues.push('VITE_SUPABASE_URL is missing');
+  } else {
+    try {
+      const url = new URL(supabaseUrl);
+      if (!url.hostname.includes('supabase.co')) {
+        issues.push('VITE_SUPABASE_URL does not appear to be a valid Supabase URL');
+      }
+    } catch {
+      issues.push('VITE_SUPABASE_URL is not a valid URL format');
+    }
+  }
+  
+  if (!supabaseAnonKey) {
+    issues.push('VITE_SUPABASE_ANON_KEY is missing');
+  } else if (supabaseAnonKey.length < 100) {
+    issues.push('VITE_SUPABASE_ANON_KEY appears to be invalid (too short)');
+  }
+  
+  return {
+    isValid: issues.length === 0,
+    issues
+  };
 };
