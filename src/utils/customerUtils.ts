@@ -18,6 +18,15 @@ export const formatCurrency = (value: number | null | undefined): string => {
   return `$${value.toFixed(2)}`;
 };
 
+// Format file size in human-readable format
+export const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
 // Get color based on risk score
 export const getRiskColor = (score: number | undefined): string => {
   if (!score && score !== 0) return 'bg-gray-200';

@@ -107,9 +107,11 @@ const ProfileSettings = ({ user, onSave }: ProfileSettingsProps) => {
     setImageLoading(true);
     
     try {
-      // Upload to Supabase Storage with user ID in the path for RLS
+      // Upload to Supabase Storage with enhanced unique filename
       const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
+      const timestamp = Date.now();
+      const randomId = Math.random().toString(36).substring(2, 15);
+      const fileName = `${timestamp}-${randomId}.${fileExt}`;
       const filePath = `${user?.id}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage

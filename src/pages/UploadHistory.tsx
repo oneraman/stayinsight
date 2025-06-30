@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Loader2, History as HistoryIcon, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase, UploadSession } from "@/lib/supabase";
-import { formatDate } from "@/utils/customerUtils";
+import { formatDate, formatFileSize } from "@/utils/customerUtils";
 import { Badge } from "@/components/ui/badge";
 
 const UploadHistory = () => {
@@ -63,14 +63,6 @@ const UploadHistory = () => {
       default:
         return <Badge variant="outline">Unknown</Badge>;
     }
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   return (
