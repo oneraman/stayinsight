@@ -30,7 +30,8 @@ try {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
-    autoRefreshToken: true
+    autoRefreshToken: true,
+    detectSessionInUrl: true
   },
   global: {
     headers: {
@@ -112,37 +113,7 @@ const handleSupabaseError = (error: any, operation: string) => {
   throw error;
 };
 
-// Get current authenticated user with better error handling
-export const getCurrentUser = async () => {
-  try {
-    // Check if we have environment variables first
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.error('❌ Supabase not configured - missing environment variables');
-      return null;
-    }
-
-    const { data: { user }, error } = await supabase.auth.getUser();
-    
-    if (error) {
-      console.error('❌ Error getting current user:', error.message);
-      // Don't throw error for auth issues, just return null
-      return null;
-    }
-    
-    if (!user) {
-      console.log('ℹ️ No authenticated user found');
-      return null;
-    }
-    
-    console.log('✅ Current user retrieved:', user.id);
-    return user;
-  } catch (error) {
-    console.error('❌ Error in getCurrentUser:', error);
-    return null;
-  }
-};
-
-// Simplified raw fetch test - just try to access the customers table
+// Enhanced raw fetch test with better timeout handling
 const testRawSupabaseConnection = async (): Promise<boolean> => {
   try {
     console.log('🔍 Testing raw Supabase REST API connection...');
@@ -156,7 +127,7 @@ const testRawSupabaseConnection = async (): Promise<boolean> => {
     console.log('📍 Testing URL:', apiUrl);
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased timeout to 15 seconds
     
     const response = await fetch(apiUrl, {
       method: 'GET',
@@ -207,7 +178,7 @@ const testRawSupabaseConnection = async (): Promise<boolean> => {
   }
 };
 
-// Improved connection test with better diagnostics
+// Enhanced connection test with improved reliability
 export const testSupabaseConnection = async (): Promise<boolean> => {
   try {
     console.log('🔄 Starting comprehensive Supabase connection test...');
@@ -227,11 +198,11 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
     await testRawSupabaseConnection();
     console.log('✅ Step 1 passed: Raw API connectivity confirmed');
     
-    // Step 2: Test Supabase client library
+    // Step 2: Test Supabase client library with enhanced timeout
     console.log('🔍 Step 2: Testing Supabase client library...');
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // Increased timeout to 20 seconds
     
     try {
       const { data, error, count } = await supabase
@@ -298,13 +269,13 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
   }
 };
 
-// Helper functions for database operations with enhanced error handling
+// Enhanced helper functions with better error handling and timeouts
 export const insertCustomers = async (customers: Omit<CustomerRecord, 'id' | 'created_at' | 'updated_at'>[]) => {
   try {
     console.log('🔄 Inserting customers into Supabase:', customers.length);
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout for bulk insert
+    const timeoutId = setTimeout(() => controller.abort(), 45000); // Increased timeout to 45 seconds
     
     const { data, error } = await supabase
       .from('customers')
@@ -333,7 +304,7 @@ export const getCustomers = async (limit = 100) => {
     console.log('🔄 Fetching customers from Supabase...');
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // Increased timeout to 20 seconds
     
     const { data, error } = await supabase
       .from('customers')
@@ -363,7 +334,7 @@ export const getCustomerById = async (id: string) => {
     console.log('🔄 Fetching customer by ID:', id);
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased timeout to 15 seconds
     
     const { data, error } = await supabase
       .from('customers')
@@ -393,7 +364,7 @@ export const createUploadSession = async (session: Omit<UploadSession, 'id' | 'c
     console.log('🔄 Creating upload session...');
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased timeout to 15 seconds
     
     const { data, error } = await supabase
       .from('upload_sessions')
@@ -423,7 +394,7 @@ export const updateUploadSession = async (id: string, updates: Partial<UploadSes
     console.log('🔄 Updating upload session:', id);
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased timeout to 15 seconds
     
     const { data, error } = await supabase
       .from('upload_sessions')
@@ -449,7 +420,7 @@ export const updateUploadSession = async (id: string, updates: Partial<UploadSes
   }
 };
 
-// Add a function to validate environment configuration
+// Enhanced configuration validation
 export const validateSupabaseConfig = () => {
   const issues = [];
   

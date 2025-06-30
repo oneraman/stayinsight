@@ -5,9 +5,10 @@ import { FileUploadWizard } from "./upload/FileUploadWizard";
 import { processFileWithSupabase, ProcessingProgress } from "@/utils/supabaseDataProcessor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, Database, AlertTriangle, LogIn } from "lucide-react";
+import { CheckCircle, Database, AlertTriangle, LogIn, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import UploadResult from "./upload/UploadResult";
 
 export const EnhancedFileUploader = () => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -20,7 +21,6 @@ export const EnhancedFileUploader = () => {
   const { toast } = useToast();
 
   const handleFileSelected = async (file: File) => {
-    // Check authentication first
     if (!currentUser) {
       toast({
         title: "Authentication Required",
@@ -30,17 +30,17 @@ export const EnhancedFileUploader = () => {
       return;
     }
 
-    console.log('📁 File selected for Supabase processing:', file.name);
+    console.log('📁 File selected for enhanced Supabase processing:', file.name);
     
     setIsProcessing(true);
     setProcessingProgress(0);
-    setProcessingMessage('Preparing to process file with Supabase...');
+    setProcessingMessage('Initializing enhanced processing...');
     setProcessingPhase('uploading');
 
     try {
       const result = await processFileWithSupabase(
         file,
-        currentUser.uid,
+        currentUser.id,
         (progress: ProcessingProgress) => {
           setProcessingProgress(progress.progress);
           setProcessingMessage(progress.message);
@@ -54,7 +54,7 @@ export const EnhancedFileUploader = () => {
         setIsComplete(true);
         toast({
           title: "Success!",
-          description: `Successfully processed ${result.customersProcessed} customers with Supabase!`,
+          description: `Enhanced processing complete! ${result.customersProcessed} customers processed with ${result.dataQualityScore}% data quality.`,
         });
         
         // Trigger dashboard refresh
@@ -62,15 +62,14 @@ export const EnhancedFileUploader = () => {
       } else {
         toast({
           title: "Processing Failed",
-          description: "Failed to process the uploaded file.",
+          description: "Failed to process the uploaded file with enhanced algorithms.",
           variant: "destructive",
         });
       }
       
     } catch (error) {
-      console.error('❌ Supabase upload and processing failed:', error);
+      console.error('❌ Enhanced upload and processing failed:', error);
       
-      // Handle authentication errors specifically
       if (error instanceof Error && error.message.includes('not authenticated')) {
         toast({
           title: "Authentication Required",
@@ -80,7 +79,7 @@ export const EnhancedFileUploader = () => {
       } else {
         toast({
           title: "Upload Failed",
-          description: error instanceof Error ? error.message : "Failed to upload and process file with Supabase.",
+          description: error instanceof Error ? error.message : "Failed to upload and process file with enhanced algorithms.",
           variant: "destructive",
         });
       }
@@ -116,15 +115,14 @@ export const EnhancedFileUploader = () => {
       case 'uploading':
         return 'Reading File...';
       case 'processing':
-        return 'Processing Customer Data...';
+        return 'Enhanced Processing...';
       case 'storing':
-        return 'Storing in Supabase Database...';
+        return 'Storing in Database...';
       default:
         return 'Processing...';
     }
   };
 
-  // Show authentication required message if user is not logged in
   if (!currentUser) {
     return (
       <Card>
@@ -137,7 +135,7 @@ export const EnhancedFileUploader = () => {
         <CardContent>
           <div className="text-center py-6">
             <p className="text-gray-600 mb-4">
-              Please log in to upload and process customer data with Supabase.
+              Please log in to upload and process customer data with enhanced algorithms.
             </p>
             <div className="space-x-2">
               <Button asChild>
@@ -159,35 +157,21 @@ export const EnhancedFileUploader = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CheckCircle className="h-5 w-5 text-green-600" />
-            Supabase Upload Complete!
+            Enhanced Processing Complete!
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            <p className="text-green-700 font-medium">
-              ✅ Successfully processed {processingResult.customersProcessed} customer records with Supabase!
-            </p>
-            <div className="text-sm text-gray-600 space-y-1">
-              <p>• Data stored in Supabase PostgreSQL database</p>
-              <p>• Real-time analytics ready</p>
-              <p>• Enhanced churn analysis enabled</p>
-            </div>
-            {processingResult.errors && processingResult.errors.length > 0 && (
-              <details className="text-sm">
-                <summary className="cursor-pointer text-amber-700 flex items-center gap-1">
-                  <AlertTriangle className="h-4 w-4" />
-                  View {processingResult.errors.length} processing notes
-                </summary>
-                <ul className="mt-2 list-disc list-inside space-y-1 ml-4 text-xs text-amber-600">
-                  {processingResult.errors.slice(0, 5).map((error: string, index: number) => (
-                    <li key={index}>{error}</li>
-                  ))}
-                  {processingResult.errors.length > 5 && (
-                    <li>... and {processingResult.errors.length - 5} more</li>
-                  )}
-                </ul>
-              </details>
-            )}
+          <UploadResult result={{
+            success: true,
+            message: `Successfully processed ${processingResult.customersProcessed} customer records with enhanced algorithms!`,
+            customersProcessed: processingResult.customersProcessed,
+            errors: processingResult.errors,
+            warnings: processingResult.warnings,
+            duplicatesFound: processingResult.duplicatesFound,
+            dataQualityScore: processingResult.dataQualityScore
+          }} />
+          
+          <div className="mt-4 text-center">
             <button 
               onClick={resetUploader}
               className="text-blue-600 hover:text-blue-800 underline text-sm"
@@ -205,7 +189,7 @@ export const EnhancedFileUploader = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Database className="h-5 w-5 text-blue-600" />
+            <Zap className="h-5 w-5 text-blue-600" />
             {getPhaseTitle()}
           </CardTitle>
         </CardHeader>
@@ -213,7 +197,7 @@ export const EnhancedFileUploader = () => {
           <div className="flex items-center justify-between text-sm">
             <span className="flex items-center gap-2">
               <span className="text-xl">{getPhaseIcon()}</span>
-              <span className="font-medium text-blue-700">Supabase Processing</span>
+              <span className="font-medium text-blue-700">Enhanced Processing</span>
             </span>
             <span className="font-bold text-blue-900">{Math.round(processingProgress)}%</span>
           </div>
@@ -222,9 +206,10 @@ export const EnhancedFileUploader = () => {
             {processingMessage} ({processingProgress}%)
           </p>
           <div className="text-xs text-gray-500 space-y-1">
-            <p>• Using Supabase PostgreSQL for optimal performance</p>
-            <p>• Real-time row-level security enabled</p>
-            <p>• Enhanced churn analysis features active</p>
+            <p>• Advanced risk scoring algorithms</p>
+            <p>• Enhanced data quality assessment</p>
+            <p>• Improved duplicate detection</p>
+            <p>• Optimized database storage</p>
           </div>
         </CardContent>
       </Card>
@@ -236,8 +221,12 @@ export const EnhancedFileUploader = () => {
       <FileUploadWizard onComplete={handleFileSelected} />
       
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p className="text-sm text-blue-800">
-          <strong>Powered by Supabase:</strong> Your data will be processed and stored in a secure PostgreSQL database with real-time capabilities.
+        <div className="flex items-center gap-2 mb-2">
+          <Zap className="h-5 w-5 text-blue-600" />
+          <p className="text-sm font-medium text-blue-800">Enhanced Processing</p>
+        </div>
+        <p className="text-sm text-blue-700">
+          Your data will be processed with advanced algorithms for improved accuracy, including enhanced risk scoring, data quality assessment, and duplicate detection.
         </p>
       </div>
     </div>
