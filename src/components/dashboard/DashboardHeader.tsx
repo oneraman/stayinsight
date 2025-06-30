@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -21,10 +21,12 @@ import {
   History
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 
 const DashboardHeader = () => {
   const { currentUser, logOut } = useAuth();
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const location = useLocation();
   
   const getInitials = (name: string | null | undefined) => {
     if (!name) return "U";
@@ -42,6 +44,10 @@ const DashboardHeader = () => {
 
   const avatarUrl = currentUser?.user_metadata?.avatar_url;
 
+  const isActive = (path: string) => {
+    return location.pathname === path;
+  };
+
   return (
     <header className="sticky top-0 z-30 w-full border-b bg-white">
       <div className="container flex h-16 items-center justify-between px-4">
@@ -58,13 +64,28 @@ const DashboardHeader = () => {
           </Link>
           
           <nav className="hidden lg:flex gap-6 text-sm">
-            <Link to="/dashboard" className="text-gray-900 font-medium">
+            <Link 
+              to="/dashboard" 
+              className={`${isActive('/dashboard') 
+                ? 'text-gray-900 font-medium border-b-2 border-primary pb-1' 
+                : 'text-gray-500 hover:text-gray-900'}`}
+            >
               Dashboard
             </Link>
-            <Link to="/customers" className="text-gray-500 hover:text-gray-900">
+            <Link 
+              to="/customers" 
+              className={`${isActive('/customers') 
+                ? 'text-gray-900 font-medium border-b-2 border-primary pb-1' 
+                : 'text-gray-500 hover:text-gray-900'}`}
+            >
               Customers
             </Link>
-            <Link to="/history" className="text-gray-500 hover:text-gray-900">
+            <Link 
+              to="/history" 
+              className={`${isActive('/history') 
+                ? 'text-gray-900 font-medium border-b-2 border-primary pb-1' 
+                : 'text-gray-500 hover:text-gray-900'}`}
+            >
               Upload History
             </Link>
           </nav>
@@ -74,20 +95,20 @@ const DashboardHeader = () => {
           <Search className="h-4 w-4 absolute left-3 text-gray-400" />
           <Input 
             placeholder="Search customers, reports..." 
-            className="pl-9 bg-gray-50 border-gray-200"
+            className="pl-9 bg-gray-50 border-gray-200 focus-visible:ring-primary"
           />
         </div>
         
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5 text-gray-500" />
-            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500"></span>
+            <Badge className="absolute top-1 right-1 w-2 h-2 p-0 bg-red-500" />
           </Button>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                <Avatar className="h-8 w-8">
+                <Avatar className="h-8 w-8 border border-gray-200">
                   <AvatarImage 
                     src={avatarUrl || ""} 
                     alt={displayName} 
@@ -145,13 +166,31 @@ const DashboardHeader = () => {
       {showMobileMenu && (
         <div className="lg:hidden border-t bg-white">
           <nav className="flex flex-col px-4 py-2">
-            <Link to="/dashboard" className="py-2 text-gray-900 font-medium">
+            <Link 
+              to="/dashboard" 
+              className={`py-2 ${isActive('/dashboard') 
+                ? 'text-primary font-medium' 
+                : 'text-gray-500 hover:text-gray-900'}`}
+              onClick={() => setShowMobileMenu(false)}
+            >
               Dashboard
             </Link>
-            <Link to="/customers" className="py-2 text-gray-500 hover:text-gray-900">
+            <Link 
+              to="/customers" 
+              className={`py-2 ${isActive('/customers') 
+                ? 'text-primary font-medium' 
+                : 'text-gray-500 hover:text-gray-900'}`}
+              onClick={() => setShowMobileMenu(false)}
+            >
               Customers
             </Link>
-            <Link to="/history" className="py-2 text-gray-500 hover:text-gray-900">
+            <Link 
+              to="/history" 
+              className={`py-2 ${isActive('/history') 
+                ? 'text-primary font-medium' 
+                : 'text-gray-500 hover:text-gray-900'}`}
+              onClick={() => setShowMobileMenu(false)}
+            >
               Upload History
             </Link>
           </nav>

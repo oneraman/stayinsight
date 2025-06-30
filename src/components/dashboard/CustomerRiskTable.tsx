@@ -1,9 +1,11 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CustomerData } from "@/utils/dataProcessing";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, CheckCircle, AlertCircle, ChevronRight } from "lucide-react";
+import { AlertTriangle, CheckCircle, AlertCircle, ChevronRight, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { formatDate, formatCurrency } from "@/utils/customerUtils";
 
 interface CustomerRiskTableProps {
   customers: CustomerData[];
@@ -11,14 +13,14 @@ interface CustomerRiskTableProps {
 }
 
 const CustomerRiskTable = ({ customers, loading = false }: CustomerRiskTableProps) => {
-  const formatDate = (date: Date | undefined) => {
-    if (!date) return "N/A";
-    return new Date(date).toLocaleDateString();
-  };
-
-  const formatCurrency = (value: number | undefined) => {
-    if (value === undefined || value === null) return "N/A";
-    return `$${value.toFixed(2)}`;
+  const getInitials = (name: string | undefined) => {
+    if (!name) return "?";
+    return name
+      .split(" ")
+      .map(part => part[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2);
   };
 
   const getRiskBadge = (riskScore: number | undefined, segment?: string) => {
@@ -116,31 +118,50 @@ const CustomerRiskTable = ({ customers, loading = false }: CustomerRiskTableProp
                   ${index % 2 === 0 ? '' : isHighRisk ? 'bg-red-25' : isMediumRisk ? 'bg-yellow-25' : 'bg-gray-25'}
                 `}
               >
-                <TableCell className="font-medium text-gray-900 py-4">
-                  <div className="flex flex-col">
-                    <span className="font-semibold">
-                      {customer.name || customer.email || customer.customerId}
-                    </span>
-                    {customer.email && customer.name && (
-                      <span className="text-sm text-gray-500">{customer.email}</span>
-                    )}
+                <TableCell className="font-medium text-gray-900 py-3">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-8 w-8 bg-primary/10">
+                      <AvatarFallback className="text-xs">
+                        {getInitials(customer.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col">
+                      <span className="font-semibold">
+                        {customer.name || 'Unknown'}
+                      </span>
+                      {customer.email && (
+                        <span className="text-xs text-gray-500">{customer.email}</span>
+                      )}
+                    </div>
                   </div>
                 </TableCell>
-                <TableCell className="py-4">
-                  {getRiskBadge(customer.riskScore, customer.segment)}
+                <TableCell className="py-3">
+                  <div className="flex items-center gap-2">
+                    {getRiskBadge(customer.riskScore, customer.segment)}
+                    <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full ${
+                          customer.riskScore && customer.riskScore >= 70 ? 'bg-red-500' : 
+                          customer.riskScore && customer.riskScore >= 30 ? 'bg-yellow-500' : 
+                          'bg-green-500'
+                        }`}
+                        style={{ width: `${customer.riskScore || 0}%` }}
+                      />
+                    </div>
+                  </div>
                 </TableCell>
-                <TableCell className="text-gray-700 py-4">
+                <TableCell className="text-gray-700 py-3">
                   {formatDate(customer.lastPurchaseDate)}
                 </TableCell>
-                <TableCell className="text-gray-700 py-4 font-medium">
+                <TableCell className="text-gray-700 py-3 font-medium">
                   {formatCurrency(customer.totalSpent)}
                 </TableCell>
-                <TableCell className="text-right py-4">
+                <TableCell className="text-right py-3">
                   <Button 
                     variant="ghost" 
                     size="sm" 
                     asChild 
-                    className="h-8 w-8 p-0 hover:bg-gray-200 text-gray-600 hover:text-gray-900"
+                    className="h-8 w-8 p-0 hover:bg-gray-200 text-gray-600 hover:text-gray-900 rounded-full"
                   >
                     <Link to={`/customers/${customer.id}`}>
                       <ChevronRight className="h-4 w-4" />

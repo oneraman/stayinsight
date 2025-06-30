@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase, testSupabaseConnection, validateSupabaseConfig } from "@/lib/supabase";
 import { CustomerData } from "@/utils/dataProcessing";
-import { Loader2, RefreshCw, Download, MessagesSquare, Send } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2, RefreshCw, Download, MessagesSquare, Send, User, BarChart4, PieChart, Users, TrendingUp } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import EnhancedFileUploader from "@/components/EnhancedFileUploader";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
@@ -34,6 +34,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ChatMessage {
   id: string;
@@ -398,15 +399,31 @@ What would you like to know about your customers?`,
     return timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const renderEmptyState = () => (
+    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+      <div className="bg-primary/10 p-4 rounded-full mb-4">
+        <BarChart4 className="h-10 w-10 text-primary" />
+      </div>
+      <h3 className="text-xl font-semibold mb-2">No Customer Data Available</h3>
+      <p className="text-muted-foreground max-w-md mb-6">
+        Upload your customer data to see insights, analytics, and AI-powered recommendations.
+      </p>
+      <Button onClick={handleUploadClick} className="gap-2">
+        <Upload className="h-4 w-4" />
+        Upload Customer Data
+      </Button>
+    </div>
+  );
+
   return (
     <DashboardLayout>
       <div className="max-w-7xl mx-auto px-4">
         {/* Top stats section */}
         <div className="mb-6 mt-4">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
             <h1 className="text-2xl font-bold">Customer Retention Dashboard</h1>
             
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               {/* Export Button */}
               <Button 
                 variant="outline" 
@@ -528,95 +545,197 @@ What would you like to know about your customers?`,
           )}
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full">
-              <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-              <TabsTrigger value="data-chat">Data Chat</TabsTrigger>
+            <TabsList className="w-full grid grid-cols-2">
+              <TabsTrigger value="dashboard" className="flex items-center gap-2">
+                <BarChart4 className="h-4 w-4" />
+                <span>Dashboard</span>
+              </TabsTrigger>
+              <TabsTrigger value="data-chat" className="flex items-center gap-2">
+                <MessagesSquare className="h-4 w-4" />
+                <span>Data Chat</span>
+              </TabsTrigger>
             </TabsList>
             
-            <TabsContent value="dashboard" className="mt-4">
-              <QuickActionsBar 
-                onUploadClick={handleUploadClick} 
-                onTimeRangeChange={setTimePeriod}
-                timeRange={timePeriod}
-              />
-              
-              <DashboardHero 
-                metrics={metrics}
-                timePeriod={timePeriod}
-                loading={metrics.loading}
-              />
-
-              {/* Main content grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6 mt-6">
-                {/* Charts section - 3 columns wide */}
-                <div className="lg:col-span-3 space-y-6">
-                  <ChurnAnalyticsChart loading={metrics.loading} />
+            <TabsContent value="dashboard" className="mt-6">
+              {loadingCustomers ? (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    {[1, 2, 3, 4].map((i) => (
+                      <Card key={i}>
+                        <CardHeader className="pb-2">
+                          <Skeleton className="h-4 w-24" />
+                        </CardHeader>
+                        <CardContent>
+                          <Skeleton className="h-8 w-16 mb-2" />
+                          <Skeleton className="h-3 w-20" />
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                  
+                  <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                    <div className="lg:col-span-3">
+                      <Card>
+                        <CardHeader>
+                          <Skeleton className="h-5 w-40" />
+                        </CardHeader>
+                        <CardContent>
+                          <Skeleton className="h-[300px] w-full" />
+                        </CardContent>
+                      </Card>
+                    </div>
+                    <div className="lg:col-span-2">
+                      <Card>
+                        <CardHeader>
+                          <Skeleton className="h-5 w-40" />
+                        </CardHeader>
+                        <CardContent>
+                          <Skeleton className="h-[300px] w-full" />
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
                 </div>
-                
-                {/* Side panel - 2 columns wide */}
-                <div className="lg:col-span-2 space-y-6" ref={customerRiskTableRef}>
-                  <CustomerSegmentationChart 
-                    data={segmentationData} 
-                    loading={metrics.loading}
+              ) : allCustomers.length === 0 && !connectionError && !configError ? (
+                renderEmptyState()
+              ) : (
+                <>
+                  <QuickActionsBar 
+                    onUploadClick={handleUploadClick} 
+                    onTimeRangeChange={setTimePeriod}
+                    timeRange={timePeriod}
                   />
                   
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg">High Risk Customers</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {loadingCustomers ? (
-                        <div className="flex justify-center items-center h-64">
-                          <Loader2 className="h-8 w-8 text-primary animate-spin" />
-                        </div>
-                      ) : (connectionError || configError) ? (
-                        <div className="text-center py-8">
-                          <WifiOff className="h-12 w-12 text-red-400 mx-auto mb-4" />
-                          <p className="text-red-600 text-lg font-medium">Connection Error</p>
-                          <p className="text-sm text-gray-500 mt-1">Unable to load customer data</p>
-                          {!configError && (
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              onClick={handleRetryConnection}
-                              disabled={isRetrying}
-                              className="mt-3"
-                            >
-                              {isRetrying ? (
-                                <>
-                                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                  Retrying...
-                                </>
-                              ) : (
-                                <>
-                                  <Wifi className="h-3 w-3 mr-1" />
-                                  Retry Connection
-                                </>
-                              )}
-                            </Button>
-                          )}
-                        </div>
-                      ) : highRiskCustomers.length === 0 ? (
-                        <div className="text-center py-8">
-                          <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                          <p className="text-gray-500 text-lg">No high-risk customers found.</p>
-                          <p className="text-sm text-gray-400 mt-1">Upload customer data to identify at-risk customers.</p>
-                        </div>
-                      ) : (
-                        <CustomerRiskTable customers={highRiskCustomers} />
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
+                  <DashboardHero 
+                    metrics={metrics}
+                    timePeriod={timePeriod}
+                    loading={metrics.loading}
+                  />
 
-              {/* AI Insights Panel */}
-              <div className="mb-6">
-                <AIChurnInsights customers={allCustomers} timeframe={timePeriod} />
-              </div>
+                  {/* Main content grid */}
+                  <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6 mt-6">
+                    {/* Charts section - 3 columns wide */}
+                    <div className="lg:col-span-3 space-y-6">
+                      <ChurnAnalyticsChart loading={metrics.loading} />
+                      
+                      {/* Quick Stats Cards */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100">
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-medium text-blue-600">Total Customers</p>
+                                <p className="text-2xl font-bold text-blue-800">{allCustomers.length}</p>
+                              </div>
+                              <div className="bg-blue-100 p-2 rounded-full">
+                                <Users className="h-5 w-5 text-blue-600" />
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        
+                        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-100">
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-medium text-green-600">Retention Rate</p>
+                                <p className="text-2xl font-bold text-green-800">{metrics.retentionRate}%</p>
+                              </div>
+                              <div className="bg-green-100 p-2 rounded-full">
+                                <TrendingUp className="h-5 w-5 text-green-600" />
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        
+                        <Card className="bg-gradient-to-br from-purple-50 to-fuchsia-50 border-purple-100">
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-medium text-purple-600">Avg Customer Value</p>
+                                <p className="text-2xl font-bold text-purple-800">${metrics.customerLifetimeValue.toLocaleString()}</p>
+                              </div>
+                              <div className="bg-purple-100 p-2 rounded-full">
+                                <PieChart className="h-5 w-5 text-purple-600" />
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </div>
+                    
+                    {/* Side panel - 2 columns wide */}
+                    <div className="lg:col-span-2 space-y-6" ref={customerRiskTableRef}>
+                      <CustomerSegmentationChart 
+                        data={segmentationData} 
+                        loading={metrics.loading}
+                      />
+                      
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-lg flex items-center gap-2">
+                            <AlertCircle className="h-4 w-4 text-red-500" />
+                            High Risk Customers
+                          </CardTitle>
+                          <CardDescription>
+                            Customers with risk score ≥ 70%
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          {loadingCustomers ? (
+                            <div className="flex justify-center items-center h-64">
+                              <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                            </div>
+                          ) : (connectionError || configError) ? (
+                            <div className="text-center py-8">
+                              <WifiOff className="h-12 w-12 text-red-400 mx-auto mb-4" />
+                              <p className="text-red-600 text-lg font-medium">Connection Error</p>
+                              <p className="text-sm text-gray-500 mt-1">Unable to load customer data</p>
+                              {!configError && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={handleRetryConnection}
+                                  disabled={isRetrying}
+                                  className="mt-3"
+                                >
+                                  {isRetrying ? (
+                                    <>
+                                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                      Retrying...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Wifi className="h-3 w-3 mr-1" />
+                                      Retry Connection
+                                    </>
+                                  )}
+                                </Button>
+                              )}
+                            </div>
+                          ) : highRiskCustomers.length === 0 ? (
+                            <div className="text-center py-8">
+                              <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                              <p className="text-gray-500 text-lg">No high-risk customers found.</p>
+                              <p className="text-sm text-gray-400 mt-1">All your customers are in good standing.</p>
+                            </div>
+                          ) : (
+                            <CustomerRiskTable customers={highRiskCustomers} />
+                          )}
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
+
+                  {/* AI Insights Panel */}
+                  <div className="mb-6">
+                    <AIChurnInsights customers={allCustomers} timeframe={timePeriod} />
+                  </div>
+                </>
+              )}
             </TabsContent>
             
-            <TabsContent value="data-chat" className="mt-4">
+            <TabsContent value="data-chat" className="mt-6">
               <Card className="flex-1 flex flex-col">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-lg">
@@ -628,109 +747,134 @@ What would you like to know about your customers?`,
                       </span>
                     )}
                   </CardTitle>
+                  <CardDescription>
+                    Ask questions about your customer data and get AI-powered insights
+                  </CardDescription>
                 </CardHeader>
                 
                 <CardContent className="flex-1 flex flex-col p-0">
-                  {/* Messages Area */}
-                  <ScrollArea ref={scrollAreaRef} className="flex-1 px-6" style={{ height: "500px" }}>
-                    <div className="space-y-4 pb-4">
-                      {messages.map((message) => (
-                        <div
-                          key={message.id}
-                          className={`flex gap-3 ${
-                            message.type === 'user' ? 'justify-end' : 'justify-start'
-                          }`}
-                        >
-                          {message.type === 'ai' && (
-                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                              <MessagesSquare className="h-4 w-4 text-primary" />
-                            </div>
-                          )}
-                          
-                          <div
-                            className={`max-w-[80%] rounded-lg px-4 py-3 ${
-                              message.type === 'user'
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-muted'
-                            }`}
-                          >
-                            <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                              {message.content}
-                            </div>
-                            <div
-                              className={`text-xs mt-2 opacity-70 ${
-                                message.type === 'user' ? 'text-primary-foreground' : 'text-muted-foreground'
-                              }`}
-                            >
-                              {formatTimestamp(message.timestamp)}
-                            </div>
-                          </div>
-                          
-                          {message.type === 'user' && (
-                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
-                              <User className="h-4 w-4" />
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                      
-                      {isLoading && (
-                        <div className="flex gap-3 justify-start">
-                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                            <MessagesSquare className="h-4 w-4 text-primary" />
-                          </div>
-                          <div className="bg-muted rounded-lg px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              <span className="text-sm text-muted-foreground">
-                                Analyzing your data...
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </ScrollArea>
-
-                  {/* Input Area */}
-                  <div className="border-t p-4">
-                    <div className="flex gap-2">
-                      <Input
-                        ref={inputRef}
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                        placeholder={
-                          allCustomers.length > 0
-                            ? "Ask a question about your customer data..."
-                            : "Please upload customer data first..."
-                        }
-                        disabled={isLoading || allCustomers.length === 0}
-                        className="flex-1"
-                      />
-                      <Button
-                        onClick={handleSendMessage}
-                        disabled={!inputValue.trim() || isLoading || allCustomers.length === 0}
-                        size="icon"
-                      >
-                        {isLoading ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Send className="h-4 w-4" />
-                        )}
+                  {allCustomers.length === 0 && !loadingCustomers ? (
+                    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                      <div className="bg-primary/10 p-4 rounded-full mb-4">
+                        <MessagesSquare className="h-10 w-10 text-primary" />
+                      </div>
+                      <h3 className="text-xl font-semibold mb-2">No Customer Data Available</h3>
+                      <p className="text-muted-foreground max-w-md mb-6">
+                        Upload your customer data to start chatting with your data and get AI-powered insights.
+                      </p>
+                      <Button onClick={handleUploadClick} className="gap-2">
+                        <Upload className="h-4 w-4" />
+                        Upload Customer Data
                       </Button>
                     </div>
-                    
-                    {allCustomers.length > 0 ? (
-                      <div className="mt-2 text-xs text-muted-foreground">
-                        Press Enter to send • Try asking about customer segments, revenue, or churn risk
+                  ) : (
+                    <>
+                      {/* Messages Area */}
+                      <ScrollArea ref={scrollAreaRef} className="flex-1 px-6" style={{ height: "500px" }}>
+                        <div className="space-y-4 pb-4">
+                          {messages.map((message) => (
+                            <div
+                              key={message.id}
+                              className={`flex gap-3 ${
+                                message.type === 'user' ? 'justify-end' : 'justify-start'
+                              }`}
+                            >
+                              {message.type === 'ai' && (
+                                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                  <MessagesSquare className="h-4 w-4 text-primary" />
+                                </div>
+                              )}
+                              
+                              <div
+                                className={`max-w-[80%] rounded-lg px-4 py-3 ${
+                                  message.type === 'user'
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-muted'
+                                }`}
+                              >
+                                <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                                  {message.content}
+                                </div>
+                                <div
+                                  className={`text-xs mt-2 opacity-70 ${
+                                    message.type === 'user' ? 'text-primary-foreground' : 'text-muted-foreground'
+                                  }`}
+                                >
+                                  {formatTimestamp(message.timestamp)}
+                                </div>
+                              </div>
+                              
+                              {message.type === 'user' && (
+                                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
+                                  <User className="h-4 w-4" />
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                          
+                          {isLoading && (
+                            <div className="flex gap-3 justify-start">
+                              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                <MessagesSquare className="h-4 w-4 text-primary" />
+                              </div>
+                              <div className="bg-muted rounded-lg px-4 py-3">
+                                <div className="flex items-center gap-2">
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  <span className="text-sm text-muted-foreground">
+                                    Analyzing your data...
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </ScrollArea>
+
+                      {/* Input Area */}
+                      <div className="border-t p-4">
+                        <div className="flex gap-2">
+                          <Input
+                            ref={inputRef}
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            onKeyPress={handleKeyPress}
+                            placeholder={
+                              allCustomers.length > 0
+                                ? "Ask a question about your customer data..."
+                                : "Please upload customer data first..."
+                            }
+                            disabled={isLoading || allCustomers.length === 0 || loadingCustomers}
+                            className="flex-1"
+                          />
+                          <Button
+                            onClick={handleSendMessage}
+                            disabled={!inputValue.trim() || isLoading || allCustomers.length === 0 || loadingCustomers}
+                            size="icon"
+                          >
+                            {isLoading ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Send className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                        
+                        {allCustomers.length > 0 ? (
+                          <div className="mt-2 text-xs text-muted-foreground">
+                            Press Enter to send • Try asking about customer segments, revenue, or churn risk
+                          </div>
+                        ) : loadingCustomers ? (
+                          <div className="mt-2 text-xs text-muted-foreground">
+                            Loading customer data...
+                          </div>
+                        ) : (
+                          <div className="mt-2 text-xs text-amber-600">
+                            No customer data available. Please upload data first to use the chat feature.
+                          </div>
+                        )}
                       </div>
-                    ) : (
-                      <div className="mt-2 text-xs text-amber-600">
-                        No customer data available. Please upload data first to use the chat feature.
-                      </div>
-                    )}
-                  </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -742,7 +886,7 @@ What would you like to know about your customers?`,
       <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-hidden">
           <DialogHeader>
-            <DialogTitle>Upload Customer Data to Supabase</DialogTitle>
+            <DialogTitle>Upload Customer Data</DialogTitle>
           </DialogHeader>
           <div className="max-h-[70vh] overflow-y-auto">
             <EnhancedFileUploader />
