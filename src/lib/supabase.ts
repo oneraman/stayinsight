@@ -112,17 +112,32 @@ const handleSupabaseError = (error: any, operation: string) => {
   throw error;
 };
 
-// Get current authenticated user
+// Get current authenticated user with better error handling
 export const getCurrentUser = async () => {
   try {
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (error) {
-      console.error('Error getting current user:', error);
+    // Check if we have environment variables first
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('❌ Supabase not configured - missing environment variables');
       return null;
     }
+
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error) {
+      console.error('❌ Error getting current user:', error.message);
+      // Don't throw error for auth issues, just return null
+      return null;
+    }
+    
+    if (!user) {
+      console.log('ℹ️ No authenticated user found');
+      return null;
+    }
+    
+    console.log('✅ Current user retrieved:', user.id);
     return user;
   } catch (error) {
-    console.error('Error in getCurrentUser:', error);
+    console.error('❌ Error in getCurrentUser:', error);
     return null;
   }
 };
@@ -131,6 +146,11 @@ export const getCurrentUser = async () => {
 const testRawSupabaseConnection = async (): Promise<boolean> => {
   try {
     console.log('🔍 Testing raw Supabase REST API connection...');
+    
+    // Check environment variables first
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error('Supabase environment variables are not configured. Please check your .env file.');
+    }
     
     const apiUrl = `${supabaseUrl}/rest/v1/customers?limit=1`;
     console.log('📍 Testing URL:', apiUrl);
@@ -170,7 +190,7 @@ const testRawSupabaseConnection = async (): Promise<boolean> => {
     console.error('❌ Raw fetch test failed:', error);
     
     if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-      throw new Error('Network connectivity issue: Cannot reach Supabase servers. Check your internet connection and firewall settings.');
+      throw new Error('Network connectivity issue: Cannot reach Supabase servers. Please check your .env file configuration, internet connection and firewall settings.');
     }
     
     throw error;
@@ -181,6 +201,13 @@ const testRawSupabaseConnection = async (): Promise<boolean> => {
 export const testSupabaseConnection = async (): Promise<boolean> => {
   try {
     console.log('🔄 Starting comprehensive Supabase connection test...');
+    
+    // First check if environment variables are configured
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('❌ Supabase environment variables not configured');
+      throw new Error('Supabase is not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file.');
+    }
+    
     console.log('📍 Supabase URL:', supabaseUrl);
     console.log('🔑 API Key present:', !!supabaseAnonKey);
     console.log('🔑 API Key length:', supabaseAnonKey?.length || 0);
@@ -240,13 +267,12 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
     
     // Provide more specific error information
     if (error instanceof Error) {
+      if (error.message.includes('not configured') || error.message.includes('environment variables')) {
+        throw new Error('Supabase configuration missing: Please create a .env file with VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY. You can find these values in your Supabase project settings.');
+      }
+      
       if (error.message.includes('Failed to fetch') || error.message.includes('Network connectivity')) {
-        console.error('💡 Troubleshooting suggestions:');
-        console.error('  1. Check if your Supabase project is paused (visit your Supabase dashboard)');
-        console.error('  2. Verify your internet connection');
-        console.error('  3. Check if there are network restrictions or firewalls blocking the connection');
-        console.error('  4. Ensure your Supabase project URL is correct');
-        throw new Error('Network error: Unable to connect to Supabase. Please check your internet connection and verify that your Supabase project is active.');
+        throw new Error('Network error: Unable to connect to Supabase. Please check your .env file configuration, internet connection and verify that your Supabase project is active.');
       }
       
       if (error.message.includes('timeout')) {
@@ -254,11 +280,7 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
       }
       
       if (error.message.includes('Authentication failed') || error.message.includes('Invalid API key')) {
-        console.error('💡 Authentication troubleshooting:');
-        console.error('  1. Check your .env file for VITE_SUPABASE_ANON_KEY');
-        console.error('  2. Verify the API key in your Supabase project settings > API');
-        console.error('  3. Ensure you\'re using the "anon" public key, not the service role key');
-        throw new Error('Authentication error: Please verify your Supabase API key configuration.');
+        throw new Error('Authentication error: Please verify your Supabase API key configuration in the .env file.');
       }
     }
     
@@ -422,7 +444,7 @@ export const validateSupabaseConfig = () => {
   const issues = [];
   
   if (!supabaseUrl) {
-    issues.push('VITE_SUPABASE_URL is missing');
+    issues.push('VITE_SUPABASE_URL is missing from .env file');
   } else {
     try {
       const url = new URL(supabaseUrl);
@@ -435,7 +457,7 @@ export const validateSupabaseConfig = () => {
   }
   
   if (!supabaseAnonKey) {
-    issues.push('VITE_SUPABASE_ANON_KEY is missing');
+    issues.push('VITE_SUPABASE_ANON_KEY is missing from .env file');
   } else if (supabaseAnonKey.length < 100) {
     issues.push('VITE_SUPABASE_ANON_KEY appears to be invalid (too short)');
   }

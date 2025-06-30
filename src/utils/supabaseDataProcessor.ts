@@ -136,10 +136,18 @@ export const processFileWithSupabase = async (
   console.log('🚀 Starting Supabase file processing for:', file.name);
   
   try {
+    // Check if Supabase is configured first
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error('Supabase is not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file.');
+    }
+    
     // Get current authenticated user to ensure we have proper authentication
     const currentUser = await getCurrentUser();
     if (!currentUser) {
-      throw new Error('User not authenticated. Please log in to upload customer data.');
+      throw new Error('Please log in to upload customer data. Authentication is required to process files.');
     }
     
     console.log('✅ User authenticated:', currentUser.id);
@@ -338,6 +346,18 @@ export const processFileWithSupabase = async (
 
   } catch (error) {
     console.error('💥 Error in Supabase processing:', error);
+    
+    // Provide more helpful error messages
+    if (error instanceof Error) {
+      if (error.message.includes('not configured') || error.message.includes('environment variables')) {
+        throw new Error('Supabase configuration missing: Please create a .env file with your Supabase project URL and API key.');
+      }
+      
+      if (error.message.includes('log in') || error.message.includes('Authentication')) {
+        throw new Error('Authentication required: Please log in to upload customer data.');
+      }
+    }
+    
     throw new Error(`Failed to process customer data: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };
