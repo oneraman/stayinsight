@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { collection, getDocs, query, limit } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
@@ -16,11 +15,13 @@ import ChurnAnalyticsChart from "@/components/dashboard/ChurnAnalyticsChart";
 import CustomerSegmentationChart from "@/components/dashboard/CustomerSegmentationChart";
 import CustomerRiskTable from "@/components/dashboard/CustomerRiskTable";
 import ActionInsightsSection from "@/components/dashboard/ActionInsightsSection";
+import ChurnInsightsPanel from "@/components/dashboard/ChurnInsightsPanel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const Dashboard = () => {
   const [timePeriod, setTimePeriod] = useState("30");
   const [highRiskCustomers, setHighRiskCustomers] = useState<CustomerData[]>([]);
+  const [allCustomers, setAllCustomers] = useState<CustomerData[]>([]);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
@@ -51,10 +52,10 @@ const Dashboard = () => {
   }, []);
   
   useEffect(() => {
-    const fetchHighRiskCustomers = async () => {
+    const fetchCustomers = async () => {
       try {
         setLoadingCustomers(true);
-        console.log("Fetching high-risk customers with enhanced logging...");
+        console.log("Fetching customers with enhanced logging...");
         
         const customersQuery = query(
           collection(firestore, "customers"),
@@ -67,6 +68,7 @@ const Dashboard = () => {
         if (snapshot.docs.length === 0) {
           console.log("No customers found in database");
           setHighRiskCustomers([]);
+          setAllCustomers([]);
           setLoadingCustomers(false);
           return;
         }
@@ -86,6 +88,8 @@ const Dashboard = () => {
           };
         });
         
+        setAllCustomers(customerData);
+        
         const highRisk = customerData
           .filter(customer => customer.riskScore && customer.riskScore >= 70)
           .sort((a, b) => (b.riskScore || 0) - (a.riskScore || 0))
@@ -100,7 +104,7 @@ const Dashboard = () => {
       }
     };
 
-    fetchHighRiskCustomers();
+    fetchCustomers();
   }, [refreshTrigger]);
 
   // Prepare segmentation data for the chart
@@ -191,6 +195,11 @@ const Dashboard = () => {
               </CardContent>
             </Card>
           </div>
+        </div>
+
+        {/* AI Insights Panel */}
+        <div className="mb-6">
+          <ChurnInsightsPanel customers={allCustomers} timeframe={timePeriod} />
         </div>
       </div>
       

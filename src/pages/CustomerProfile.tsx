@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
@@ -13,6 +12,7 @@ import CustomerHeader from "@/components/customer-profile/CustomerHeader";
 import RiskAssessment from "@/components/customer-profile/RiskAssessment";
 import CustomerValue from "@/components/customer-profile/CustomerValue";
 import RecommendedActions from "@/components/customer-profile/RecommendedActions";
+import AIChurnAnalysis from "@/components/customer-profile/AIChurnAnalysis";
 
 const CustomerProfile = () => {
   const { customerId } = useParams<{ customerId: string }>();
@@ -93,30 +93,34 @@ const CustomerProfile = () => {
 
       <Tabs value={activeTab} className="mt-6">
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <RiskAssessment customer={customer} />
-            <CustomerValue customer={customer} />
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="text-lg font-medium mb-2">Purchase History</h3>
-                <div className="text-sm text-gray-500">
-                  <p>Last purchase: {formatDate(customer.lastPurchaseDate)}</p>
-                  <p>Purchase frequency: {customer.purchaseCount || 0} orders</p>
-                  <p>Average order value: {formatCurrency(customer.avgOrderValue)}</p>
-                  <p>Total spent: {formatCurrency(customer.totalSpent)}</p>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <RiskAssessment customer={customer} />
+                <CustomerValue customer={customer} />
+              </div>
+              <RecommendedActions customer={customer} />
+            </div>
+            
+            <div className="lg:col-span-1">
+              <AIChurnAnalysis customerData={customer} />
+            </div>
           </div>
-          
-          <RecommendedActions customer={customer} />
         </TabsContent>
 
         <TabsContent value="purchases">
           <Card>
             <CardContent className="pt-6">
               <h3 className="text-lg font-medium mb-4">Purchase History</h3>
-              <p className="text-gray-500">Detailed purchase history will appear here.</p>
+              <div className="space-y-4">
+                <div className="text-sm text-gray-500">
+                  <p>Last purchase: {formatDate(customer.lastPurchaseDate)}</p>
+                  <p>Purchase frequency: {customer.purchaseCount || 0} orders</p>
+                  <p>Average order value: {formatCurrency(customer.avgOrderValue)}</p>
+                  <p>Total spent: {formatCurrency(customer.totalSpent)}</p>
+                </div>
+                <p className="text-gray-500">Detailed purchase history will appear here.</p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
