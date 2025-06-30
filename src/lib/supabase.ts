@@ -3,6 +3,11 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+// Enhanced logging to verify environment variables
+console.log('🔍 Supabase Environment Variables Check:');
+console.log('- VITE_SUPABASE_URL:', supabaseUrl || '❌ MISSING');
+console.log('- VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? `✅ Present (${supabaseAnonKey.length} chars)` : '❌ MISSING');
+
 // Enhanced validation with better error messages
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('❌ Supabase Configuration Error:');
@@ -15,7 +20,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 // Validate URL format
 try {
-  new URL(supabaseUrl);
+  const url = new URL(supabaseUrl);
+  console.log('✅ Supabase URL format is valid:', url.origin);
 } catch (error) {
   console.error('❌ Invalid Supabase URL format:', supabaseUrl);
   throw new Error('Invalid Supabase URL format. Please check your VITE_SUPABASE_URL in .env file.');
@@ -105,28 +111,86 @@ const handleSupabaseError = (error: any, operation: string) => {
   throw error;
 };
 
+// Raw fetch test to bypass Supabase client library
+const testRawSupabaseConnection = async (): Promise<boolean> => {
+  try {
+    console.log('🔍 Testing raw Supabase REST API connection...');
+    
+    const apiUrl = `${supabaseUrl}/rest/v1/customers?select=count&count=exact&limit=0`;
+    console.log('📍 Testing URL:', apiUrl);
+    
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'count=exact'
+      }
+    });
+    
+    console.log('📊 Raw fetch response status:', response.status);
+    console.log('📊 Raw fetch response headers:', Object.fromEntries(response.headers.entries()));
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Raw fetch failed:', response.status, errorText);
+      
+      if (response.status === 401) {
+        throw new Error('Authentication failed: Invalid API key or insufficient permissions');
+      } else if (response.status === 404) {
+        throw new Error('Table not found: The customers table may not exist in your database');
+      } else if (response.status === 0 || response.status >= 500) {
+        throw new Error('Server error: Supabase service may be unavailable');
+      } else {
+        throw new Error(`HTTP ${response.status}: ${errorText || 'Unknown error'}`);
+      }
+    }
+    
+    const responseText = await response.text();
+    console.log('✅ Raw fetch successful, response:', responseText);
+    return true;
+    
+  } catch (error) {
+    console.error('❌ Raw fetch test failed:', error);
+    
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      throw new Error('Network connectivity issue: Cannot reach Supabase servers. Check your internet connection and firewall settings.');
+    }
+    
+    throw error;
+  }
+};
+
 // Improved connection test with better diagnostics
 export const testSupabaseConnection = async (): Promise<boolean> => {
   try {
-    console.log('🔄 Testing Supabase connection...');
+    console.log('🔄 Starting comprehensive Supabase connection test...');
     console.log('📍 Supabase URL:', supabaseUrl);
     console.log('🔑 API Key present:', !!supabaseAnonKey);
+    console.log('🔑 API Key length:', supabaseAnonKey?.length || 0);
     
-    // Create a simple health check query with timeout
+    // Step 1: Test raw fetch first
+    console.log('🔍 Step 1: Testing raw REST API connectivity...');
+    await testRawSupabaseConnection();
+    console.log('✅ Step 1 passed: Raw API connectivity confirmed');
+    
+    // Step 2: Test Supabase client library
+    console.log('🔍 Step 2: Testing Supabase client library...');
+    
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
     try {
-      // First try a simple query to test basic connectivity
-      const { data, error } = await supabase
+      const { data, error, count } = await supabase
         .from('customers')
-        .select('count', { count: 'exact', head: true })
+        .select('*', { count: 'exact', head: true })
         .abortSignal(controller.signal);
       
       clearTimeout(timeoutId);
       
       if (error) {
-        console.error('❌ Supabase query error:', error);
+        console.error('❌ Supabase client query error:', error);
         
         // Handle specific error cases
         if (error.message?.includes('relation "customers" does not exist')) {
@@ -140,8 +204,9 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
         throw error;
       }
       
-      console.log('✅ Supabase connection successful');
-      console.log('📊 Customer table accessible');
+      console.log('✅ Step 2 passed: Supabase client library working');
+      console.log('📊 Customer table accessible, count:', count);
+      
       return true;
       
     } catch (fetchError) {
@@ -159,13 +224,25 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
     
     // Provide more specific error information
     if (error instanceof Error) {
-      if (error.message.includes('Failed to fetch')) {
-        console.error('💡 Suggestion: Check if your Supabase project is paused or if there are network restrictions');
+      if (error.message.includes('Failed to fetch') || error.message.includes('Network connectivity')) {
+        console.error('💡 Troubleshooting suggestions:');
+        console.error('  1. Check if your Supabase project is paused (visit your Supabase dashboard)');
+        console.error('  2. Verify your internet connection');
+        console.error('  3. Check if there are network restrictions or firewalls blocking the connection');
+        console.error('  4. Ensure your Supabase project URL is correct');
         throw new Error('Network error: Unable to connect to Supabase. Please check your internet connection and verify that your Supabase project is active.');
       }
       
       if (error.message.includes('timeout')) {
         throw new Error('Connection timeout: Supabase is not responding. Please check your project status and try again.');
+      }
+      
+      if (error.message.includes('Authentication failed') || error.message.includes('Invalid API key')) {
+        console.error('💡 Authentication troubleshooting:');
+        console.error('  1. Check your .env file for VITE_SUPABASE_ANON_KEY');
+        console.error('  2. Verify the API key in your Supabase project settings > API');
+        console.error('  3. Ensure you\'re using the "anon" public key, not the service role key');
+        throw new Error('Authentication error: Please verify your Supabase API key configuration.');
       }
     }
     
