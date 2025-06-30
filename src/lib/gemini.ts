@@ -270,3 +270,75 @@ export const generateChurnReport = async (timeframe: string, customers: any[]) =
     throw error;
   }
 };
+
+export const generateDataChatResponse = async (question: string, customerData: any[]) => {
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    
+    // Prepare data summary for the AI
+    const totalCustomers = customerData.length;
+    const highRiskCount = customerData.filter(c => (c.riskScore >= 70) || (c.segment === 'high-risk')).length;
+    const mediumRiskCount = customerData.filter(c => ((c.riskScore >= 30 && c.riskScore < 70) || (c.segment === 'medium-risk'))).length;
+    const lowRiskCount = customerData.filter(c => (c.riskScore < 30) || (c.segment === 'low-risk')).length;
+    
+    const totalRevenue = customerData.reduce((sum, c) => sum + (c.totalSpent || 0), 0);
+    const avgOrderValue = customerData.reduce((sum, c) => sum + (c.avgOrderValue || 0), 0) / totalCustomers;
+    const avgRiskScore = customerData.reduce((sum, c) => sum + (c.riskScore || 0), 0) / totalCustomers;
+    
+    // Get sample data for context
+    const sampleCustomers = customerData.slice(0, 5).map(c => ({
+      id: c.customerId,
+      name: c.name,
+      email: c.email,
+      riskScore: c.riskScore,
+      segment: c.segment,
+      totalSpent: c.totalSpent,
+      purchaseCount: c.purchaseCount,
+      lastPurchaseDate: c.lastPurchaseDate
+    }));
+    
+    const prompt = `
+    You are an expert data analyst for a customer retention platform. A user is asking a question about their customer data. 
+    
+    IMPORTANT INSTRUCTIONS:
+    - Answer ONLY based on the provided customer data
+    - Be specific and provide exact numbers when possible
+    - If the data doesn't contain the information needed to answer the question, say so clearly
+    - Format your response in a clear, conversational way
+    - Include relevant insights and recommendations when appropriate
+    - Use bullet points or numbered lists for clarity when listing multiple items
+    
+    CUSTOMER DATA SUMMARY:
+    - Total Customers: ${totalCustomers}
+    - High Risk Customers: ${highRiskCount} (${((highRiskCount/totalCustomers)*100).toFixed(1)}%)
+    - Medium Risk Customers: ${mediumRiskCount} (${((mediumRiskCount/totalCustomers)*100).toFixed(1)}%)
+    - Low Risk Customers: ${lowRiskCount} (${((lowRiskCount/totalCustomers)*100).toFixed(1)}%)
+    - Total Revenue: $${totalRevenue.toLocaleString()}
+    - Average Order Value: $${avgOrderValue.toFixed(2)}
+    - Average Risk Score: ${avgRiskScore.toFixed(1)}
+    
+    SAMPLE CUSTOMER RECORDS:
+    ${JSON.stringify(sampleCustomers, null, 2)}
+    
+    AVAILABLE DATA FIELDS:
+    - Customer ID, Name, Email
+    - Risk Score (0-100), Segment (low-risk, medium-risk, high-risk)
+    - Total Spent, Purchase Count, Average Order Value
+    - Last Purchase Date
+    - Age, Gender, Tenure
+    - Usage Frequency, Support Calls, Payment Delay
+    - Subscription Type
+    
+    USER QUESTION: "${question}"
+    
+    Please analyze the data and provide a helpful, accurate response based on the customer data provided.
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text();
+  } catch (error) {
+    console.error('Error generating data chat response:', error);
+    throw error;
+  }
+};

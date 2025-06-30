@@ -2,7 +2,7 @@ import { ReactNode, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Users, Settings, ChevronLeft, ChevronRight, Upload, LogOut, History } from "lucide-react";
+import { LayoutDashboard, Users, Settings, ChevronLeft, ChevronRight, Upload, LogOut, History, MessagesSquare } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -54,6 +54,12 @@ const DashboardLayout = ({
               <Link to="/customers" className="flex items-center gap-3 px-4 py-3 rounded-md hover:bg-[#262c3a] text-gray-300 hover:text-white transition-colors">
                 <Users className="h-5 w-5" />
                 {!sidebarCollapsed && <span>Customers</span>}
+              </Link>
+            </li>
+            <li>
+              <Link to="/data-chat" className="flex items-center gap-3 px-4 py-3 rounded-md hover:bg-[#262c3a] text-gray-300 hover:text-white transition-colors">
+                <MessagesSquare className="h-5 w-5" />
+                {!sidebarCollapsed && <span>Data Chat</span>}
               </Link>
             </li>
             <li>
