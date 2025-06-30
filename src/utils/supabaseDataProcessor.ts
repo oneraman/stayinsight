@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { supabase, CustomerRecord, getCurrentUser } from '@/lib/supabase';
+import { supabase, CustomerRecord } from '@/lib/supabase';
 import { validateFileData, CustomerRowData, findCustomerIdColumn, generateCustomerId } from './dataValidation';
 
 export interface ProcessingResult {
@@ -127,6 +127,29 @@ const cleanString = (value: any): string | undefined => {
   return String(value).trim() || undefined;
 };
 
+// Get current authenticated user with better error handling
+const getCurrentUser = async () => {
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error) {
+      console.error('❌ Error getting current user:', error.message);
+      throw new Error('Auth session missing!');
+    }
+    
+    if (!user) {
+      console.log('ℹ️ No authenticated user found');
+      throw new Error('User not authenticated. Please log in to upload customer data.');
+    }
+    
+    console.log('✅ Current user retrieved:', user.id);
+    return user;
+  } catch (error) {
+    console.error('❌ Error in getCurrentUser:', error);
+    throw error;
+  }
+};
+
 // Process file and store in Supabase
 export const processFileWithSupabase = async (
   file: File,
@@ -146,10 +169,6 @@ export const processFileWithSupabase = async (
     
     // Get current authenticated user to ensure we have proper authentication
     const currentUser = await getCurrentUser();
-    if (!currentUser) {
-      throw new Error('Please log in to upload customer data. Authentication is required to process files.');
-    }
-    
     console.log('✅ User authenticated:', currentUser.id);
     
     // Read and parse file
@@ -353,8 +372,8 @@ export const processFileWithSupabase = async (
         throw new Error('Supabase configuration missing: Please create a .env file with your Supabase project URL and API key.');
       }
       
-      if (error.message.includes('log in') || error.message.includes('Authentication')) {
-        throw new Error('Authentication required: Please log in to upload customer data.');
+      if (error.message.includes('Auth session missing') || error.message.includes('not authenticated')) {
+        throw new Error('User not authenticated. Please log in to upload customer data. Authentication is required to process files.');
       }
     }
     

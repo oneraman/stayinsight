@@ -5,7 +5,9 @@ import { FileUploadWizard } from "./upload/FileUploadWizard";
 import { processFileWithSupabase, ProcessingProgress } from "@/utils/supabaseDataProcessor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, Database, AlertTriangle } from "lucide-react";
+import { CheckCircle, Database, AlertTriangle, LogIn } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 export const EnhancedFileUploader = () => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -18,6 +20,7 @@ export const EnhancedFileUploader = () => {
   const { toast } = useToast();
 
   const handleFileSelected = async (file: File) => {
+    // Check authentication first
     if (!currentUser) {
       toast({
         title: "Authentication Required",
@@ -66,11 +69,21 @@ export const EnhancedFileUploader = () => {
       
     } catch (error) {
       console.error('❌ Supabase upload and processing failed:', error);
-      toast({
-        title: "Upload Failed",
-        description: error instanceof Error ? error.message : "Failed to upload and process file with Supabase.",
-        variant: "destructive",
-      });
+      
+      // Handle authentication errors specifically
+      if (error instanceof Error && error.message.includes('not authenticated')) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to upload customer data.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Upload Failed",
+          description: error instanceof Error ? error.message : "Failed to upload and process file with Supabase.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -110,6 +123,35 @@ export const EnhancedFileUploader = () => {
         return 'Processing...';
     }
   };
+
+  // Show authentication required message if user is not logged in
+  if (!currentUser) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <LogIn className="h-5 w-5 text-blue-600" />
+            Authentication Required
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-6">
+            <p className="text-gray-600 mb-4">
+              Please log in to upload and process customer data with Supabase.
+            </p>
+            <div className="space-x-2">
+              <Button asChild>
+                <Link to="/login">Log In</Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link to="/signup">Sign Up</Link>
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (isComplete && processingResult?.success) {
     return (
@@ -192,14 +234,6 @@ export const EnhancedFileUploader = () => {
   return (
     <div className="space-y-4">
       <FileUploadWizard onComplete={handleFileSelected} />
-      
-      {!currentUser && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <p className="text-sm text-yellow-800">
-            <strong>Note:</strong> Please log in to upload and process your customer data with Supabase.
-          </p>
-        </div>
-      )}
       
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <p className="text-sm text-blue-800">
