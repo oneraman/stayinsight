@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase, testSupabaseConnection, validateSupabaseConfig } from "@/lib/supabase";
 import { CustomerData } from "@/utils/dataProcessing";
-import { Loader2, RefreshCw, Download, MessagesSquare, Send, User, BarChart4, PieChart, Users, TrendingUp, Upload } from "lucide-react";
+import { Loader2, RefreshCw, Download, MessagesSquare, Send, User, BarChart4, PieChart, Users, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import EnhancedFileUploader from "@/components/EnhancedFileUploader";
 import DashboardLayout from "@/components/layouts/DashboardLayout";

@@ -134,7 +134,7 @@ const AIChurnInsights = ({ customers, timeframe }: AIChurnInsightsProps) => {
     ).length;
     const atRiskRevenue = customers
       .filter(c => c.riskScore >= 70 || c.segment === 'high-risk')
-      .reduce((sum, c) => sum + (c.totalSpent || c.total_spent || 0), 0);
+      .reduce((sum, c) => sum + (c.totalSpent || 0), 0);
 
     return { highRisk, mediumRisk, atRiskRevenue };
   };

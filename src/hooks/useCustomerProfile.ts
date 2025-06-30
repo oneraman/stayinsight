@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { doc, getDoc } from "firebase/firestore";
+import { firestore } from "@/lib/firebase";
 import { CustomerData } from "@/utils/dataProcessing";
 import { toast } from "sonner";
 
@@ -11,50 +12,31 @@ export const useCustomerProfile = (customerId: string | undefined) => {
 
   useEffect(() => {
     const fetchCustomerData = async () => {
-      if (!customerId) {
-        setLoading(false);
-        return;
-      }
+      if (!customerId) return;
       
       try {
         setLoading(true);
         
-        // Query Supabase for the customer with matching customerId
-        const { data, error } = await supabase
-          .from('customers')
-          .select('*')
-          .eq('customer_id', customerId)
-          .single();
+        // Query Firestore for the customer with matching customerId
+        const customersRef = doc(firestore, "customers", customerId);
+        const customerDoc = await getDoc(customersRef);
         
-        if (error) {
-          throw error;
-        }
-        
-        if (data) {
-          // Transform Supabase data to match CustomerData interface
-          const customerData: CustomerData = {
-            id: data.id,
-            customerId: data.customer_id,
-            email: data.email,
-            name: data.name,
-            lastPurchaseDate: data.last_purchase_date ? new Date(data.last_purchase_date) : undefined,
-            purchaseCount: data.purchase_count,
-            totalSpent: data.total_spent,
-            avgOrderValue: data.avg_order_value,
-            riskScore: data.risk_score,
-            segment: data.segment as 'low-risk' | 'medium-risk' | 'high-risk',
-            age: data.age,
-            gender: data.gender,
-            tenure: data.tenure,
-            usageFrequency: data.usage_frequency,
-            supportCalls: data.support_calls,
-            paymentDelay: data.payment_delay,
-            subscriptionType: data.subscription_type,
-            createdAt: data.created_at ? new Date(data.created_at) : undefined,
-            updatedAt: data.updated_at ? new Date(data.updated_at) : undefined
-          };
+        if (customerDoc.exists()) {
+          const data = customerDoc.data() as CustomerData;
           
-          setCustomer(customerData);
+          // Convert timestamps to dates if necessary
+          if (data.lastPurchaseDate && 
+              typeof data.lastPurchaseDate === 'object' && 
+              'toDate' in data.lastPurchaseDate && 
+              typeof data.lastPurchaseDate.toDate === 'function') {
+            data.lastPurchaseDate = data.lastPurchaseDate.toDate();
+          }
+          
+          // Use functional update to avoid the TypeScript error
+          setCustomer({
+            ...data,
+            id: customerDoc.id
+          });
         } else {
           setError("Customer not found");
           toast.error("Customer not found");
