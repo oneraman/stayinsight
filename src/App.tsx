@@ -12,7 +12,6 @@ import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import Customers from "./pages/Customers";
 import CustomerProfile from "./pages/CustomerProfile";
-import DataChat from "./pages/DataChat";
 import Settings from "./pages/Settings";
 import UploadHistory from "./pages/UploadHistory";
 import NotFound from "./pages/NotFound";
@@ -44,7 +43,6 @@ const App = () => (
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/customers" element={<Customers />} />
                 <Route path="/customers/:customerId" element={<CustomerProfile />} />
-                <Route path="/data-chat" element={<DataChat />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/history" element={<UploadHistory />} />
               </Route>

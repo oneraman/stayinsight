@@ -18,8 +18,7 @@ import {
   Search,
   Menu,
   Bell,
-  History,
-  MessagesSquare
+  History
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
@@ -64,9 +63,6 @@ const DashboardHeader = () => {
             </Link>
             <Link to="/customers" className="text-gray-500 hover:text-gray-900">
               Customers
-            </Link>
-            <Link to="/data-chat" className="text-gray-500 hover:text-gray-900">
-              Data Chat
             </Link>
             <Link to="/history" className="text-gray-500 hover:text-gray-900">
               Upload History
@@ -127,12 +123,6 @@ const DashboardHeader = () => {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/data-chat" className="cursor-pointer flex w-full items-center">
-                  <MessagesSquare className="mr-2 h-4 w-4" />
-                  <span>Data Chat</span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
                 <Link to="/profile" className="cursor-pointer flex w-full items-center">
                   <User className="mr-2 h-4 w-4" />
                   <span>Profile</span>
@@ -160,9 +150,6 @@ const DashboardHeader = () => {
             </Link>
             <Link to="/customers" className="py-2 text-gray-500 hover:text-gray-900">
               Customers
-            </Link>
-            <Link to="/data-chat" className="py-2 text-gray-500 hover:text-gray-900">
-              Data Chat
             </Link>
             <Link to="/history" className="py-2 text-gray-500 hover:text-gray-900">
               Upload History
