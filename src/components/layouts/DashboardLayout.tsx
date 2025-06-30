@@ -1,5 +1,5 @@
 import { ReactNode, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard, Users, Settings, ChevronLeft, ChevronRight, Upload, LogOut, History, MessagesSquare } from "lucide-react";
@@ -16,6 +16,7 @@ const DashboardLayout = ({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { logOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed);
@@ -32,6 +33,18 @@ const DashboardLayout = ({
     }
   };
 
+  const isActiveRoute = (path: string) => {
+    return location.pathname === path;
+  };
+
+  const getLinkClasses = (path: string) => {
+    const baseClasses = "flex items-center gap-3 px-4 py-3 rounded-md transition-colors";
+    const activeClasses = "bg-[#262c3a] text-white";
+    const inactiveClasses = "hover:bg-[#262c3a] text-gray-300 hover:text-white";
+    
+    return `${baseClasses} ${isActiveRoute(path) ? activeClasses : inactiveClasses}`;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex dark:bg-gray-900 transition-colors duration-300">
       {/* Sidebar */}
@@ -45,31 +58,31 @@ const DashboardLayout = ({
         <nav className="flex-1 pt-5">
           <ul className="space-y-2 px-2">
             <li>
-              <Link to="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-md bg-[#262c3a] text-white">
+              <Link to="/dashboard" className={getLinkClasses("/dashboard")}>
                 <LayoutDashboard className="h-5 w-5 text-primary" />
                 {!sidebarCollapsed && <span>Dashboard</span>}
               </Link>
             </li>
             <li>
-              <Link to="/customers" className="flex items-center gap-3 px-4 py-3 rounded-md hover:bg-[#262c3a] text-gray-300 hover:text-white transition-colors">
+              <Link to="/customers" className={getLinkClasses("/customers")}>
                 <Users className="h-5 w-5" />
                 {!sidebarCollapsed && <span>Customers</span>}
               </Link>
             </li>
             <li>
-              <Link to="/data-chat" className="flex items-center gap-3 px-4 py-3 rounded-md hover:bg-[#262c3a] text-gray-300 hover:text-white transition-colors">
+              <Link to="/data-chat" className={getLinkClasses("/data-chat")}>
                 <MessagesSquare className="h-5 w-5" />
                 {!sidebarCollapsed && <span>Data Chat</span>}
               </Link>
             </li>
             <li>
-              <Link to="/history" className="flex items-center gap-3 px-4 py-3 rounded-md hover:bg-[#262c3a] text-gray-300 hover:text-white transition-colors">
+              <Link to="/history" className={getLinkClasses("/history")}>
                 <History className="h-5 w-5" />
                 {!sidebarCollapsed && <span>Upload History</span>}
               </Link>
             </li>
             <li>
-              <Link to="/settings" className="flex items-center gap-3 px-4 py-3 rounded-md hover:bg-[#262c3a] text-gray-300 hover:text-white transition-colors">
+              <Link to="/settings" className={getLinkClasses("/settings")}>
                 <Settings className="h-5 w-5" />
                 {!sidebarCollapsed && <span>Settings</span>}
               </Link>

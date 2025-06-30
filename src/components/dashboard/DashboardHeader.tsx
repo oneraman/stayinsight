@@ -17,7 +17,9 @@ import {
   User, 
   Search,
   Menu,
-  Bell
+  Bell,
+  History,
+  MessagesSquare
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
@@ -63,11 +65,11 @@ const DashboardHeader = () => {
             <Link to="/customers" className="text-gray-500 hover:text-gray-900">
               Customers
             </Link>
-            <Link to="/campaigns" className="text-gray-500 hover:text-gray-900">
-              Campaigns
+            <Link to="/data-chat" className="text-gray-500 hover:text-gray-900">
+              Data Chat
             </Link>
-            <Link to="/insights" className="text-gray-500 hover:text-gray-900">
-              Insights
+            <Link to="/history" className="text-gray-500 hover:text-gray-900">
+              Upload History
             </Link>
           </nav>
         </div>
@@ -119,6 +121,18 @@ const DashboardHeader = () => {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
+                <Link to="/history" className="cursor-pointer flex w-full items-center">
+                  <History className="mr-2 h-4 w-4" />
+                  <span>Upload History</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/data-chat" className="cursor-pointer flex w-full items-center">
+                  <MessagesSquare className="mr-2 h-4 w-4" />
+                  <span>Data Chat</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
                 <Link to="/profile" className="cursor-pointer flex w-full items-center">
                   <User className="mr-2 h-4 w-4" />
                   <span>Profile</span>
@@ -147,11 +161,11 @@ const DashboardHeader = () => {
             <Link to="/customers" className="py-2 text-gray-500 hover:text-gray-900">
               Customers
             </Link>
-            <Link to="/campaigns" className="py-2 text-gray-500 hover:text-gray-900">
-              Campaigns
+            <Link to="/data-chat" className="py-2 text-gray-500 hover:text-gray-900">
+              Data Chat
             </Link>
-            <Link to="/insights" className="py-2 text-gray-500 hover:text-gray-900">
-              Insights
+            <Link to="/history" className="py-2 text-gray-500 hover:text-gray-900">
+              Upload History
             </Link>
           </nav>
         </div>
