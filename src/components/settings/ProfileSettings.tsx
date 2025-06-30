@@ -1,6 +1,5 @@
-
 import { useState, useRef } from "react";
-import { User } from "firebase/auth";
+import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,9 +25,8 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User as UserIcon, Mail, Phone, Building, Upload } from "lucide-react";
-import { ref, uploadBytes, getDownloadURL, getStorage } from "firebase/storage";
-import { updateProfile } from "firebase/auth";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
 
 interface ProfileSettingsProps {
   user: User | null;
@@ -47,17 +45,19 @@ const profileFormSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
 const ProfileSettings = ({ user, onSave }: ProfileSettingsProps) => {
-  const { currentUser, updateUserProfile } = useAuth();
+  const { updateUserProfile } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
-  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(user?.photoURL);
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(
+    user?.user_metadata?.avatar_url || null
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const defaultValues: Partial<ProfileFormValues> = {
-    displayName: user?.displayName || "",
+    displayName: user?.user_metadata?.display_name || "",
     email: user?.email || "",
-    phoneNumber: user?.phoneNumber || "",
-    company: "",
+    phoneNumber: user?.user_metadata?.phone_number || "",
+    company: user?.user_metadata?.company || "",
   };
 
   const form = useForm<ProfileFormValues>({
@@ -68,24 +68,16 @@ const ProfileSettings = ({ user, onSave }: ProfileSettingsProps) => {
   const onSubmit = async (data: ProfileFormValues) => {
     setIsLoading(true);
     try {
-      if (currentUser) {
-        // Update profile in Firebase
-        await updateProfile(currentUser, {
-          displayName: data.displayName || null,
-          photoURL: profileImageUrl || null
-        });
-        
-        // Trigger a refresh of the user context
-        if (typeof updateUserProfile === 'function') {
-          updateUserProfile();
-        }
-      }
+      await updateUserProfile({
+        display_name: data.displayName || undefined,
+        avatar_url: profileImageUrl || undefined,
+        phone_number: data.phoneNumber || undefined,
+        company: data.company || undefined,
+      });
       
-      toast.success("Profile updated successfully!");
       onSave();
     } catch (error) {
       console.error("Error updating profile:", error);
-      toast.error("Failed to update profile");
     } finally {
       setIsLoading(false);
     }
@@ -115,34 +107,38 @@ const ProfileSettings = ({ user, onSave }: ProfileSettingsProps) => {
     setImageLoading(true);
     
     try {
-      const storage = getStorage();
-      const storageRef = ref(storage, `profile_images/${currentUser?.uid}/${file.name}`);
-      
-      // Upload the file
-      await uploadBytes(storageRef, file);
-      
-      // Get the download URL
-      const downloadURL = await getDownloadURL(storageRef);
+      // Upload to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user?.id}-${Math.random()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get public URL
+      const { data } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      const publicUrl = data.publicUrl;
       
       // Update local state
-      setProfileImageUrl(downloadURL);
+      setProfileImageUrl(publicUrl);
       
-      // If the user is logged in, update their profile
-      if (currentUser) {
-        await updateProfile(currentUser, {
-          photoURL: downloadURL
-        });
-        
-        // Trigger a refresh of the user context
-        if (typeof updateUserProfile === 'function') {
-          updateUserProfile();
-        }
-      }
+      // Update user profile
+      await updateUserProfile({
+        avatar_url: publicUrl,
+      });
       
       toast.success("Profile picture updated successfully!");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error uploading image:", error);
-      toast.error("Failed to upload image");
+      toast.error("Failed to upload image: " + (error.message || "Unknown error"));
     } finally {
       setImageLoading(false);
       // Clear the file input
@@ -162,6 +158,8 @@ const ProfileSettings = ({ user, onSave }: ProfileSettingsProps) => {
       .substring(0, 2);
   };
 
+  const displayName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'User';
+
   return (
     <div className="space-y-6">
       <Card className="border-none shadow-none">
@@ -171,9 +169,9 @@ const ProfileSettings = ({ user, onSave }: ProfileSettingsProps) => {
         <CardContent className="px-0">
           <div className="flex items-center gap-6">
             <Avatar className="h-20 w-20">
-              <AvatarImage src={profileImageUrl || ""} alt={user?.displayName || "User"} />
+              <AvatarImage src={profileImageUrl || ""} alt={displayName} />
               <AvatarFallback className="text-lg bg-[#5E5AFF]/10 text-[#5E5AFF]">
-                {getInitials(user?.displayName)}
+                {getInitials(displayName)}
               </AvatarFallback>
             </Avatar>
             <div>
@@ -219,11 +217,11 @@ const ProfileSettings = ({ user, onSave }: ProfileSettingsProps) => {
                 name="displayName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name</FormLabel>
+                    <FormLabel>Display Name</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input className="pl-10" placeholder="Your name" {...field} />
+                        <Input className="pl-10" placeholder="Your display name" {...field} />
                       </div>
                     </FormControl>
                     <FormMessage />
@@ -244,10 +242,14 @@ const ProfileSettings = ({ user, onSave }: ProfileSettingsProps) => {
                           className="pl-10" 
                           placeholder="your.email@example.com" 
                           type="email" 
+                          disabled
                           {...field} 
                         />
                       </div>
                     </FormControl>
+                    <FormDescription>
+                      Email cannot be changed here. Contact support if needed.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

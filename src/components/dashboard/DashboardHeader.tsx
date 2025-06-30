@@ -35,6 +35,12 @@ const DashboardHeader = () => {
       .substring(0, 2);
   };
 
+  const displayName = currentUser?.user_metadata?.display_name || 
+                     currentUser?.email?.split('@')[0] || 
+                     'User';
+
+  const avatarUrl = currentUser?.user_metadata?.avatar_url;
+
   return (
     <header className="sticky top-0 z-30 w-full border-b bg-white">
       <div className="container flex h-16 items-center justify-between px-4">
@@ -85,11 +91,11 @@ const DashboardHeader = () => {
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
                   <AvatarImage 
-                    src={currentUser?.photoURL || ""} 
-                    alt={currentUser?.displayName || "User"} 
+                    src={avatarUrl || ""} 
+                    alt={displayName} 
                   />
                   <AvatarFallback className="bg-primary/10 text-primary">
-                    {getInitials(currentUser?.displayName)}
+                    {getInitials(displayName)}
                   </AvatarFallback>
                 </Avatar>
               </Button>
@@ -98,7 +104,7 @@ const DashboardHeader = () => {
               <DropdownMenuLabel>
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium">
-                    {currentUser?.displayName || "User"}
+                    {displayName}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {currentUser?.email || ""}

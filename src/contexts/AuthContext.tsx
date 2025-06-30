@@ -5,23 +5,13 @@ import {
   useEffect,
   useContext,
 } from "react";
-import {
-  User,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut,
-  sendPasswordResetEmail,
-  onAuthStateChanged,
-  GoogleAuthProvider,
-  signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
-} from "firebase/auth";
-import { auth, googleProvider } from "@/lib/firebase";
+import { User, Session } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
 type AuthContextType = {
   currentUser: User | null;
+  session: Session | null;
   loading: boolean;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<User | null>;
@@ -29,11 +19,12 @@ type AuthContextType = {
   signInWithGoogle: () => Promise<User | null>;
   logOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
-  updateUserProfile: () => void;
+  updateUserProfile: (updates: { display_name?: string; avatar_url?: string }) => Promise<void>;
 };
 
 export const AuthContext = createContext<AuthContextType>({
   currentUser: null,
+  session: null,
   loading: true,
   isLoading: true,
   signIn: async () => null,
@@ -41,166 +32,230 @@ export const AuthContext = createContext<AuthContextType>({
   signInWithGoogle: async () => null,
   logOut: async () => {},
   resetPassword: async () => {},
-  updateUserProfile: () => {},
+  updateUserProfile: async () => {},
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   const signIn = async (email: string, password: string): Promise<User | null> => {
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      toast.success("Successfully signed in!");
-      return userCredential.user;
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error("Sign in error:", error);
+        
+        // Provide user-friendly error messages
+        if (error.message.includes('Invalid login credentials')) {
+          toast.error("Invalid email or password. Please try again.");
+        } else if (error.message.includes('Email not confirmed')) {
+          toast.error("Please check your email and confirm your account before signing in.");
+        } else if (error.message.includes('Too many requests')) {
+          toast.error("Too many failed attempts. Please try again later.");
+        } else {
+          toast.error(error.message || "Failed to sign in. Please try again.");
+        }
+        return null;
+      }
+
+      if (data.user) {
+        toast.success("Successfully signed in!");
+        return data.user;
+      }
+
+      return null;
     } catch (error: any) {
       console.error("Sign in error:", error);
-      
-      // Provide user-friendly error messages based on Firebase error codes
-      if (error.code === 'auth/invalid-credential') {
-        toast.error("Invalid email or password. Please try again.");
-      } else if (error.code === 'auth/user-not-found') {
-        toast.error("No account found with this email address.");
-      } else if (error.code === 'auth/wrong-password') {
-        toast.error("Incorrect password. Please try again.");
-      } else if (error.code === 'auth/invalid-email') {
-        toast.error("Please enter a valid email address.");
-      } else if (error.code === 'auth/user-disabled') {
-        toast.error("This account has been disabled. Please contact support.");
-      } else if (error.code === 'auth/too-many-requests') {
-        toast.error("Too many failed attempts. Please try again later.");
-      } else {
-        toast.error(error.message || "Failed to sign in. Please try again.");
-      }
+      toast.error("An unexpected error occurred. Please try again.");
       return null;
     }
   };
 
   const signUp = async (email: string, password: string): Promise<User | null> => {
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      toast.success("Successfully signed up!");
-      return userCredential.user;
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
+
+      if (error) {
+        console.error("Sign up error:", error);
+        
+        if (error.message.includes('User already registered')) {
+          toast.error("An account with this email already exists. Please sign in instead.");
+        } else if (error.message.includes('Password should be')) {
+          toast.error("Password must be at least 6 characters long.");
+        } else {
+          toast.error(error.message || "Failed to create account. Please try again.");
+        }
+        return null;
+      }
+
+      if (data.user) {
+        if (data.user.email_confirmed_at) {
+          toast.success("Account created successfully!");
+        } else {
+          toast.success("Account created! Please check your email to confirm your account.");
+        }
+        return data.user;
+      }
+
+      return null;
     } catch (error: any) {
       console.error("Sign up error:", error);
-      toast.error(error.message);
+      toast.error("An unexpected error occurred. Please try again.");
       return null;
     }
   };
 
-  // Enhanced Google sign-in with better error handling and fallback
   const signInWithGoogle = async (): Promise<User | null> => {
     try {
-      console.log('🔄 Starting Google sign-in...');
+      console.log('🔄 Starting Google sign-in with Supabase...');
       
-      // Check if we're in a mobile environment or popup is blocked
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      
-      let result;
-      
-      if (isMobile) {
-        // Use redirect for mobile devices
-        console.log('📱 Using redirect method for mobile');
-        await signInWithRedirect(auth, googleProvider);
-        return null; // Will be handled by getRedirectResult
-      } else {
-        // Use popup for desktop
-        console.log('🖥️ Using popup method for desktop');
-        result = await signInWithPopup(auth, googleProvider);
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      });
+
+      if (error) {
+        console.error('❌ Google sign-in error:', error);
+        
+        if (error.message.includes('OAuth')) {
+          toast.error("Google sign-in is not configured. Please contact support or use email/password.");
+        } else {
+          toast.error(error.message || "Failed to sign in with Google");
+        }
+        return null;
       }
-      
-      if (result && result.user) {
-        console.log('✅ Google sign-in successful:', result.user.email);
-        toast.success("Successfully signed in with Google!");
-        return result.user;
-      }
-      
+
+      // OAuth redirect will handle the rest
+      console.log('✅ Google OAuth redirect initiated');
       return null;
     } catch (error: any) {
       console.error('❌ Google sign-in error:', error);
-      
-      // Handle specific Google auth errors
-      if (error.code === 'auth/popup-closed-by-user') {
-        toast.error("Sign-in was cancelled");
-      } else if (error.code === 'auth/popup-blocked') {
-        toast.error("Popup was blocked. Please allow popups and try again.");
-        // Fallback to redirect method
-        try {
-          console.log('🔄 Falling back to redirect method...');
-          await signInWithRedirect(auth, googleProvider);
-          return null;
-        } catch (redirectError) {
-          console.error('❌ Redirect fallback failed:', redirectError);
-          toast.error("Failed to sign in with Google");
-        }
-      } else if (error.code === 'auth/unauthorized-domain') {
-        toast.error("This domain is not authorized for Google sign-in");
-      } else if (error.code === 'auth/operation-not-allowed') {
-        toast.error("Google sign-in is not enabled. Please contact support.");
-      } else if (error.code === 'auth/cancelled-popup-request') {
-        // Don't show error for cancelled popup requests
-        console.log('Popup request cancelled');
-      } else {
-        toast.error(error.message || "Failed to sign in with Google");
-      }
+      toast.error("Failed to sign in with Google");
       return null;
     }
   };
 
   const logOut = async (): Promise<void> => {
     try {
-      await signOut(auth);
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error("Sign out error:", error);
+        toast.error("Failed to sign out");
+        return;
+      }
+
       toast.success("Successfully signed out!");
     } catch (error: any) {
       console.error("Sign out error:", error);
-      toast.error(error.message);
+      toast.error("Failed to sign out");
     }
   };
 
   const resetPassword = async (email: string): Promise<void> => {
     try {
-      await sendPasswordResetEmail(auth, email);
-      toast.success("Password reset email sent!");
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) {
+        console.error("Password reset error:", error);
+        toast.error(error.message || "Failed to send password reset email");
+        return;
+      }
+
+      toast.success("Password reset email sent! Please check your inbox.");
     } catch (error: any) {
       console.error("Password reset error:", error);
-      toast.error(error.message);
+      toast.error("Failed to send password reset email");
     }
   };
 
-  const updateUserProfile = () => {
-    const user = auth.currentUser;
-    if (user) {
-      setCurrentUser({ ...user });
+  const updateUserProfile = async (updates: { display_name?: string; avatar_url?: string }): Promise<void> => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: updates,
+      });
+
+      if (error) {
+        console.error("Profile update error:", error);
+        toast.error("Failed to update profile");
+        return;
+      }
+
+      toast.success("Profile updated successfully!");
+    } catch (error: any) {
+      console.error("Profile update error:", error);
+      toast.error("Failed to update profile");
     }
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      console.log('🔄 Auth state changed:', user?.email || 'No user');
-      setCurrentUser(user);
-      setLoading(false);
-    });
-    
-    // Check for redirect result on app load
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result && result.user) {
-          console.log('✅ Redirect sign-in successful:', result.user.email);
-          toast.success("Successfully signed in with Google!");
+    // Get initial session
+    const getInitialSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+        } else {
+          setSession(session);
+          setCurrentUser(session?.user ?? null);
         }
-      })
-      .catch((error) => {
-        console.error('❌ Redirect result error:', error);
-        if (error.code !== 'auth/null-user') {
-          toast.error("Failed to complete Google sign-in");
+      } catch (error) {
+        console.error('Error getting initial session:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getInitialSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('🔄 Auth state changed:', event, session?.user?.email || 'No user');
+        
+        setSession(session);
+        setCurrentUser(session?.user ?? null);
+        setLoading(false);
+
+        // Handle specific auth events
+        if (event === 'SIGNED_IN') {
+          console.log('✅ User signed in:', session?.user?.email);
+        } else if (event === 'SIGNED_OUT') {
+          console.log('👋 User signed out');
+        } else if (event === 'TOKEN_REFRESHED') {
+          console.log('🔄 Token refreshed');
         }
-      });
-    
-    return () => unsubscribe();
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const value = {
     currentUser,
+    session,
     loading,
     isLoading: loading,
     signIn,
