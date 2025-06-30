@@ -203,13 +203,15 @@ const Dashboard = () => {
         </div>
       </div>
       
-      {/* Enhanced Upload Dialog */}
+      {/* Compact Upload Dialog */}
       <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle>Upload Customer Data</DialogTitle>
           </DialogHeader>
-          <EnhancedFileUploader />
+          <div className="max-h-[70vh] overflow-y-auto">
+            <EnhancedFileUploader />
+          </div>
         </DialogContent>
       </Dialog>
     </DashboardLayout>
