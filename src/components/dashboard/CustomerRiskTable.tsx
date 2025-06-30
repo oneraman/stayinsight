@@ -1,4 +1,3 @@
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CustomerData } from "@/utils/dataProcessing";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +17,7 @@ const CustomerRiskTable = ({ customers, loading = false }: CustomerRiskTableProp
   };
 
   const formatCurrency = (value: number | undefined) => {
-    if (value === undefined) return "N/A";
+    if (value === undefined || value === null) return "N/A";
     return `$${value.toFixed(2)}`;
   };
 
