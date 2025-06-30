@@ -29,8 +29,8 @@ try {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: false,
-    autoRefreshToken: false
+    persistSession: true,
+    autoRefreshToken: true
   },
   global: {
     headers: {
@@ -67,6 +67,7 @@ export interface CustomerRecord {
   support_calls?: number;
   payment_delay?: number;
   subscription_type?: string;
+  user_id?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -109,6 +110,21 @@ const handleSupabaseError = (error: any, operation: string) => {
   }
   
   throw error;
+};
+
+// Get current authenticated user
+export const getCurrentUser = async () => {
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error) {
+      console.error('Error getting current user:', error);
+      return null;
+    }
+    return user;
+  } catch (error) {
+    console.error('Error in getCurrentUser:', error);
+    return null;
+  }
 };
 
 // Simplified raw fetch test - just try to access the customers table

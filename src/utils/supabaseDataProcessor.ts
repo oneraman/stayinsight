@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { supabase, CustomerRecord } from '@/lib/supabase';
+import { supabase, CustomerRecord, getCurrentUser } from '@/lib/supabase';
 import { validateFileData, CustomerRowData, findCustomerIdColumn, generateCustomerId } from './dataValidation';
 
 export interface ProcessingResult {
@@ -136,6 +136,14 @@ export const processFileWithSupabase = async (
   console.log('🚀 Starting Supabase file processing for:', file.name);
   
   try {
+    // Get current authenticated user to ensure we have proper authentication
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      throw new Error('User not authenticated. Please log in to upload customer data.');
+    }
+    
+    console.log('✅ User authenticated:', currentUser.id);
+    
     // Read and parse file
     onProgress?.({
       phase: 'uploading',
@@ -244,7 +252,8 @@ export const processFileWithSupabase = async (
             usage_frequency: cleanString(row['Usage Frequency'] || row.usage_frequency),
             support_calls: supportCalls,
             payment_delay: paymentDelay,
-            subscription_type: cleanString(row['Subscription Type'] || row.subscription_type)
+            subscription_type: cleanString(row['Subscription Type'] || row.subscription_type),
+            user_id: currentUser.id // Associate customer with authenticated user
           };
           
           customers.push(customerRecord);
