@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { supabase, CustomerRecord, createUploadSession, updateUploadSession } from '@/lib/supabase';
+import { supabase, CustomerRecord } from '@/lib/supabase';
 import { validateFileData, CustomerRowData, findCustomerIdColumn, generateCustomerId } from './dataValidation';
 
 export interface ProcessingResult {
@@ -121,6 +121,12 @@ const parseNumber = (value: any): number | undefined => {
   return isNaN(num) ? undefined : num;
 };
 
+// Clean string values
+const cleanString = (value: any): string | undefined => {
+  if (value === undefined || value === null || value === '') return undefined;
+  return String(value).trim() || undefined;
+};
+
 // Process file and store in Supabase
 export const processFileWithSupabase = async (
   file: File,
@@ -129,28 +135,7 @@ export const processFileWithSupabase = async (
 ): Promise<ProcessingResult> => {
   console.log('🚀 Starting Supabase file processing for:', file.name);
   
-  let sessionId: string | undefined;
-  
   try {
-    // Create upload session
-    onProgress?.({
-      phase: 'uploading',
-      progress: 5,
-      message: 'Creating upload session...'
-    });
-
-    const session = await createUploadSession({
-      user_id: userId,
-      file_name: file.name,
-      file_size: file.size,
-      total_rows: 0,
-      processed_rows: 0,
-      status: 'uploading'
-    });
-    
-    sessionId = session.id;
-    console.log('✅ Upload session created:', sessionId);
-
     // Read and parse file
     onProgress?.({
       phase: 'uploading',
@@ -166,12 +151,6 @@ export const processFileWithSupabase = async (
     
     console.log('📊 Parsed', data.length, 'rows from spreadsheet');
 
-    // Update session with total rows
-    await updateUploadSession(sessionId, {
-      total_rows: data.length,
-      status: 'processing'
-    });
-
     // Validate data
     onProgress?.({
       phase: 'processing',
@@ -182,8 +161,8 @@ export const processFileWithSupabase = async (
     const validation = validateFileData(data);
     console.log('Validation result:', validation);
 
-    if (!validation.isValid && data.length === 0) {
-      throw new Error('No valid data found in the file');
+    if (data.length === 0) {
+      throw new Error('No data found in the file');
     }
 
     // Process customer records
@@ -196,8 +175,8 @@ export const processFileWithSupabase = async (
     const customers: Omit<CustomerRecord, 'id' | 'created_at' | 'updated_at'>[] = [];
     const allErrors: string[] = [...validation.warnings];
     
-    // Process in batches for better performance
-    const batchSize = 1000;
+    // Process in smaller batches for better performance
+    const batchSize = 500;
     const totalBatches = Math.ceil(data.length / batchSize);
     
     for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
@@ -212,7 +191,7 @@ export const processFileWithSupabase = async (
         const globalIndex = startIndex + i;
         
         // Update progress
-        if (globalIndex % 500 === 0 || globalIndex === data.length - 1) {
+        if (globalIndex % 100 === 0 || globalIndex === data.length - 1) {
           const progress = 35 + ((globalIndex / data.length) * 30);
           onProgress?.({
             phase: 'processing',
@@ -245,14 +224,14 @@ export const processFileWithSupabase = async (
             tenure,
             supportCalls,
             paymentDelay,
-            row['Usage Frequency'] || row.usage_frequency
+            cleanString(row['Usage Frequency'] || row.usage_frequency)
           );
           
           const customerRecord: Omit<CustomerRecord, 'id' | 'created_at' | 'updated_at'> = {
             customer_id: customerId,
-            email: row.email || row.email_address || undefined,
-            name: row.name || row.customer_name || row.fullname || 
-                  `${row.first_name || ''} ${row.last_name || ''}`.trim() || undefined,
+            email: cleanString(row.email || row.email_address),
+            name: cleanString(row.name || row.customer_name || row.fullname || 
+                  `${row.first_name || ''} ${row.last_name || ''}`.trim()),
             last_purchase_date: lastPurchaseDate?.toISOString(),
             purchase_count: purchaseCount,
             total_spent: totalSpent,
@@ -260,12 +239,12 @@ export const processFileWithSupabase = async (
             risk_score: riskScore,
             segment: determineSegment(riskScore),
             age,
-            gender: row.Gender || row.gender,
+            gender: cleanString(row.Gender || row.gender),
             tenure,
-            usage_frequency: row['Usage Frequency'] || row.usage_frequency,
+            usage_frequency: cleanString(row['Usage Frequency'] || row.usage_frequency),
             support_calls: supportCalls,
             payment_delay: paymentDelay,
-            subscription_type: row['Subscription Type'] || row.subscription_type
+            subscription_type: cleanString(row['Subscription Type'] || row.subscription_type)
           };
           
           customers.push(customerRecord);
@@ -286,11 +265,11 @@ export const processFileWithSupabase = async (
     onProgress?.({
       phase: 'storing',
       progress: 70,
-      message: 'Storing customer data in database...'
+      message: 'Storing customer data in Supabase...'
     });
 
-    // Insert customers in batches to avoid timeout
-    const insertBatchSize = 500;
+    // Insert customers in smaller batches to avoid timeout
+    const insertBatchSize = 100; // Reduced batch size for better reliability
     const insertBatches = Math.ceil(customers.length / insertBatchSize);
     let totalInserted = 0;
 
@@ -301,36 +280,38 @@ export const processFileWithSupabase = async (
       
       console.log(`Inserting batch ${batchIndex + 1}/${insertBatches}: customers ${startIndex + 1}-${endIndex}`);
       
-      const { data, error } = await supabase
-        .from('customers')
-        .insert(batchCustomers);
-      
-      if (error) {
-        console.error('Supabase insert error:', error);
-        throw new Error(`Database insert failed: ${error.message}`);
+      try {
+        const { data, error } = await supabase
+          .from('customers')
+          .insert(batchCustomers);
+        
+        if (error) {
+          console.error('Supabase insert error:', error);
+          throw new Error(`Database insert failed: ${error.message}`);
+        }
+        
+        totalInserted += batchCustomers.length;
+        
+        // Update progress
+        const progress = 70 + ((batchIndex + 1) / insertBatches * 25);
+        onProgress?.({
+          phase: 'storing',
+          progress,
+          message: `Stored batch ${batchIndex + 1} of ${insertBatches}...`
+        });
+
+        // Small delay between batches to avoid overwhelming the database
+        if (batchIndex < insertBatches - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      } catch (error) {
+        console.error(`❌ Error inserting batch ${batchIndex + 1}:`, error);
+        allErrors.push(`Batch ${batchIndex + 1}: ${error instanceof Error ? error.message : 'Insert error'}`);
+        
+        // Continue with next batch instead of failing completely
+        continue;
       }
-      
-      totalInserted += batchCustomers.length;
-      
-      // Update progress
-      const progress = 70 + ((batchIndex + 1) / insertBatches * 25);
-      onProgress?.({
-        phase: 'storing',
-        progress,
-        message: `Stored batch ${batchIndex + 1} of ${insertBatches}...`
-      });
-
-      // Update session progress
-      await updateUploadSession(sessionId, {
-        processed_rows: totalInserted
-      });
     }
-
-    // Complete the session
-    await updateUploadSession(sessionId, {
-      status: 'completed',
-      processed_rows: totalInserted
-    });
 
     onProgress?.({
       phase: 'storing',
@@ -343,21 +324,11 @@ export const processFileWithSupabase = async (
     return {
       success: true,
       customersProcessed: totalInserted,
-      errors: allErrors,
-      sessionId
+      errors: allErrors
     };
 
   } catch (error) {
     console.error('💥 Error in Supabase processing:', error);
-    
-    // Update session with error
-    if (sessionId) {
-      await updateUploadSession(sessionId, {
-        status: 'failed',
-        error_message: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-
     throw new Error(`Failed to process customer data: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };

@@ -71,11 +71,11 @@ export const generateCustomerId = (row: CustomerRowData, index: number): string 
   const email = row.email || row.email_address;
   const name = row.name || row.customer_name || row.fullname;
   
-  if (email) {
+  if (email && typeof email === 'string') {
     return `email_${email.replace(/[^a-zA-Z0-9]/g, '_')}`;
   }
   
-  if (name) {
+  if (name && typeof name === 'string') {
     return `name_${name.replace(/[^a-zA-Z0-9]/g, '_')}_${index}`;
   }
   
@@ -105,9 +105,9 @@ export const validateCustomerRow = (row: CustomerRowData, index: number): Valida
   ];
   
   numericFields.forEach(({ fields, name }) => {
-    const value = fields.find(field => row[field] !== undefined && row[field] !== null && row[field] !== '');
-    if (value !== undefined) {
-      const fieldValue = row[value];
+    const field = fields.find(f => row[f] !== undefined && row[f] !== null && row[f] !== '');
+    if (field !== undefined) {
+      const fieldValue = row[field];
       if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '' && isNaN(Number(fieldValue))) {
         warnings.push(`Row ${index + 1}: Invalid ${name} value: ${fieldValue} (will be set to 0)`);
       }
@@ -187,8 +187,8 @@ export const validateFileData = (data: CustomerRowData[]): ValidationResult => {
     }
   }
   
-  // Validate a sample of rows (first 100) to avoid performance issues with large files
-  const sampleSize = Math.min(100, data.length);
+  // Validate a sample of rows (first 50) to avoid performance issues with large files
+  const sampleSize = Math.min(50, data.length);
   const sampleData = data.slice(0, sampleSize);
   
   sampleData.forEach((row, index) => {
