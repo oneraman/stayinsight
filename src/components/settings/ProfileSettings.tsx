@@ -107,10 +107,10 @@ const ProfileSettings = ({ user, onSave }: ProfileSettingsProps) => {
     setImageLoading(true);
     
     try {
-      // Upload to Supabase Storage
+      // Upload to Supabase Storage with user ID in the path for RLS
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user?.id}-${Math.random()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `${user?.id}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
