@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase, testSupabaseConnection, validateSupabaseConfig } from "@/lib/supabase";
 import { CustomerData } from "@/utils/dataProcessing";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw, Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import EnhancedFileUploader from "@/components/EnhancedFileUploader";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
@@ -15,6 +15,7 @@ import CustomerSegmentationChart from "@/components/dashboard/CustomerSegmentati
 import CustomerRiskTable from "@/components/dashboard/CustomerRiskTable";
 import ActionInsightsSection from "@/components/dashboard/ActionInsightsSection";
 import ChurnInsightsPanel from "@/components/dashboard/ChurnInsightsPanel";
+import ExportDialog from "@/components/data-export/ExportDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -38,6 +39,7 @@ const Dashboard = () => {
   const [loadingCustomers, setLoadingCustomers] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
   const [configError, setConfigError] = useState<string | null>(null);
@@ -220,6 +222,10 @@ const Dashboard = () => {
           age: customer.age,
           gender: customer.gender,
           tenure: customer.tenure,
+          usageFrequency: customer.usage_frequency,
+          supportCalls: customer.support_calls,
+          paymentDelay: customer.payment_delay,
+          subscriptionType: customer.subscription_type,
           createdAt: customer.created_at ? new Date(customer.created_at) : undefined,
           updatedAt: customer.updated_at ? new Date(customer.updated_at) : undefined
         }));
@@ -282,6 +288,10 @@ const Dashboard = () => {
     setShowUploadDialog(true);
   };
 
+  const handleExportClick = () => {
+    setShowExportDialog(true);
+  };
+
   return (
     <DashboardLayout>
       <div className="max-w-7xl mx-auto px-4">
@@ -290,48 +300,61 @@ const Dashboard = () => {
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold">Customer Retention Dashboard</h1>
             
-            {/* Refresh Button */}
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  className="gap-2"
-                  disabled={isRefreshing || !currentUser}
-                >
-                  {isRefreshing ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Refreshing...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="h-4 w-4" />
-                      Refresh Dashboard
-                    </>
-                  )}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Refresh Dashboard</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will permanently delete all your current customer data and upload history. 
-                    You'll be able to upload new files and get fresh insights.
-                    <br /><br />
-                    <strong>This action cannot be undone.</strong>
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction 
-                    onClick={handleRefreshData}
-                    className="bg-red-600 hover:bg-red-700"
+            <div className="flex gap-2">
+              {/* Export Button */}
+              <Button 
+                variant="outline" 
+                className="gap-2"
+                onClick={handleExportClick}
+                disabled={allCustomers.length === 0}
+              >
+                <Download className="h-4 w-4" />
+                Export Data
+              </Button>
+
+              {/* Refresh Button */}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    className="gap-2"
+                    disabled={isRefreshing || !currentUser}
                   >
-                    Clear All Data
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                    {isRefreshing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Refreshing...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-4 w-4" />
+                        Refresh Dashboard
+                      </>
+                    )}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Refresh Dashboard</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete all your current customer data and upload history. 
+                      You'll be able to upload new files and get fresh insights.
+                      <br /><br />
+                      <strong>This action cannot be undone.</strong>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleRefreshData}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      Clear All Data
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
           
           {/* Configuration Error Alert */}
@@ -493,6 +516,13 @@ const Dashboard = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Export Dialog */}
+      <ExportDialog
+        open={showExportDialog}
+        onOpenChange={setShowExportDialog}
+        customers={allCustomers}
+      />
     </DashboardLayout>
   );
 };

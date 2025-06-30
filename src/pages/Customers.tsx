@@ -6,8 +6,9 @@ import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import CustomerSearch from "@/components/CustomerSearch";
+import ExportDialog from "@/components/data-export/ExportDialog";
 import { useNavigate } from "react-router-dom";
 
 const Customers = () => {
@@ -17,6 +18,7 @@ const Customers = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCustomersCount, setTotalCustomersCount] = useState(0);
+  const [showExportDialog, setShowExportDialog] = useState(false);
   const itemsPerPage = 20;
   const navigate = useNavigate();
 
@@ -66,6 +68,10 @@ const Customers = () => {
           age: customer.age,
           gender: customer.gender,
           tenure: customer.tenure,
+          usageFrequency: customer.usage_frequency,
+          supportCalls: customer.support_calls,
+          paymentDelay: customer.payment_delay,
+          subscriptionType: customer.subscription_type,
           createdAt: customer.created_at ? new Date(customer.created_at) : undefined,
           updatedAt: customer.updated_at ? new Date(customer.updated_at) : undefined
         }));
@@ -84,12 +90,61 @@ const Customers = () => {
     fetchCustomers();
   }, [currentPage]);
 
+  // Fetch all customers for export (not just current page)
+  const fetchAllCustomers = async (): Promise<CustomerData[]> => {
+    try {
+      console.log("📊 Fetching all customers for export...");
+      
+      const { data: supabaseCustomers, error } = await supabase
+        .from('customers')
+        .select('*')
+        .order('risk_score', { ascending: false });
+      
+      if (error) {
+        throw new Error(`Supabase query failed: ${error.message}`);
+      }
+
+      // Transform Supabase data to match our CustomerData interface
+      const customerData: CustomerData[] = (supabaseCustomers || []).map(customer => ({
+        id: customer.id,
+        customerId: customer.customer_id,
+        email: customer.email,
+        name: customer.name,
+        lastPurchaseDate: customer.last_purchase_date ? new Date(customer.last_purchase_date) : undefined,
+        purchaseCount: customer.purchase_count,
+        totalSpent: customer.total_spent,
+        avgOrderValue: customer.avg_order_value,
+        riskScore: customer.risk_score,
+        segment: customer.segment as 'low-risk' | 'medium-risk' | 'high-risk',
+        age: customer.age,
+        gender: customer.gender,
+        tenure: customer.tenure,
+        usageFrequency: customer.usage_frequency,
+        supportCalls: customer.support_calls,
+        paymentDelay: customer.payment_delay,
+        subscriptionType: customer.subscription_type,
+        createdAt: customer.created_at ? new Date(customer.created_at) : undefined,
+        updatedAt: customer.updated_at ? new Date(customer.updated_at) : undefined
+      }));
+      
+      console.log("✅ All customers loaded for export:", customerData.length);
+      return customerData;
+    } catch (err: any) {
+      console.error("❌ Error fetching all customers:", err);
+      throw err;
+    }
+  };
+
   const handleSearchResults = (results: CustomerData[]) => {
     setFilteredCustomers(results.length > 0 ? results : customers);
   };
 
   const handleRowClick = (customerId: string) => {
     navigate(`/customers/${customerId}`);
+  };
+
+  const handleExportClick = async () => {
+    setShowExportDialog(true);
   };
 
   const totalPages = Math.ceil(totalCustomersCount / itemsPerPage);
@@ -112,9 +167,19 @@ const Customers = () => {
     <DashboardLayout>
       <div className="p-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold mb-4 md:mb-0">Customer Data (Supabase)</h1>
-          <div className="w-full md:w-80">
-            <CustomerSearch customers={customers} onSearch={handleSearchResults} />
+          <h1 className="text-2xl font-bold mb-4 md:mb-0">Customer Data</h1>
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <div className="w-full sm:w-80">
+              <CustomerSearch customers={customers} onSearch={handleSearchResults} />
+            </div>
+            <Button 
+              onClick={handleExportClick}
+              className="gap-2 whitespace-nowrap"
+              disabled={customers.length === 0}
+            >
+              <Download className="h-4 w-4" />
+              Export Data
+            </Button>
           </div>
         </div>
         
@@ -255,6 +320,13 @@ const Customers = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Export Dialog */}
+        <ExportDialog
+          open={showExportDialog}
+          onOpenChange={setShowExportDialog}
+          customers={customers.length > 0 ? customers : []}
+        />
       </div>
     </DashboardLayout>
   );
