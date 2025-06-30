@@ -111,12 +111,12 @@ const handleSupabaseError = (error: any, operation: string) => {
   throw error;
 };
 
-// Raw fetch test to bypass Supabase client library
+// Simplified raw fetch test - just try to access the customers table
 const testRawSupabaseConnection = async (): Promise<boolean> => {
   try {
     console.log('🔍 Testing raw Supabase REST API connection...');
     
-    const apiUrl = `${supabaseUrl}/rest/v1/customers?select=count()&limit=0`;
+    const apiUrl = `${supabaseUrl}/rest/v1/customers?limit=1`;
     console.log('📍 Testing URL:', apiUrl);
     
     const response = await fetch(apiUrl, {
@@ -124,8 +124,7 @@ const testRawSupabaseConnection = async (): Promise<boolean> => {
       headers: {
         'apikey': supabaseAnonKey,
         'Authorization': `Bearer ${supabaseAnonKey}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'count=exact'
+        'Content-Type': 'application/json'
       }
     });
     
@@ -148,7 +147,7 @@ const testRawSupabaseConnection = async (): Promise<boolean> => {
     }
     
     const responseText = await response.text();
-    console.log('✅ Raw fetch successful, response:', responseText);
+    console.log('✅ Raw fetch successful - table accessible');
     return true;
     
   } catch (error) {
@@ -184,7 +183,8 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
     try {
       const { data, error, count } = await supabase
         .from('customers')
-        .select('count()')
+        .select('*', { count: 'exact' })
+        .limit(1)
         .abortSignal(controller.signal);
       
       clearTimeout(timeoutId);
