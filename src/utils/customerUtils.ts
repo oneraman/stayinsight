@@ -1,4 +1,3 @@
-
 import { CustomerData } from "@/utils/dataProcessing";
 
 // Function to format date to a readable string
@@ -14,8 +13,8 @@ export const formatDate = (date: Date | string | undefined): string => {
 };
 
 // Format currency values
-export const formatCurrency = (value: number | undefined): string => {
-  if (value === undefined) return "N/A";
+export const formatCurrency = (value: number | null | undefined): string => {
+  if (value === undefined || value === null) return "N/A";
   return `$${value.toFixed(2)}`;
 };
 
