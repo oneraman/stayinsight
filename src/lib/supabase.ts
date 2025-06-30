@@ -3,8 +3,22 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+// Enhanced validation with better error messages
 if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('❌ Supabase Configuration Error:');
+  console.error('Missing environment variables:');
+  console.error('- VITE_SUPABASE_URL:', supabaseUrl ? '✅ Present' : '❌ Missing');
+  console.error('- VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? '✅ Present' : '❌ Missing');
+  console.error('Please check your .env file and ensure both variables are set correctly.');
   throw new Error('Missing Supabase environment variables. Please check your .env file.');
+}
+
+// Validate URL format
+try {
+  new URL(supabaseUrl);
+} catch (error) {
+  console.error('❌ Invalid Supabase URL format:', supabaseUrl);
+  throw new Error('Invalid Supabase URL format. Please check your VITE_SUPABASE_URL in .env file.');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -45,7 +59,44 @@ export interface UploadSession {
   updated_at?: string;
 }
 
-// Helper functions for database operations
+// Enhanced error handling helper
+const handleSupabaseError = (error: any, operation: string) => {
+  console.error(`❌ Supabase ${operation} error:`, error);
+  
+  if (error.message?.includes('Failed to fetch') || error.name === 'TypeError') {
+    throw new Error(`Network error: Unable to connect to Supabase. Please check your internet connection and Supabase configuration.`);
+  }
+  
+  if (error.message?.includes('Invalid API key')) {
+    throw new Error(`Authentication error: Invalid Supabase API key. Please check your VITE_SUPABASE_ANON_KEY.`);
+  }
+  
+  if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
+    throw new Error(`Database error: Required table does not exist. Please ensure your database schema is properly set up.`);
+  }
+  
+  throw error;
+};
+
+// Test connection helper
+export const testSupabaseConnection = async () => {
+  try {
+    console.log('🔄 Testing Supabase connection...');
+    const { data, error } = await supabase.from('customers').select('count').limit(1);
+    
+    if (error) {
+      handleSupabaseError(error, 'connection test');
+    }
+    
+    console.log('✅ Supabase connection successful');
+    return true;
+  } catch (error) {
+    console.error('❌ Supabase connection test failed:', error);
+    return false;
+  }
+};
+
+// Helper functions for database operations with enhanced error handling
 export const insertCustomers = async (customers: Omit<CustomerRecord, 'id' | 'created_at' | 'updated_at'>[]) => {
   try {
     console.log('🔄 Inserting customers into Supabase:', customers.length);
@@ -56,15 +107,13 @@ export const insertCustomers = async (customers: Omit<CustomerRecord, 'id' | 'cr
       .select();
     
     if (error) {
-      console.error('❌ Supabase insert error:', error);
-      throw error;
+      handleSupabaseError(error, 'insert');
     }
     
     console.log('✅ Successfully inserted customers:', data?.length || 0);
     return data;
   } catch (error) {
-    console.error('❌ Error in insertCustomers:', error);
-    throw error;
+    handleSupabaseError(error, 'insertCustomers');
   }
 };
 
@@ -79,15 +128,13 @@ export const getCustomers = async (limit = 100) => {
       .limit(limit);
     
     if (error) {
-      console.error('❌ Supabase fetch error:', error);
-      throw error;
+      handleSupabaseError(error, 'fetch');
     }
     
     console.log('✅ Successfully fetched customers:', data?.length || 0);
     return data;
   } catch (error) {
-    console.error('❌ Error in getCustomers:', error);
-    throw error;
+    handleSupabaseError(error, 'getCustomers');
   }
 };
 
@@ -102,15 +149,13 @@ export const getCustomerById = async (id: string) => {
       .single();
     
     if (error) {
-      console.error('❌ Supabase fetch by ID error:', error);
-      throw error;
+      handleSupabaseError(error, 'fetch by ID');
     }
     
     console.log('✅ Successfully fetched customer by ID');
     return data;
   } catch (error) {
-    console.error('❌ Error in getCustomerById:', error);
-    throw error;
+    handleSupabaseError(error, 'getCustomerById');
   }
 };
 
@@ -125,15 +170,13 @@ export const createUploadSession = async (session: Omit<UploadSession, 'id' | 'c
       .single();
     
     if (error) {
-      console.error('❌ Supabase session creation error:', error);
-      throw error;
+      handleSupabaseError(error, 'session creation');
     }
     
     console.log('✅ Successfully created upload session:', data?.id);
     return data;
   } catch (error) {
-    console.error('❌ Error in createUploadSession:', error);
-    throw error;
+    handleSupabaseError(error, 'createUploadSession');
   }
 };
 
@@ -149,14 +192,12 @@ export const updateUploadSession = async (id: string, updates: Partial<UploadSes
       .single();
     
     if (error) {
-      console.error('❌ Supabase session update error:', error);
-      throw error;
+      handleSupabaseError(error, 'session update');
     }
     
     console.log('✅ Successfully updated upload session');
     return data;
   } catch (error) {
-    console.error('❌ Error in updateUploadSession:', error);
-    throw error;
+    handleSupabaseError(error, 'updateUploadSession');
   }
 };

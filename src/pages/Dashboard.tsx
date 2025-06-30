@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase, testSupabaseConnection } from "@/lib/supabase";
 import { CustomerData } from "@/utils/dataProcessing";
 import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +7,7 @@ import EnhancedFileUploader from "@/components/EnhancedFileUploader";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Wifi, WifiOff } from "lucide-react";
 import DashboardHero from "@/components/dashboard/DashboardHero";
 import QuickActionsBar from "@/components/dashboard/QuickActionsBar";
 import ChurnAnalyticsChart from "@/components/dashboard/ChurnAnalyticsChart";
@@ -16,6 +16,7 @@ import CustomerRiskTable from "@/components/dashboard/CustomerRiskTable";
 import ActionInsightsSection from "@/components/dashboard/ActionInsightsSection";
 import ChurnInsightsPanel from "@/components/dashboard/ChurnInsightsPanel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 const Dashboard = () => {
   const [timePeriod, setTimePeriod] = useState("30");
@@ -24,6 +25,8 @@ const Dashboard = () => {
   const [loadingCustomers, setLoadingCustomers] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [isRetrying, setIsRetrying] = useState(false);
   
   const metrics = useDashboardMetrics(timePeriod);
   const customerRiskTableRef = useRef<HTMLDivElement>(null);
@@ -49,12 +52,38 @@ const Dashboard = () => {
 
     return () => clearInterval(interval);
   }, []);
+
+  const handleRetryConnection = async () => {
+    setIsRetrying(true);
+    setConnectionError(null);
+    
+    try {
+      const isConnected = await testSupabaseConnection();
+      if (isConnected) {
+        setRefreshTrigger(prev => prev + 1);
+      } else {
+        setConnectionError("Unable to establish connection to Supabase. Please check your configuration.");
+      }
+    } catch (error) {
+      console.error("❌ Retry connection failed:", error);
+      setConnectionError(error instanceof Error ? error.message : "Connection test failed");
+    } finally {
+      setIsRetrying(false);
+    }
+  };
   
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
         setLoadingCustomers(true);
+        setConnectionError(null);
         console.log("📊 Fetching customers from Supabase...");
+        
+        // Test connection first
+        const isConnected = await testSupabaseConnection();
+        if (!isConnected) {
+          throw new Error("Unable to connect to Supabase. Please check your configuration and internet connection.");
+        }
         
         // Fetch customers from Supabase
         const { data: customers, error } = await supabase
@@ -107,6 +136,8 @@ const Dashboard = () => {
         setHighRiskCustomers(highRisk);
       } catch (err) {
         console.error("❌ Error fetching Supabase customers:", err);
+        const errorMessage = err instanceof Error ? err.message : "Unknown error occurred";
+        setConnectionError(errorMessage);
       } finally {
         setLoadingCustomers(false);
       }
@@ -144,6 +175,39 @@ const Dashboard = () => {
         {/* Top stats section */}
         <div className="mb-6 mt-4">
           <h1 className="text-2xl font-bold mb-6">Customer Retention Dashboard</h1>
+          
+          {/* Connection Error Alert */}
+          {connectionError && (
+            <Alert className="border-red-200 bg-red-50 mb-6">
+              <WifiOff className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-800 flex items-center justify-between">
+                <div>
+                  <strong>Connection Error:</strong> {connectionError}
+                  <br />
+                  <span className="text-sm">Please check your Supabase configuration and internet connection.</span>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleRetryConnection}
+                  disabled={isRetrying}
+                  className="ml-4 border-red-300 text-red-700 hover:bg-red-100"
+                >
+                  {isRetrying ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      Retrying...
+                    </>
+                  ) : (
+                    <>
+                      <Wifi className="h-3 w-3 mr-1" />
+                      Retry
+                    </>
+                  )}
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
           
           {metrics.error && (
             <Alert className="border-amber-200 bg-amber-50 mb-6">
@@ -190,6 +254,31 @@ const Dashboard = () => {
                 {loadingCustomers ? (
                   <div className="flex justify-center items-center h-64">
                     <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                  </div>
+                ) : connectionError ? (
+                  <div className="text-center py-8">
+                    <WifiOff className="h-12 w-12 text-red-400 mx-auto mb-4" />
+                    <p className="text-red-600 text-lg font-medium">Connection Error</p>
+                    <p className="text-sm text-gray-500 mt-1">Unable to load customer data</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleRetryConnection}
+                      disabled={isRetrying}
+                      className="mt-3"
+                    >
+                      {isRetrying ? (
+                        <>
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          Retrying...
+                        </>
+                      ) : (
+                        <>
+                          <Wifi className="h-3 w-3 mr-1" />
+                          Retry Connection
+                        </>
+                      )}
+                    </Button>
                   </div>
                 ) : highRiskCustomers.length === 0 ? (
                   <div className="text-center py-8">
