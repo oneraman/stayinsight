@@ -116,7 +116,7 @@ const testRawSupabaseConnection = async (): Promise<boolean> => {
   try {
     console.log('🔍 Testing raw Supabase REST API connection...');
     
-    const apiUrl = `${supabaseUrl}/rest/v1/customers?select=count()&count=exact&limit=0`;
+    const apiUrl = `${supabaseUrl}/rest/v1/customers?select=count()&limit=0`;
     console.log('📍 Testing URL:', apiUrl);
     
     const response = await fetch(apiUrl, {
@@ -184,7 +184,7 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
     try {
       const { data, error, count } = await supabase
         .from('customers')
-        .select('*', { count: 'exact', head: true })
+        .select('count()')
         .abortSignal(controller.signal);
       
       clearTimeout(timeoutId);
