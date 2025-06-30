@@ -21,7 +21,17 @@ try {
   throw new Error('Invalid Supabase URL format. Please check your VITE_SUPABASE_URL in .env file.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false
+  },
+  global: {
+    headers: {
+      'apikey': supabaseAnonKey
+    }
+  }
+});
 
 // Database types
 export interface CustomerRecord {
@@ -63,28 +73,44 @@ export interface UploadSession {
 const handleSupabaseError = (error: any, operation: string) => {
   console.error(`❌ Supabase ${operation} error:`, error);
   
+  // Check for network connectivity issues
   if (error.message?.includes('Failed to fetch') || error.name === 'TypeError') {
-    throw new Error(`Network error: Unable to connect to Supabase. Please check your internet connection and Supabase configuration.`);
+    throw new Error(`Network error: Unable to connect to Supabase. Please check your internet connection and verify that your Supabase project is active.`);
   }
   
-  if (error.message?.includes('Invalid API key')) {
-    throw new Error(`Authentication error: Invalid Supabase API key. Please check your VITE_SUPABASE_ANON_KEY.`);
+  // Check for authentication issues
+  if (error.message?.includes('Invalid API key') || error.message?.includes('JWT')) {
+    throw new Error(`Authentication error: Invalid Supabase API key. Please verify your VITE_SUPABASE_ANON_KEY in the .env file.`);
   }
   
+  // Check for database schema issues
   if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
     throw new Error(`Database error: Required table does not exist. Please ensure your database schema is properly set up.`);
+  }
+  
+  // Check for CORS issues
+  if (error.message?.includes('CORS')) {
+    throw new Error(`CORS error: Cross-origin request blocked. Please check your Supabase project settings.`);
   }
   
   throw error;
 };
 
-// Test connection helper
+// Test connection helper with improved error handling
 export const testSupabaseConnection = async () => {
   try {
     console.log('🔄 Testing Supabase connection...');
-    const { data, error } = await supabase.from('customers').select('count').limit(1);
+    console.log('📍 Supabase URL:', supabaseUrl);
+    console.log('🔑 API Key present:', !!supabaseAnonKey);
+    
+    // First, try a simple health check
+    const { data, error } = await supabase
+      .from('customers')
+      .select('count')
+      .limit(1);
     
     if (error) {
+      console.error('❌ Supabase query error:', error);
       handleSupabaseError(error, 'connection test');
     }
     
@@ -92,6 +118,14 @@ export const testSupabaseConnection = async () => {
     return true;
   } catch (error) {
     console.error('❌ Supabase connection test failed:', error);
+    
+    // Provide more specific error information
+    if (error instanceof Error) {
+      if (error.message.includes('Failed to fetch')) {
+        console.error('💡 Suggestion: Check if your Supabase project is paused or if there are network restrictions');
+      }
+    }
+    
     return false;
   }
 };

@@ -58,11 +58,13 @@ const Dashboard = () => {
     setConnectionError(null);
     
     try {
+      console.log("🔄 Retrying Supabase connection...");
       const isConnected = await testSupabaseConnection();
       if (isConnected) {
+        console.log("✅ Connection retry successful, refreshing data...");
         setRefreshTrigger(prev => prev + 1);
       } else {
-        setConnectionError("Unable to establish connection to Supabase. Please check your configuration.");
+        setConnectionError("Unable to establish connection to Supabase. Please check your project status and configuration.");
       }
     } catch (error) {
       console.error("❌ Retry connection failed:", error);
@@ -79,27 +81,40 @@ const Dashboard = () => {
         setConnectionError(null);
         console.log("📊 Fetching customers from Supabase...");
         
-        // Test connection first
-        const isConnected = await testSupabaseConnection();
+        // Test connection first with timeout
+        const connectionPromise = testSupabaseConnection();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Connection timeout after 10 seconds")), 10000)
+        );
+        
+        const isConnected = await Promise.race([connectionPromise, timeoutPromise]) as boolean;
+        
         if (!isConnected) {
-          throw new Error("Unable to connect to Supabase. Please check your configuration and internet connection.");
+          throw new Error("Unable to connect to Supabase. Please check your project status, internet connection, and configuration.");
         }
         
-        // Fetch customers from Supabase
-        const { data: customers, error } = await supabase
+        // Fetch customers from Supabase with timeout
+        const queryPromise = supabase
           .from('customers')
           .select('*')
           .order('risk_score', { ascending: false })
           .limit(100);
+          
+        const queryTimeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Query timeout after 15 seconds")), 15000)
+        );
+        
+        const { data: customers, error } = await Promise.race([queryPromise, queryTimeoutPromise]) as any;
 
         if (error) {
+          console.error('❌ Supabase query error:', error);
           throw new Error(`Supabase query failed: ${error.message}`);
         }
         
         console.log("✅ Supabase customers fetched:", customers?.length || 0);
         
         if (!customers || customers.length === 0) {
-          console.log("No customers found in Supabase database");
+          console.log("ℹ️ No customers found in Supabase database");
           setHighRiskCustomers([]);
           setAllCustomers([]);
           setLoadingCustomers(false);
@@ -107,7 +122,7 @@ const Dashboard = () => {
         }
         
         // Transform Supabase data to match our CustomerData interface
-        const customerData: CustomerData[] = customers.map(customer => ({
+        const customerData: CustomerData[] = customers.map((customer: any) => ({
           id: customer.id,
           customerId: customer.customer_id,
           email: customer.email,
@@ -136,7 +151,19 @@ const Dashboard = () => {
         setHighRiskCustomers(highRisk);
       } catch (err) {
         console.error("❌ Error fetching Supabase customers:", err);
-        const errorMessage = err instanceof Error ? err.message : "Unknown error occurred";
+        let errorMessage = "Unknown error occurred";
+        
+        if (err instanceof Error) {
+          errorMessage = err.message;
+          
+          // Provide more helpful error messages
+          if (err.message.includes("timeout")) {
+            errorMessage = "Connection timeout. Please check your internet connection and try again.";
+          } else if (err.message.includes("Failed to fetch")) {
+            errorMessage = "Unable to connect to Supabase. Please verify your project is active and your network connection is stable.";
+          }
+        }
+        
         setConnectionError(errorMessage);
       } finally {
         setLoadingCustomers(false);
@@ -184,7 +211,11 @@ const Dashboard = () => {
                 <div>
                   <strong>Connection Error:</strong> {connectionError}
                   <br />
-                  <span className="text-sm">Please check your Supabase configuration and internet connection.</span>
+                  <span className="text-sm">
+                    Please verify your Supabase project is active and check your internet connection.
+                    <br />
+                    If the issue persists, check your environment variables in the .env file.
+                  </span>
                 </div>
                 <Button 
                   variant="outline" 
