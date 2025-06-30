@@ -21,21 +21,54 @@ const CustomerRiskTable = ({ customers, loading = false }: CustomerRiskTableProp
     return `$${value.toFixed(2)}`;
   };
 
-  const getRiskBadge = (riskScore: number | undefined) => {
-    if (!riskScore) return null;
+  const getRiskBadge = (riskScore: number | undefined, segment?: string) => {
+    // Use segment if available, otherwise calculate from risk score
+    let riskLevel = segment;
     
-    if (riskScore >= 70) {
-      return <Badge variant="destructive" className="flex items-center gap-1">
-        <AlertTriangle className="h-3 w-3" /> High
-      </Badge>;
-    } else if (riskScore >= 30) {
-      return <Badge variant="outline" className="flex items-center gap-1 border-amber-500 text-amber-700 bg-amber-50">
-        <AlertCircle className="h-3 w-3" /> Medium
-      </Badge>;
-    } else {
-      return <Badge variant="outline" className="flex items-center gap-1 border-green-500 text-green-700 bg-green-50">
-        <CheckCircle className="h-3 w-3" /> Low
-      </Badge>;
+    if (!riskLevel && riskScore !== undefined) {
+      if (riskScore >= 70) {
+        riskLevel = 'high-risk';
+      } else if (riskScore >= 30) {
+        riskLevel = 'medium-risk';
+      } else {
+        riskLevel = 'low-risk';
+      }
+    }
+    
+    // Default to medium-risk if we can't determine
+    if (!riskLevel) {
+      riskLevel = 'medium-risk';
+    }
+    
+    switch (riskLevel) {
+      case 'high-risk':
+        return (
+          <Badge className="bg-red-100 text-red-800 border-red-200 hover:bg-red-100">
+            <AlertTriangle className="h-3 w-3 mr-1" />
+            High
+          </Badge>
+        );
+      case 'medium-risk':
+        return (
+          <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100">
+            <AlertCircle className="h-3 w-3 mr-1" />
+            Medium
+          </Badge>
+        );
+      case 'low-risk':
+        return (
+          <Badge className="bg-green-100 text-green-800 border-green-200 hover:bg-green-100">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Low
+          </Badge>
+        );
+      default:
+        return (
+          <Badge className="bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-100">
+            <AlertCircle className="h-3 w-3 mr-1" />
+            Unknown
+          </Badge>
+        );
     }
   };
 
@@ -74,7 +107,7 @@ const CustomerRiskTable = ({ customers, loading = false }: CustomerRiskTableProp
                 {customer.name || customer.email || customer.customerId}
               </TableCell>
               <TableCell>
-                {getRiskBadge(customer.riskScore)}
+                {getRiskBadge(customer.riskScore, customer.segment)}
               </TableCell>
               <TableCell>{formatDate(customer.lastPurchaseDate)}</TableCell>
               <TableCell>{formatCurrency(customer.totalSpent)}</TableCell>
