@@ -1,4 +1,3 @@
-
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { storage } from "@/lib/firebase";
 import { processCustomerDataFile } from "./dataProcessing";
@@ -45,10 +44,11 @@ export const uploadFileToStorageEnhanced = async (
 ): Promise<UploadResult> => {
   return new Promise((resolve, reject) => {
     try {
-      console.log("Starting enhanced file upload for:", file.name);
+      console.log("🚀 Starting enhanced file upload for:", file.name);
       
-      // Validate file
+      // Enhanced file validation
       if (!isValidFileExtension(file.name)) {
+        console.log("❌ Invalid file extension");
         resolve({
           success: false,
           message: "❌ Invalid file extension. Only CSV, XLS, and XLSX files are supported."
@@ -56,7 +56,8 @@ export const uploadFileToStorageEnhanced = async (
         return;
       }
 
-      if (!isValidFileType(file.type) && file.type !== "") {
+      if (file.type && !isValidFileType(file.type)) {
+        console.log("❌ Invalid file type:", file.type);
         resolve({
           success: false,
           message: "❌ Invalid file type. Only CSV, XLS, and XLSX files are supported."
@@ -65,6 +66,7 @@ export const uploadFileToStorageEnhanced = async (
       }
 
       if (!isValidFileSize(file.size)) {
+        console.log("❌ File too large:", file.size);
         resolve({
           success: false,
           message: "❌ File size exceeds the maximum limit of 10MB."
@@ -72,10 +74,15 @@ export const uploadFileToStorageEnhanced = async (
         return;
       }
 
+      console.log("✅ Enhanced file validation passed");
+
       const timestamp = new Date().getTime();
       const fileExtension = file.name.split('.').pop();
       const fileName = `customer_data_${timestamp}.${fileExtension}`;
-      const storageRef = ref(storage, `customer_data/${userId}/${fileName}`);
+      const storagePath = `customer_data/${userId}/${fileName}`;
+      const storageRef = ref(storage, storagePath);
+
+      console.log("📤 Starting Firebase upload to:", storagePath);
 
       const uploadTask = uploadBytesResumable(storageRef, file);
 
@@ -83,9 +90,8 @@ export const uploadFileToStorageEnhanced = async (
         "state_changed",
         (snapshot) => {
           const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-          console.log("Enhanced Firebase upload progress:", progress + "%");
+          console.log(`📊 Enhanced upload progress: ${progress}% (${snapshot.bytesTransferred}/${snapshot.totalBytes} bytes)`);
           
-          // Call progress callback with enhanced messaging
           if (onProgress) {
             onProgress({
               phase: 'uploading',
@@ -95,7 +101,7 @@ export const uploadFileToStorageEnhanced = async (
           }
         },
         (error) => {
-          console.error("Enhanced upload error:", error);
+          console.error("💥 Enhanced upload error:", error);
           
           let errorMessage = "Upload failed";
           if (error.code === 'storage/canceled') {
@@ -115,11 +121,11 @@ export const uploadFileToStorageEnhanced = async (
         },
         async () => {
           try {
-            console.log("Enhanced upload completed, getting download URL");
+            console.log("✅ Enhanced upload completed, getting download URL");
             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            console.log("Download URL obtained:", downloadURL);
+            console.log("📥 Download URL obtained:", downloadURL);
             
-            // Update progress to processing phase with enhanced messaging
+            // Start processing phase
             if (onProgress) {
               onProgress({
                 phase: 'processing',
@@ -128,11 +134,11 @@ export const uploadFileToStorageEnhanced = async (
               });
             }
             
-            console.log("Starting enhanced file processing...");
+            console.log("🔄 Starting enhanced file processing...");
             const processingResult = await processCustomerDataFile(
               downloadURL,
               (progress, message) => {
-                console.log(`Enhanced processing progress: ${progress}% - ${message}`);
+                console.log(`📊 Enhanced processing progress: ${progress}% - ${message}`);
                 if (onProgress) {
                   onProgress({
                     phase: 'processing',
@@ -143,7 +149,7 @@ export const uploadFileToStorageEnhanced = async (
               }
             );
             
-            console.log("Enhanced processing completed:", processingResult);
+            console.log("🎉 Enhanced processing completed:", processingResult);
             
             const successMessage = `✅ Successfully processed ${processingResult.customersProcessed} customers${
               processingResult.errors.length > 0 ? ` with ${processingResult.errors.length} warnings` : ''
@@ -157,7 +163,7 @@ export const uploadFileToStorageEnhanced = async (
               message: successMessage
             });
           } catch (processingError) {
-            console.error("Enhanced error processing file:", processingError);
+            console.error("💥 Enhanced error processing file:", processingError);
             resolve({
               success: false,
               message: processingError instanceof Error 
@@ -168,7 +174,7 @@ export const uploadFileToStorageEnhanced = async (
         }
       );
     } catch (error) {
-      console.error("Enhanced upload setup error:", error);
+      console.error("💥 Enhanced upload setup error:", error);
       resolve({
         success: false,
         message: error instanceof Error 

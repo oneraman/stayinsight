@@ -1,81 +1,87 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { FileUploadWizard } from "./upload/FileUploadWizard";
-import { ProcessedFileData } from "@/utils/clientFileProcessor";
-import { storeCustomerData } from "@/utils/simpleDataStorage"; 
+import { uploadFileToStorageEnhanced } from "@/utils/enhancedFileUpload";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle, Database } from "lucide-react";
 
 export const EnhancedFileUploader = () => {
-  const [isStoring, setIsStoring] = useState(false);
-  const [storageProgress, setStorageProgress] = useState(0);
-  const [storageMessage, setStorageMessage] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [processingMessage, setProcessingMessage] = useState('');
   const [isComplete, setIsComplete] = useState(false);
+  const [processingResult, setProcessingResult] = useState<any>(null);
   const { currentUser } = useAuth();
   const { toast } = useToast();
 
-  const handleFileProcessed = async (result: ProcessedFileData) => {
+  const handleFileSelected = async (file: File) => {
     if (!currentUser) {
       toast({
         title: "Authentication Required",
-        description: "Please log in to save customer data.",
+        description: "Please log in to upload customer data.",
         variant: "destructive",
       });
       return;
     }
 
-    console.log('📊 File processed, starting storage:', result);
+    console.log('📁 File selected for processing:', file.name);
     
-    setIsStoring(true);
-    setStorageProgress(0);
-    setStorageMessage('Preparing to store customer data...');
+    setIsProcessing(true);
+    setProcessingProgress(0);
+    setProcessingMessage('Preparing to upload and process file...');
 
     try {
-      const storageResult = await storeCustomerData(
-        result.data,
-        (processed, total, message) => {
-          const progress = Math.round((processed / total) * 100);
-          setStorageProgress(progress);
-          setStorageMessage(message);
+      const result = await uploadFileToStorageEnhanced(
+        file,
+        currentUser.uid,
+        (progressInfo) => {
+          setProcessingProgress(progressInfo.progress);
+          setProcessingMessage(progressInfo.message);
         }
       );
 
-      if (storageResult.success) {
+      setProcessingResult(result);
+
+      if (result.success) {
         setIsComplete(true);
         toast({
           title: "Success!",
-          description: `Successfully stored ${storageResult.processed} customer records.`,
+          description: result.message,
         });
         
         // Trigger dashboard refresh
         window.dispatchEvent(new CustomEvent('dataUploaded'));
       } else {
-        throw new Error(storageResult.message);
+        toast({
+          title: "Processing Failed",
+          description: result.message,
+          variant: "destructive",
+        });
       }
       
     } catch (error) {
-      console.error('❌ Storage failed:', error);
+      console.error('❌ Upload and processing failed:', error);
       toast({
-        title: "Storage Failed",
-        description: error instanceof Error ? error.message : "Failed to store customer data.",
+        title: "Upload Failed",
+        description: error instanceof Error ? error.message : "Failed to upload and process file.",
         variant: "destructive",
       });
     } finally {
-      setIsStoring(false);
+      setIsProcessing(false);
     }
   };
 
   const resetUploader = () => {
-    setIsStoring(false);
-    setStorageProgress(0);
-    setStorageMessage('');
+    setIsProcessing(false);
+    setProcessingProgress(0);
+    setProcessingMessage('');
     setIsComplete(false);
+    setProcessingResult(null);
   };
 
-  if (isComplete) {
+  if (isComplete && processingResult?.success) {
     return (
       <Card>
         <CardHeader>
@@ -85,33 +91,55 @@ export const EnhancedFileUploader = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-green-700 mb-4">
-            Your customer data has been successfully processed and stored.
-          </p>
-          <button 
-            onClick={resetUploader}
-            className="text-blue-600 hover:text-blue-800 underline"
-          >
-            Upload another file
-          </button>
+          <div className="space-y-3">
+            <p className="text-green-700">
+              {processingResult.message}
+            </p>
+            {processingResult.customersProcessed && (
+              <p className="text-sm text-gray-600">
+                Successfully processed {processingResult.customersProcessed} customer records.
+              </p>
+            )}
+            {processingResult.errors && processingResult.errors.length > 0 && (
+              <details className="text-sm">
+                <summary className="cursor-pointer text-amber-700">
+                  View {processingResult.errors.length} warnings
+                </summary>
+                <ul className="mt-2 list-disc list-inside space-y-1 ml-4 text-xs text-amber-600">
+                  {processingResult.errors.slice(0, 5).map((error: string, index: number) => (
+                    <li key={index}>{error}</li>
+                  ))}
+                  {processingResult.errors.length > 5 && (
+                    <li>... and {processingResult.errors.length - 5} more</li>
+                  )}
+                </ul>
+              </details>
+            )}
+            <button 
+              onClick={resetUploader}
+              className="text-blue-600 hover:text-blue-800 underline text-sm"
+            >
+              Upload another file
+            </button>
+          </div>
         </CardContent>
       </Card>
     );
   }
 
-  if (isStoring) {
+  if (isProcessing) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Database className="h-5 w-5 text-blue-600" />
-            Storing Customer Data...
+            Processing Customer Data...
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Progress value={storageProgress} className="h-3" />
+          <Progress value={processingProgress} className="h-3" />
           <p className="text-sm text-gray-600">
-            {storageMessage} ({storageProgress}%)
+            {processingMessage} ({processingProgress}%)
           </p>
         </CardContent>
       </Card>
@@ -120,12 +148,12 @@ export const EnhancedFileUploader = () => {
 
   return (
     <div className="space-y-4">
-      <FileUploadWizard onComplete={handleFileProcessed} />
+      <FileUploadWizard onComplete={handleFileSelected} />
       
       {!currentUser && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <p className="text-sm text-yellow-800">
-            <strong>Note:</strong> Please log in to save your customer data to the database.
+            <strong>Note:</strong> Please log in to upload and process your customer data.
           </p>
         </div>
       )}

@@ -1,64 +1,62 @@
-
 import { useState } from 'react';
 import { Upload, FileText, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { processFileClientSide, ProcessedFileData, generateFilePreview } from '@/utils/clientFileProcessor';
+import { processFileClientSide } from '@/utils/clientFileProcessor';
 import { useToast } from '@/hooks/use-toast';
 
-type WizardStep = 'upload' | 'preview' | 'processing' | 'complete';
+type WizardStep = 'upload' | 'preview';
 
 interface FileUploadWizardProps {
-  onComplete?: (result: ProcessedFileData) => void;
+  onComplete?: (file: File) => void;
 }
 
 export const FileUploadWizard = ({ onComplete }: FileUploadWizardProps) => {
   const [currentStep, setCurrentStep] = useState<WizardStep>('upload');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [processedData, setProcessedData] = useState<ProcessedFileData | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [filePreview, setFilePreview] = useState<any>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       console.log('📁 File selected:', file.name);
       setSelectedFile(file);
       setCurrentStep('preview');
-      processFile(file);
+      await analyzeFile(file);
     }
   };
 
-  const processFile = async (file: File) => {
-    setIsProcessing(true);
+  const analyzeFile = async (file: File) => {
+    setIsAnalyzing(true);
     try {
-      console.log('🔄 Processing file...');
+      console.log('🔍 Analyzing file for preview...');
       const result = await processFileClientSide(file);
-      setProcessedData(result);
-      setCurrentStep(result.success ? 'complete' : 'preview');
+      setFilePreview(result);
     } catch (error) {
-      console.error('❌ Processing error:', error);
+      console.error('❌ Preview analysis error:', error);
       toast({
-        title: "Processing Failed",
-        description: "Failed to process the selected file.",
+        title: "Analysis Failed",
+        description: "Could not analyze the selected file.",
         variant: "destructive",
       });
     } finally {
-      setIsProcessing(false);
+      setIsAnalyzing(false);
     }
   };
 
   const resetWizard = () => {
     setCurrentStep('upload');
     setSelectedFile(null);
-    setProcessedData(null);
-    setIsProcessing(false);
+    setFilePreview(null);
+    setIsAnalyzing(false);
   };
 
-  const handleComplete = () => {
-    if (processedData && onComplete) {
-      onComplete(processedData);
+  const handleContinue = () => {
+    if (selectedFile && onComplete) {
+      onComplete(selectedFile);
     }
   };
 
@@ -66,18 +64,17 @@ export const FileUploadWizard = ({ onComplete }: FileUploadWizardProps) => {
     <div className="space-y-6">
       {/* Step Indicator */}
       <div className="flex items-center justify-center space-x-4">
-        {(['upload', 'preview', 'complete'] as const).map((step, index) => (
+        {(['upload', 'preview'] as const).map((step, index) => (
           <div key={step} className="flex items-center">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
               currentStep === step ? 'bg-primary text-white' :
-              ['upload', 'preview'].indexOf(currentStep) > ['upload', 'preview'].indexOf(step) ? 'bg-green-500 text-white' :
+              currentStep === 'preview' && step === 'upload' ? 'bg-green-500 text-white' :
               'bg-gray-200 text-gray-500'
             }`}>
               {step === 'upload' && <Upload className="h-4 w-4" />}
               {step === 'preview' && <FileText className="h-4 w-4" />}
-              {step === 'complete' && <CheckCircle className="h-4 w-4" />}
             </div>
-            {index < 2 && <div className="w-12 h-0.5 bg-gray-200 mx-2" />}
+            {index < 1 && <div className="w-12 h-0.5 bg-gray-200 mx-2" />}
           </div>
         ))}
       </div>
@@ -109,86 +106,96 @@ export const FileUploadWizard = ({ onComplete }: FileUploadWizardProps) => {
       )}
 
       {/* Preview Step */}
-      {(currentStep === 'preview' || currentStep === 'processing') && processedData && (
+      {currentStep === 'preview' && selectedFile && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              File Analysis Results
-              {isProcessing && <Badge variant="secondary">Processing...</Badge>}
+              File Preview
+              {isAnalyzing && <Badge variant="secondary">Analyzing...</Badge>}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* File Info */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
               <div>
                 <p className="text-sm font-medium">File Name</p>
-                <p className="text-sm text-gray-600">{processedData.fileInfo.name}</p>
+                <p className="text-sm text-gray-600">{selectedFile.name}</p>
               </div>
               <div>
                 <p className="text-sm font-medium">Size</p>
-                <p className="text-sm text-gray-600">{(processedData.fileInfo.size / 1024 / 1024).toFixed(2)} MB</p>
+                <p className="text-sm text-gray-600">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
               </div>
               <div>
-                <p className="text-sm font-medium">Rows</p>
-                <p className="text-sm text-gray-600">{processedData.fileInfo.totalRows}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium">Columns</p>
-                <p className="text-sm text-gray-600">{processedData.fileInfo.columns.length}</p>
+                <p className="text-sm font-medium">Type</p>
+                <p className="text-sm text-gray-600">{selectedFile.type || 'Unknown'}</p>
               </div>
             </div>
 
-            {/* Data Preview */}
-            <div>
-              <h4 className="font-medium mb-2">Data Preview (First 3 rows)</h4>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm border rounded">
-                  <thead>
-                    <tr className="bg-gray-50">
-                      {processedData.fileInfo.columns.map(col => (
-                        <th key={col} className="p-2 text-left border-b">{col}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {processedData.data.slice(0, 3).map((row, i) => (
-                      <tr key={i}>
-                        {processedData.fileInfo.columns.map(col => (
-                          <td key={col} className="p-2 border-b">{String(row[col] || '')}</td>
-                        ))}
-                      </tr>
+            {/* Preview Results */}
+            {filePreview && !isAnalyzing && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg">
+                  <div>
+                    <p className="text-sm font-medium">Rows Detected</p>
+                    <p className="text-lg font-bold text-blue-600">{filePreview.fileInfo.totalRows}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Columns Detected</p>
+                    <p className="text-lg font-bold text-blue-600">{filePreview.fileInfo.columns.length}</p>
+                  </div>
+                </div>
+
+                {/* Column Preview */}
+                <div>
+                  <h4 className="font-medium mb-2">Detected Columns</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {filePreview.fileInfo.columns.slice(0, 8).map((col: string) => (
+                      <Badge key={col} variant="outline" className="text-xs">
+                        {col}
+                      </Badge>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Validation Results */}
-            {processedData.errors.length > 0 && (
-              <div className="border border-red-200 bg-red-50 p-4 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <AlertTriangle className="h-4 w-4 text-red-600" />
-                  <h4 className="font-medium text-red-800">Errors Found</h4>
+                    {filePreview.fileInfo.columns.length > 8 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{filePreview.fileInfo.columns.length - 8} more
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-                <ul className="list-disc list-inside text-sm text-red-700 space-y-1">
-                  {processedData.errors.slice(0, 5).map((error, i) => (
-                    <li key={i}>{error}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
 
-            {processedData.warnings.length > 0 && (
-              <div className="border border-yellow-200 bg-yellow-50 p-4 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                  <h4 className="font-medium text-yellow-800">Warnings</h4>
-                </div>
-                <ul className="list-disc list-inside text-sm text-yellow-700 space-y-1">
-                  {processedData.warnings.slice(0, 3).map((warning, i) => (
-                    <li key={i}>{warning}</li>
-                  ))}
-                </ul>
+                {/* Validation Results */}
+                {filePreview.errors.length > 0 && (
+                  <div className="border border-red-200 bg-red-50 p-4 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertTriangle className="h-4 w-4 text-red-600" />
+                      <h4 className="font-medium text-red-800">Issues Found</h4>
+                    </div>
+                    <ul className="list-disc list-inside text-sm text-red-700 space-y-1">
+                      {filePreview.errors.slice(0, 3).map((error: string, i: number) => (
+                        <li key={i}>{error}</li>
+                      ))}
+                      {filePreview.errors.length > 3 && (
+                        <li>... and {filePreview.errors.length - 3} more issues</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+
+                {filePreview.warnings.length > 0 && (
+                  <div className="border border-yellow-200 bg-yellow-50 p-4 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                      <h4 className="font-medium text-yellow-800">Warnings</h4>
+                    </div>
+                    <ul className="list-disc list-inside text-sm text-yellow-700 space-y-1">
+                      {filePreview.warnings.slice(0, 2).map((warning: string, i: number) => (
+                        <li key={i}>{warning}</li>
+                      ))}
+                      {filePreview.warnings.length > 2 && (
+                        <li>... and {filePreview.warnings.length - 2} more warnings</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
               </div>
             )}
 
@@ -196,36 +203,11 @@ export const FileUploadWizard = ({ onComplete }: FileUploadWizardProps) => {
               <Button variant="outline" onClick={resetWizard}>
                 Choose Different File
               </Button>
-              {processedData.success && (
-                <Button onClick={() => setCurrentStep('complete')} disabled={isProcessing}>
-                  Continue to Process
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Complete Step */}
-      {currentStep === 'complete' && processedData && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              File Ready for Processing
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-green-700">
-              ✅ Successfully analyzed {processedData.fileInfo.totalRows} customer records
-            </p>
-            
-            <div className="flex gap-2">
-              <Button onClick={handleComplete}>
-                Process Data
-              </Button>
-              <Button variant="outline" onClick={resetWizard}>
-                Start Over
+              <Button 
+                onClick={handleContinue} 
+                disabled={isAnalyzing || (filePreview && !filePreview.success)}
+              >
+                {isAnalyzing ? 'Analyzing...' : 'Continue to Upload'}
               </Button>
             </div>
           </CardContent>
