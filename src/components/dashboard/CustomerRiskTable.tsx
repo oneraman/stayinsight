@@ -86,40 +86,70 @@ const CustomerRiskTable = ({ customers, loading = false }: CustomerRiskTableProp
   }
 
   return (
-    <div className="rounded-md border">
+    <div className="rounded-md border border-gray-200 bg-white overflow-hidden">
       <Table>
         <TableHeader>
-          <TableRow className="bg-gray-50">
-            <TableHead className="w-[250px]">Customer</TableHead>
-            <TableHead>Risk Level</TableHead>
-            <TableHead>Last Purchase</TableHead>
-            <TableHead>Total Spent</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+          <TableRow className="bg-gray-50 border-b border-gray-200 hover:bg-gray-50">
+            <TableHead className="w-[250px] font-semibold text-gray-700">Customer</TableHead>
+            <TableHead className="font-semibold text-gray-700">Risk Level</TableHead>
+            <TableHead className="font-semibold text-gray-700">Last Purchase</TableHead>
+            <TableHead className="font-semibold text-gray-700">Total Spent</TableHead>
+            <TableHead className="text-right font-semibold text-gray-700">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {customers.map((customer) => (
-            <TableRow 
-              key={customer.customerId} 
-              className={customer.riskScore && customer.riskScore >= 70 ? "bg-red-50" : ""}
-            >
-              <TableCell className="font-medium">
-                {customer.name || customer.email || customer.customerId}
-              </TableCell>
-              <TableCell>
-                {getRiskBadge(customer.riskScore, customer.segment)}
-              </TableCell>
-              <TableCell>{formatDate(customer.lastPurchaseDate)}</TableCell>
-              <TableCell>{formatCurrency(customer.totalSpent)}</TableCell>
-              <TableCell className="text-right">
-                <Button variant="ghost" size="sm" asChild className="h-7 w-7 p-0">
-                  <Link to={`/customers/${customer.id}`}>
-                    <ChevronRight className="h-4 w-4" />
-                  </Link>
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
+          {customers.map((customer, index) => {
+            const isHighRisk = customer.riskScore && customer.riskScore >= 70;
+            const isMediumRisk = customer.riskScore && customer.riskScore >= 30 && customer.riskScore < 70;
+            
+            return (
+              <TableRow 
+                key={customer.customerId} 
+                className={`
+                  border-b border-gray-100 transition-colors duration-200
+                  ${isHighRisk 
+                    ? 'bg-red-50 hover:bg-red-100' 
+                    : isMediumRisk 
+                      ? 'bg-yellow-50 hover:bg-yellow-100'
+                      : 'bg-white hover:bg-gray-50'
+                  }
+                  ${index % 2 === 0 ? '' : isHighRisk ? 'bg-red-25' : isMediumRisk ? 'bg-yellow-25' : 'bg-gray-25'}
+                `}
+              >
+                <TableCell className="font-medium text-gray-900 py-4">
+                  <div className="flex flex-col">
+                    <span className="font-semibold">
+                      {customer.name || customer.email || customer.customerId}
+                    </span>
+                    {customer.email && customer.name && (
+                      <span className="text-sm text-gray-500">{customer.email}</span>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell className="py-4">
+                  {getRiskBadge(customer.riskScore, customer.segment)}
+                </TableCell>
+                <TableCell className="text-gray-700 py-4">
+                  {formatDate(customer.lastPurchaseDate)}
+                </TableCell>
+                <TableCell className="text-gray-700 py-4 font-medium">
+                  {formatCurrency(customer.totalSpent)}
+                </TableCell>
+                <TableCell className="text-right py-4">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    asChild 
+                    className="h-8 w-8 p-0 hover:bg-gray-200 text-gray-600 hover:text-gray-900"
+                  >
+                    <Link to={`/customers/${customer.id}`}>
+                      <ChevronRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>
