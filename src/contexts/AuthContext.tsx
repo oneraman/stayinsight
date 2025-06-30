@@ -161,6 +161,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (error) {
         console.error("Sign out error:", error);
+        
+        // Check if the error is due to no active session
+        if (error.message.includes('Auth session missing') || 
+            error.message.includes('session_not_found') ||
+            error.message.includes('Session from session_id claim in JWT does not exist')) {
+          // Treat this as a successful logout since user is already unauthenticated
+          toast.success("Successfully signed out!");
+          return;
+        }
+        
         toast.error("Failed to sign out");
         return;
       }
