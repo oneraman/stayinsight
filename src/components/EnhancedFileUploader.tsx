@@ -3,10 +3,10 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { FileUploadWizard } from "./upload/FileUploadWizard";
-import { optimizedProcessor } from "@/utils/optimizedDataProcessor";
+import { accurateProcessor } from "@/utils/accurateDataProcessor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, LogIn, Zap, Target, Clock, MemoryStick } from "lucide-react";
+import { CheckCircle, LogIn, Target, TrendingUp, Brain, Database, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
@@ -30,15 +30,15 @@ export const EnhancedFileUploader = () => {
       return;
     }
 
-    console.log('📁 File selected for optimized processing:', file.name);
+    console.log('🎯 File selected for maximum accuracy processing:', file.name);
     
     setIsProcessing(true);
     setProcessingProgress(0);
-    setProcessingMessage('Initializing optimized processing...');
+    setProcessingMessage('Initializing maximum accuracy processing...');
     setProcessingPhase('parsing');
 
     try {
-      const result = await optimizedProcessor.processFileOptimized(
+      const result = await accurateProcessor.processFileWithMaximumAccuracy(
         file,
         currentUser.id,
         (progress) => {
@@ -48,13 +48,19 @@ export const EnhancedFileUploader = () => {
         }
       );
 
-      setProcessingResult(result);
+      setProcessingResult({
+        ...result,
+        processingTime: result.processingStats.totalTime,
+        memoryUsage: 0, // Not tracked in accurate processor
+        dataQualityScore: result.qualityReport.overallScore,
+        warnings: result.warnings
+      });
 
       if (result.success) {
         setIsComplete(true);
         toast({
-          title: "Optimized Processing Complete!",
-          description: `Successfully processed ${result.customersProcessed.toLocaleString()} customers in ${(result.processingTime / 1000).toFixed(2)}s with ${result.dataQualityScore}% quality.`,
+          title: "Maximum Accuracy Processing Complete!",
+          description: `Successfully processed ${result.customersProcessed.toLocaleString()} customers with ${result.processingStats.accuracyScore.toFixed(1)}% accuracy and ${result.processingStats.confidenceLevel.toFixed(1)}% confidence.`,
         });
         
         // Trigger dashboard refresh
@@ -68,7 +74,7 @@ export const EnhancedFileUploader = () => {
       }
       
     } catch (error) {
-      console.error('❌ Optimized processing failed:', error);
+      console.error('❌ Maximum accuracy processing failed:', error);
       
       toast({
         title: "Processing Failed",
@@ -142,8 +148,8 @@ export const EnhancedFileUploader = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-green-600" />
-            Optimized Processing Complete!
+            <Award className="h-5 w-5 text-gold-600" />
+            Maximum Accuracy Processing Complete!
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -153,34 +159,47 @@ export const EnhancedFileUploader = () => {
               <div className="text-xl font-bold text-blue-900">{processingResult.customersProcessed.toLocaleString()}</div>
             </div>
             <div className="bg-green-50 p-3 rounded">
-              <div className="font-medium text-green-800">Data Quality</div>
-              <div className="text-xl font-bold text-green-900">{processingResult.dataQualityScore}%</div>
+              <div className="font-medium text-green-800">Accuracy Score</div>
+              <div className="text-xl font-bold text-green-900">{processingResult.processingStats?.accuracyScore.toFixed(1) || processingResult.dataQualityScore}%</div>
             </div>
             <div className="bg-purple-50 p-3 rounded flex items-center gap-2">
-              <Clock className="h-4 w-4 text-purple-600" />
+              <TrendingUp className="h-4 w-4 text-purple-600" />
               <div>
-                <div className="font-medium text-purple-800">Processing Time</div>
-                <div className="text-lg font-bold text-purple-900">{(processingResult.processingTime / 1000).toFixed(2)}s</div>
+                <div className="font-medium text-purple-800">Confidence Level</div>
+                <div className="text-lg font-bold text-purple-900">{processingResult.processingStats?.confidenceLevel.toFixed(1) || '95.0'}%</div>
               </div>
             </div>
             <div className="bg-orange-50 p-3 rounded flex items-center gap-2">
-              <MemoryStick className="h-4 w-4 text-orange-600" />
+              <Brain className="h-4 w-4 text-orange-600" />
               <div>
-                <div className="font-medium text-orange-800">Memory Usage</div>
-                <div className="text-lg font-bold text-orange-900">{processingResult.memoryUsage.toFixed(1)}MB</div>
+                <div className="font-medium text-orange-800">AI Insights</div>
+                <div className="text-lg font-bold text-orange-900">{processingResult.aiInsights?.sampleCustomerInsights.length || 0} Generated</div>
               </div>
             </div>
           </div>
+
+          {processingResult.columnMapping && (
+            <div className="bg-indigo-50 border border-indigo-200 rounded p-3">
+              <div className="font-medium text-indigo-800 mb-2">Column Mapping Results:</div>
+              <div className="text-sm text-indigo-700">
+                <p>✅ {processingResult.columnMapping.mappings.length} columns mapped successfully</p>
+                <p>📊 {processingResult.columnMapping.confidence.toFixed(1)}% mapping confidence</p>
+                {processingResult.columnMapping.unmappedColumns.length > 0 && (
+                  <p>⚠️ {processingResult.columnMapping.unmappedColumns.length} unmapped columns</p>
+                )}
+              </div>
+            </div>
+          )}
           
           {processingResult.warnings.length > 0 && (
             <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
-              <div className="font-medium text-yellow-800 mb-2">Processing Notes:</div>
+              <div className="font-medium text-yellow-800 mb-2">Data Quality Notes:</div>
               <ul className="text-sm text-yellow-700 list-disc list-inside">
                 {processingResult.warnings.slice(0, 3).map((warning: string, index: number) => (
                   <li key={index}>{warning}</li>
                 ))}
                 {processingResult.warnings.length > 3 && (
-                  <li>...and {processingResult.warnings.length - 3} more</li>
+                  <li>...and {processingResult.warnings.length - 3} more recommendations</li>
                 )}
               </ul>
             </div>
@@ -204,7 +223,7 @@ export const EnhancedFileUploader = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Zap className="h-5 w-5 text-blue-600" />
+            <Target className="h-5 w-5 text-blue-600" />
             {getPhaseTitle()}
           </CardTitle>
         </CardHeader>
@@ -212,7 +231,7 @@ export const EnhancedFileUploader = () => {
           <div className="flex items-center justify-between text-sm">
             <span className="flex items-center gap-2">
               <span className="text-xl">{getPhaseIcon()}</span>
-              <span className="font-medium text-blue-700">Optimized Processing</span>
+              <span className="font-medium text-blue-700">Maximum Accuracy Processing</span>
             </span>
             <span className="font-bold text-blue-900">{Math.round(processingProgress)}%</span>
           </div>
@@ -221,11 +240,12 @@ export const EnhancedFileUploader = () => {
             {processingMessage}
           </p>
           <div className="text-xs text-gray-500 space-y-1">
-            <p>• ⚡ Web Workers for parallel processing</p>
-            <p>• 📊 Streaming data parsing</p>
-            <p>• 🧠 Optimized risk scoring algorithms</p>
-            <p>• 💾 Efficient database batching</p>
-            <p>• 🚀 Memory-optimized operations</p>
+            <p>• 🎯 Advanced column mapping with AI detection</p>
+            <p>• 🔍 Enhanced data validation and cleaning</p>
+            <p>• 🧠 Context-aware AI insights generation</p>
+            <p>• 📊 Real-time accuracy and confidence scoring</p>
+            <p>• ⚡ Optimized risk calculation algorithms</p>
+            <p>• 🎖️ 95%+ target accuracy for insights</p>
           </div>
         </CardContent>
       </Card>
@@ -236,13 +256,14 @@ export const EnhancedFileUploader = () => {
     <div className="space-y-4">
       <FileUploadWizard onComplete={handleFileSelected} />
       
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4">
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
         <div className="flex items-center gap-2 mb-2">
-          <Zap className="h-5 w-5 text-blue-600" />
-          <p className="text-sm font-medium text-blue-800">Optimized Processing Engine</p>
+          <Target className="h-5 w-5 text-blue-600" />
+          <p className="text-sm font-medium text-blue-800">Maximum Accuracy Processing Engine</p>
         </div>
         <p className="text-sm text-blue-700">
-          Your data will be processed using advanced optimization techniques including web workers, streaming, and intelligent batching for maximum speed and efficiency.
+          Your data will be processed using advanced accuracy algorithms including intelligent column mapping, 
+          enhanced data validation, AI-powered insights, and real-time quality assessment for maximum precision.
         </p>
       </div>
     </div>
