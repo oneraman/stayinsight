@@ -1,20 +1,24 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ChurnRateChart from "./ChurnRateChart";
 import RetentionBySegmentChart from "./RetentionBySegmentChart";
 import CustomerRiskSection from "./CustomerRiskSection";
+import AdvancedAnalyticsDashboard from './AdvancedAnalyticsDashboard';
 
 const DashboardTabs = () => {
-  const [selectedTab, setSelectedTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("overview");
+  const [customers, setCustomers] = useState([]);
 
   return (
-    <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-      <TabsList>
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <TabsList className="grid w-full grid-cols-6">
         <TabsTrigger value="overview">Overview</TabsTrigger>
-        <TabsTrigger value="segments">Customer Segments</TabsTrigger>
-        <TabsTrigger value="predictions">Churn Predictions</TabsTrigger>
+        <TabsTrigger value="customers">Customers</TabsTrigger>
+        <TabsTrigger value="analytics">Analytics</TabsTrigger>
+        <TabsTrigger value="advanced">Advanced</TabsTrigger>
+        <TabsTrigger value="insights">AI Insights</TabsTrigger>
+        <TabsTrigger value="actions">Actions</TabsTrigger>
       </TabsList>
 
       <TabsContent value="overview" className="space-y-6">
@@ -25,21 +29,43 @@ const DashboardTabs = () => {
         <CustomerRiskSection />
       </TabsContent>
 
-      <TabsContent value="segments">
+      <TabsContent value="customers">
         <Card className="p-6">
           <h3 className="text-lg font-medium mb-4">
-            Customer Segments Content
+            Customers Content
           </h3>
-          <p>Customer segmentation data will appear here.</p>
+          <p>Customer data will appear here.</p>
         </Card>
       </TabsContent>
 
-      <TabsContent value="predictions">
+      <TabsContent value="analytics">
         <Card className="p-6">
           <h3 className="text-lg font-medium mb-4">
-            Churn Predictions Content
+            Analytics Content
           </h3>
-          <p>Detailed churn prediction data will appear here.</p>
+          <p>Analytics data will appear here.</p>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="advanced">
+        <AdvancedAnalyticsDashboard customers={customers} />
+      </TabsContent>
+
+      <TabsContent value="insights">
+        <Card className="p-6">
+          <h3 className="text-lg font-medium mb-4">
+            AI Insights Content
+          </h3>
+          <p>AI insights data will appear here.</p>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="actions">
+        <Card className="p-6">
+          <h3 className="text-lg font-medium mb-4">
+            Actions Content
+          </h3>
+          <p>Actions data will appear here.</p>
         </Card>
       </TabsContent>
     </Tabs>
