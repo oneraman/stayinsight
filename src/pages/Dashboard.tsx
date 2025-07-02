@@ -35,6 +35,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import DashboardTabs from "@/components/dashboard/DashboardTabs";
 
 interface ChatMessage {
   id: string;
@@ -612,123 +613,16 @@ What would you like to know about your customers?`,
                     loading={metrics.loading}
                   />
 
-                  {/* Main content grid */}
-                  <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6 mt-6">
-                    {/* Charts section - 3 columns wide */}
-                    <div className="lg:col-span-3 space-y-6">
-                      <ChurnAnalyticsChart loading={metrics.loading} />
-                      
-                      {/* Quick Stats Cards */}
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100">
-                          <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="text-sm font-medium text-blue-600">Total Customers</p>
-                                <p className="text-2xl font-bold text-blue-800">{allCustomers.length}</p>
-                              </div>
-                              <div className="bg-blue-100 p-2 rounded-full">
-                                <Users className="h-5 w-5 text-blue-600" />
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                        
-                        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-100">
-                          <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="text-sm font-medium text-green-600">Retention Rate</p>
-                                <p className="text-2xl font-bold text-green-800">{metrics.retentionRate}%</p>
-                              </div>
-                              <div className="bg-green-100 p-2 rounded-full">
-                                <TrendingUp className="h-5 w-5 text-green-600" />
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                        
-                        <Card className="bg-gradient-to-br from-purple-50 to-fuchsia-50 border-purple-100">
-                          <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="text-sm font-medium text-purple-600">Avg Customer Value</p>
-                                <p className="text-2xl font-bold text-purple-800">${metrics.customerLifetimeValue.toLocaleString()}</p>
-                              </div>
-                              <div className="bg-purple-100 p-2 rounded-full">
-                                <PieChart className="h-5 w-5 text-purple-600" />
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    </div>
-                    
-                    {/* Side panel - 2 columns wide */}
-                    <div className="lg:col-span-2 space-y-6" ref={customerRiskTableRef}>
-                      <CustomerSegmentationChart 
-                        data={segmentationData} 
-                        loading={metrics.loading}
-                      />
-                      
-                      <Card>
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-lg flex items-center gap-2">
-                            <AlertCircle className="h-4 w-4 text-red-500" />
-                            High Risk Customers
-                          </CardTitle>
-                          <CardDescription>
-                            Customers with risk score ≥ 70%
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          {loadingCustomers ? (
-                            <div className="flex justify-center items-center h-64">
-                              <Loader2 className="h-8 w-8 text-primary animate-spin" />
-                            </div>
-                          ) : (connectionError || configError) ? (
-                            <div className="text-center py-8">
-                              <WifiOff className="h-12 w-12 text-red-400 mx-auto mb-4" />
-                              <p className="text-red-600 text-lg font-medium">Connection Error</p>
-                              <p className="text-sm text-gray-500 mt-1">Unable to load customer data</p>
-                              {!configError && (
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  onClick={handleRetryConnection}
-                                  disabled={isRetrying}
-                                  className="mt-3"
-                                >
-                                  {isRetrying ? (
-                                    <>
-                                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                      Retrying...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Wifi className="h-3 w-3 mr-1" />
-                                      Retry Connection
-                                    </>
-                                  )}
-                                </Button>
-                              )}
-                            </div>
-                          ) : highRiskCustomers.length === 0 ? (
-                            <div className="text-center py-8">
-                              <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                              <p className="text-gray-500 text-lg">No high-risk customers found.</p>
-                              <p className="text-sm text-gray-400 mt-1">All your customers are in good standing.</p>
-                            </div>
-                          ) : (
-                            <CustomerRiskTable customers={highRiskCustomers} />
-                          )}
-                        </CardContent>
-                      </Card>
-                    </div>
+                  {/* Enhanced Dashboard Tabs with Advanced Features */}
+                  <div className="mt-6">
+                    <DashboardTabs 
+                      customers={allCustomers} 
+                      timeframe={timePeriod}
+                    />
                   </div>
 
                   {/* AI Insights Panel */}
-                  <div className="mb-6">
+                  <div className="mb-6 mt-6">
                     <AIChurnInsights customers={allCustomers} timeframe={timePeriod} />
                   </div>
                 </>
