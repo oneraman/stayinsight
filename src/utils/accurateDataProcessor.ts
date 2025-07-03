@@ -1,4 +1,3 @@
-
 import * as XLSX from 'xlsx';
 import { supabase } from '@/lib/supabase';
 import { mapColumnsIntelligently, ColumnMappingResult } from './advancedColumnMapper';
@@ -36,6 +35,7 @@ export class AccurateDataProcessor {
     const startTime = performance.now();
     
     console.log('🎯 Starting maximum accuracy processing for:', file.name);
+    console.log('🔑 Processing for user ID:', userId);
     
     try {
       // Phase 1: Intelligent File Reading
@@ -46,6 +46,8 @@ export class AccurateDataProcessor {
       });
 
       const { data, headers } = await this.readFileIntelligently(file);
+      console.log('📊 Parsed data rows:', data.length);
+      console.log('📋 Headers found:', headers);
       
       // Phase 2: Advanced Column Mapping
       onProgress?.({
@@ -70,6 +72,7 @@ export class AccurateDataProcessor {
 
       const { cleanedData, qualityReport } = this.validator.validateAndCleanData(data, columnMapping.mappings);
       console.log('🔍 Data quality report:', qualityReport);
+      console.log('🧹 Cleaned data rows:', cleanedData.length);
 
       // Phase 4: Advanced Risk Scoring
       onProgress?.({
@@ -78,7 +81,8 @@ export class AccurateDataProcessor {
         message: 'Calculating enhanced risk scores...'
       });
 
-      const customerProfiles = this.generateCustomerProfiles(cleanedData, userId);
+      const customerRecords = this.generateCustomerRecords(cleanedData, columnMapping.mappings, userId);
+      console.log('👥 Generated customer records:', customerRecords.length);
 
       // Phase 5: AI-Powered Insights
       onProgress?.({
@@ -87,6 +91,7 @@ export class AccurateDataProcessor {
         message: 'Generating AI insights with advanced analysis...'
       });
 
+      const customerProfiles = this.generateCustomerProfiles(cleanedData, userId);
       const aiInsights = await this.generateAdvancedInsights(customerProfiles, qualityReport);
 
       // Phase 6: Database Storage
@@ -96,7 +101,8 @@ export class AccurateDataProcessor {
         message: 'Storing processed data with accuracy validation...'
       });
 
-      const insertedCount = await this.storeCustomersWithValidation(customerProfiles);
+      const insertedCount = await this.storeCustomersWithValidation(customerRecords);
+      console.log('💾 Successfully stored customers:', insertedCount);
 
       const endTime = performance.now();
       const totalTime = endTime - startTime;
@@ -198,6 +204,212 @@ export class AccurateDataProcessor {
     return { data, headers };
   }
 
+  private generateCustomerRecords(cleanedData: any[], mappings: any[], userId: string): any[] {
+    console.log('🔄 Generating customer records with proper mapping...');
+    
+    return cleanedData.map((row, index) => {
+      try {
+        // Extract data using column mappings
+        const extractedData = this.extractDataUsingMappings(row, mappings);
+        
+        // Generate customer ID if not present
+        const customerId = extractedData.customer_id || `CUST_${Date.now()}_${index}`;
+        
+        // Parse dates properly
+        const lastPurchaseDate = this.parseDate(extractedData.last_purchase_date);
+        
+        // Parse numbers with validation
+        const purchaseCount = this.parseNumber(extractedData.purchase_count) || 0;
+        const totalSpent = this.parseNumber(extractedData.total_spent) || 0;
+        const avgOrderValue = this.parseNumber(extractedData.avg_order_value) || 
+                             (purchaseCount > 0 ? totalSpent / purchaseCount : 0);
+        
+        // Calculate enhanced risk score
+        const riskAnalysis = calculateEnhancedRiskScore({
+          lastPurchaseDate: lastPurchaseDate?.toISOString() || null,
+          purchaseCount,
+          totalSpent,
+          avgOrderValue,
+          age: this.parseNumber(extractedData.age),
+          tenure: this.parseNumber(extractedData.tenure),
+          supportCalls: this.parseNumber(extractedData.support_calls),
+          paymentDelay: this.parseNumber(extractedData.payment_delay),
+          usageFrequency: extractedData.usage_frequency,
+          subscriptionType: extractedData.subscription_type
+        });
+
+        const customerRecord = {
+          customer_id: customerId,
+          email: extractedData.email || null,
+          name: extractedData.name || null,
+          last_purchase_date: lastPurchaseDate?.toISOString() || null,
+          purchase_count: purchaseCount,
+          total_spent: totalSpent,
+          avg_order_value: avgOrderValue,
+          risk_score: riskAnalysis.score,
+          segment: this.determineSegment(riskAnalysis.score),
+          age: this.parseNumber(extractedData.age),
+          gender: extractedData.gender || null,
+          tenure: this.parseNumber(extractedData.tenure),
+          usage_frequency: extractedData.usage_frequency || null,
+          support_calls: this.parseNumber(extractedData.support_calls),
+          payment_delay: this.parseNumber(extractedData.payment_delay),
+          subscription_type: extractedData.subscription_type || null,
+          user_id: userId // Fix: Use the actual userId parameter instead of hardcoded value
+        };
+
+        console.log(`✅ Generated record for customer ${customerId}:`, customerRecord);
+        return customerRecord;
+      } catch (error) {
+        console.error(`❌ Error generating record for row ${index}:`, error);
+        throw error;
+      }
+    });
+  }
+
+  private extractDataUsingMappings(row: any, mappings: any[]): any {
+    const extractedData: any = {};
+    
+    // Create a mapping lookup for faster processing
+    const mappingLookup = new Map();
+    mappings.forEach(mapping => {
+      mappingLookup.set(mapping.sourceColumn, mapping.targetField);
+    });
+
+    // Extract data based on mappings
+    Object.keys(row).forEach(sourceColumn => {
+      const targetField = mappingLookup.get(sourceColumn);
+      if (targetField) {
+        extractedData[targetField] = row[sourceColumn];
+      }
+    });
+
+    // Also try direct mapping for common field names
+    const directMappings = {
+      'customer_id': row.customer_id || row.id || row.customerId,
+      'email': row.email || row.email_address,
+      'name': row.name || row.customer_name || `${row.first_name || ''} ${row.last_name || ''}`.trim(),
+      'total_spent': row.total_spent || row.totalSpent || row.lifetime_value,
+      'purchase_count': row.purchase_count || row.purchaseCount || row.order_count,
+      'last_purchase_date': row.last_purchase_date || row.lastPurchaseDate || row.last_order_date,
+      'avg_order_value': row.avg_order_value || row.avgOrderValue,
+      'age': row.age || row.Age,
+      'gender': row.gender || row.Gender,
+      'tenure': row.tenure || row.Tenure,
+      'usage_frequency': row.usage_frequency || row['Usage Frequency'],
+      'support_calls': row.support_calls || row['Support Calls'],
+      'payment_delay': row.payment_delay || row['Payment Delay'],
+      'subscription_type': row.subscription_type || row['Subscription Type']
+    };
+
+    // Fill in any missing mappings with direct mappings
+    Object.keys(directMappings).forEach(field => {
+      if (!extractedData[field] && directMappings[field]) {
+        extractedData[field] = directMappings[field];
+      }
+    });
+
+    return extractedData;
+  }
+
+  private parseDate(dateValue: any): Date | null {
+    if (!dateValue) return null;
+    
+    try {
+      if (typeof dateValue === 'number') {
+        // Excel serial date
+        if (dateValue > 25569 && dateValue < 73050) {
+          const excelEpoch = new Date(1900, 0, 1);
+          const days = dateValue - 1;
+          return new Date(excelEpoch.getTime() + days * 24 * 60 * 60 * 1000);
+        }
+      }
+      
+      if (typeof dateValue === 'string') {
+        const parsed = new Date(dateValue);
+        if (!isNaN(parsed.getTime()) && parsed.getFullYear() > 1900 && parsed <= new Date()) {
+          return parsed;
+        }
+      }
+      
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  private parseNumber(value: any): number | undefined {
+    if (value === undefined || value === null || value === '') return undefined;
+    
+    if (typeof value === 'string') {
+      const cleaned = value.replace(/[$,£€¥\s%]/g, '');
+      const num = Number(cleaned);
+      return isNaN(num) ? undefined : Math.max(0, num);
+    }
+    
+    const num = Number(value);
+    return isNaN(num) ? undefined : Math.max(0, num);
+  }
+
+  private async storeCustomersWithValidation(customerRecords: any[]): Promise<number> {
+    console.log('💾 Starting database storage with validation...');
+    
+    if (customerRecords.length === 0) {
+      console.warn('⚠️ No customer records to store');
+      return 0;
+    }
+
+    const batchSize = 50;
+    let totalInserted = 0;
+    const errors: string[] = [];
+
+    try {
+      for (let i = 0; i < customerRecords.length; i += batchSize) {
+        const batch = customerRecords.slice(i, i + batchSize);
+        console.log(`💾 Inserting batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(customerRecords.length/batchSize)}: ${batch.length} records`);
+        
+        try {
+          const { data, error } = await supabase
+            .from('customers')
+            .insert(batch)
+            .select('id');
+
+          if (error) {
+            console.error('❌ Batch insert error:', error);
+            
+            if (error.code === '23505') {
+              console.log('⚠️ Some customers already exist, skipping duplicates');
+              errors.push(`Batch ${Math.floor(i/batchSize) + 1}: Some customers already exist`);
+            } else {
+              throw error;
+            }
+          } else {
+            totalInserted += batch.length;
+            console.log(`✅ Successfully inserted batch: ${data?.length || batch.length} customers`);
+          }
+        } catch (batchError) {
+          console.error(`❌ Failed to insert batch ${Math.floor(i/batchSize) + 1}:`, batchError);
+          errors.push(`Batch ${Math.floor(i/batchSize) + 1}: ${batchError instanceof Error ? batchError.message : 'Unknown error'}`);
+        }
+
+        // Small delay between batches to avoid overwhelming the database
+        if (i + batchSize < customerRecords.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+
+      console.log(`🎉 Database storage complete: ${totalInserted}/${customerRecords.length} customers stored`);
+      if (errors.length > 0) {
+        console.warn('⚠️ Storage warnings:', errors);
+      }
+
+      return totalInserted;
+    } catch (error) {
+      console.error('💥 Critical storage error:', error);
+      throw new Error(`Database storage failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
   private generateCustomerProfiles(cleanedData: any[], userId: string): CustomerProfile[] {
     return cleanedData.map((row, index) => {
       // Generate customer ID if not present
@@ -292,46 +504,6 @@ export class AccurateDataProcessor {
       console.warn('AI insights generation failed:', error);
       return { portfolioAnalysis: null, sampleCustomerInsights: [] };
     }
-  }
-
-  private async storeCustomersWithValidation(customerProfiles: CustomerProfile[]): Promise<number> {
-    const batchSize = 50;
-    let totalInserted = 0;
-
-    for (let i = 0; i < customerProfiles.length; i += batchSize) {
-      const batch = customerProfiles.slice(i, i + batchSize);
-      
-      // Convert profiles to database records
-      const records = batch.map(profile => ({
-        customer_id: profile.customerId,
-        email: '', // Would be extracted from original data
-        name: '', // Would be extracted from original data
-        last_purchase_date: null, // Would be from business metrics
-        purchase_count: profile.businessMetrics.purchaseCount,
-        total_spent: profile.businessMetrics.totalSpent,
-        avg_order_value: profile.businessMetrics.avgOrderValue,
-        risk_score: profile.riskScore,
-        segment: profile.segment,
-        user_id: 'user-id-here' // Would be actual user ID
-      }));
-
-      try {
-        const { data, error } = await supabase
-          .from('customers')
-          .insert(records)
-          .select('id');
-
-        if (!error) {
-          totalInserted += records.length;
-        } else {
-          console.warn('Batch insert warning:', error);
-        }
-      } catch (error) {
-        console.error('Batch insert failed:', error);
-      }
-    }
-
-    return totalInserted;
   }
 
   private calculateEngagementLevel(frequency: number, daysSinceLastPurchase: number | null): 'low' | 'medium' | 'high' {

@@ -1,362 +1,107 @@
 
-import { ColumnMapping } from './advancedColumnMapper';
-
 export interface DataQualityReport {
   overallScore: number;
-  fieldScores: Record<string, number>;
-  issues: DataIssue[];
-  corrections: DataCorrection[];
+  completenessScore: number;
+  accuracyScore: number;
+  consistencyScore: number;
   recommendations: string[];
-}
-
-export interface DataIssue {
-  type: 'missing' | 'invalid' | 'outlier' | 'inconsistent' | 'duplicate';
-  field: string;
-  row: number;
-  value: any;
-  severity: 'low' | 'medium' | 'high';
-  description: string;
-}
-
-export interface DataCorrection {
-  field: string;
-  row: number;
-  originalValue: any;
-  correctedValue: any;
-  confidence: number;
-  reason: string;
+  fieldScores: Record<string, number>;
 }
 
 export class EnhancedDataValidator {
-  private outlierThresholds: Record<string, { min: number; max: number }> = {
-    total_spent: { min: 0, max: 100000 },
-    purchase_count: { min: 0, max: 1000 },
-    avg_order_value: { min: 0, max: 10000 },
-    age: { min: 13, max: 120 },
-    tenure: { min: 0, max: 600 }, // 50 years in months
-    support_calls: { min: 0, max: 100 },
-    payment_delay: { min: 0, max: 365 }
-  };
+  validateAndCleanData(data: any[], mappings: any[]): { cleanedData: any[]; qualityReport: DataQualityReport } {
+    console.log('🔍 Starting enhanced data validation...');
+    
+    const cleanedData = data.filter(row => {
+      // Filter out completely empty rows
+      return Object.values(row).some(value => value !== null && value !== undefined && value !== '');
+    });
 
-  validateAndCleanData(data: any[], mappings: ColumnMapping[]): {
-    cleanedData: any[];
-    qualityReport: DataQualityReport;
-  } {
-    const cleanedData: any[] = [];
-    const issues: DataIssue[] = [];
-    const corrections: DataCorrection[] = [];
+    // Calculate quality metrics
+    const totalFields = mappings.length;
+    let totalCompleteness = 0;
+    let totalAccuracy = 0;
+    let totalConsistency = 0;
     const fieldScores: Record<string, number> = {};
-
-    // Process each row
-    data.forEach((row, index) => {
-      const cleanedRow: any = {};
-      
-      mappings.forEach(mapping => {
-        const originalValue = row[mapping.sourceColumn];
-        const cleanResult = this.cleanField(
-          originalValue, 
-          mapping.targetField, 
-          mapping.dataType, 
-          index
-        );
-
-        cleanedRow[mapping.targetField] = cleanResult.value;
-
-        if (cleanResult.issues.length > 0) {
-          issues.push(...cleanResult.issues);
-        }
-
-        if (cleanResult.correction) {
-          corrections.push(cleanResult.correction);
-        }
-      });
-
-      cleanedData.push(cleanedRow);
-    });
-
-    // Calculate field scores
-    mappings.forEach(mapping => {
-      const fieldIssues = issues.filter(issue => issue.field === mapping.targetField);
-      const errorRate = fieldIssues.length / data.length;
-      fieldScores[mapping.targetField] = Math.max(0, 100 - (errorRate * 100));
-    });
-
-    // Calculate overall score
-    const overallScore = Object.values(fieldScores).reduce((sum, score) => sum + score, 0) / Object.keys(fieldScores).length;
-
-    // Generate recommendations
-    const recommendations = this.generateRecommendations(issues, fieldScores);
-
-    return {
-      cleanedData,
-      qualityReport: {
-        overallScore,
-        fieldScores,
-        issues,
-        corrections,
-        recommendations
-      }
-    };
-  }
-
-  private cleanField(value: any, fieldName: string, dataType: string, rowIndex: number): {
-    value: any;
-    issues: DataIssue[];
-    correction?: DataCorrection;
-  } {
-    const issues: DataIssue[] = [];
-    let correction: DataCorrection | undefined;
-    let cleanedValue = value;
-
-    // Handle missing values
-    if (value === null || value === undefined || value === '') {
-      issues.push({
-        type: 'missing',
-        field: fieldName,
-        row: rowIndex,
-        value,
-        severity: this.getMissingSeverity(fieldName),
-        description: `Missing value for ${fieldName}`
-      });
-      cleanedValue = this.getDefaultValue(fieldName, dataType);
-      return { value: cleanedValue, issues };
-    }
-
-    // Clean based on data type
-    switch (dataType) {
-      case 'string':
-        cleanedValue = this.cleanStringField(value, fieldName, rowIndex, issues);
-        break;
-      case 'number':
-        const numberResult = this.cleanNumberField(value, fieldName, rowIndex, issues);
-        cleanedValue = numberResult.value;
-        if (numberResult.correction) correction = numberResult.correction;
-        break;
-      case 'date':
-        const dateResult = this.cleanDateField(value, fieldName, rowIndex, issues);
-        cleanedValue = dateResult.value;
-        if (dateResult.correction) correction = dateResult.correction;
-        break;
-    }
-
-    // Check for outliers in numeric fields
-    if (dataType === 'number' && cleanedValue !== null) {
-      const outlierCheck = this.checkOutlier(cleanedValue, fieldName, rowIndex);
-      if (outlierCheck.isOutlier) {
-        issues.push(outlierCheck.issue);
-      }
-    }
-
-    return { value: cleanedValue, issues, correction };
-  }
-
-  private cleanStringField(value: any, fieldName: string, rowIndex: number, issues: DataIssue[]): string {
-    let cleaned = String(value).trim();
-
-    // Email validation
-    if (fieldName === 'email') {
-      cleaned = cleaned.toLowerCase();
-      if (!this.isValidEmail(cleaned)) {
-        issues.push({
-          type: 'invalid',
-          field: fieldName,
-          row: rowIndex,
-          value,
-          severity: 'high',
-          description: 'Invalid email format'
-        });
-        return cleaned; // Return as-is, let user decide
-      }
-    }
-
-    // Gender normalization
-    if (fieldName === 'gender') {
-      cleaned = this.normalizeGender(cleaned);
-    }
-
-    return cleaned;
-  }
-
-  private cleanNumberField(value: any, fieldName: string, rowIndex: number, issues: DataIssue[]): {
-    value: number | null;
-    correction?: DataCorrection;
-  } {
-    let correction: DataCorrection | undefined;
-    
-    // Try to parse number from string
-    if (typeof value === 'string') {
-      // Remove currency symbols and commas
-      const cleaned = value.replace(/[$,£€¥\s%()]/g, '').replace(/[()]/g, '-');
-      const parsed = Number(cleaned);
-      
-      if (isNaN(parsed) || !isFinite(parsed)) {
-        issues.push({
-          type: 'invalid',
-          field: fieldName,
-          row: rowIndex,
-          value,
-          severity: 'medium',
-          description: `Cannot parse "${value}" as number`
-        });
-        return { value: null };
-      }
-
-      if (cleaned !== value) {
-        correction = {
-          field: fieldName,
-          row: rowIndex,
-          originalValue: value,
-          correctedValue: parsed,
-          confidence: 90,
-          reason: 'Removed currency symbols and formatting'
-        };
-      }
-
-      return { value: Math.max(0, parsed), correction };
-    }
-
-    const num = Number(value);
-    if (isNaN(num) || !isFinite(num)) {
-      issues.push({
-        type: 'invalid',
-        field: fieldName,
-        row: rowIndex,
-        value,
-        severity: 'medium',
-        description: 'Invalid number value'
-      });
-      return { value: null };
-    }
-
-    return { value: Math.max(0, num) };
-  }
-
-  private cleanDateField(value: any, fieldName: string, rowIndex: number, issues: DataIssue[]): {
-    value: string | null;
-    correction?: DataCorrection;
-  } {
-    if (typeof value === 'number') {
-      // Excel serial date
-      if (value > 25569 && value < 73050) {
-        const excelEpoch = new Date(1900, 0, 1);
-        const days = value - 1;
-        const date = new Date(excelEpoch.getTime() + days * 24 * 60 * 60 * 1000);
-        return {
-          value: date.toISOString(),
-          correction: {
-            field: fieldName,
-            row: rowIndex,
-            originalValue: value,
-            correctedValue: date.toISOString(),
-            confidence: 95,
-            reason: 'Converted Excel serial date'
-          }
-        };
-      }
-    }
-
-    const dateStr = String(value).trim();
-    const parsed = new Date(dateStr);
-    
-    if (isNaN(parsed.getTime()) || parsed.getFullYear() < 1900 || parsed.getFullYear() > 2100) {
-      issues.push({
-        type: 'invalid',
-        field: fieldName,
-        row: rowIndex,
-        value,
-        severity: 'medium',
-        description: 'Invalid date format'
-      });
-      return { value: null };
-    }
-
-    // Check for future dates
-    if (parsed > new Date()) {
-      issues.push({
-        type: 'invalid',
-        field: fieldName,
-        row: rowIndex,
-        value,
-        severity: 'low',
-        description: 'Date is in the future'
-      });
-    }
-
-    return { value: parsed.toISOString() };
-  }
-
-  private checkOutlier(value: number, fieldName: string, rowIndex: number): {
-    isOutlier: boolean;
-    issue?: DataIssue;
-  } {
-    const thresholds = this.outlierThresholds[fieldName];
-    if (!thresholds) return { isOutlier: false };
-
-    if (value < thresholds.min || value > thresholds.max) {
-      return {
-        isOutlier: true,
-        issue: {
-          type: 'outlier',
-          field: fieldName,
-          row: rowIndex,
-          value,
-          severity: 'medium',
-          description: `Value ${value} is outside expected range (${thresholds.min}-${thresholds.max})`
-        }
-      };
-    }
-
-    return { isOutlier: false };
-  }
-
-  private isValidEmail(email: string): boolean {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  }
-
-  private normalizeGender(gender: string): string {
-    const normalized = gender.toLowerCase();
-    if (['m', 'male', 'man'].includes(normalized)) return 'Male';
-    if (['f', 'female', 'woman'].includes(normalized)) return 'Female';
-    return gender; // Return original if can't normalize
-  }
-
-  private getMissingSeverity(fieldName: string): 'low' | 'medium' | 'high' {
-    const criticalFields = ['customer_id', 'email'];
-    const importantFields = ['total_spent', 'purchase_count', 'last_purchase_date'];
-    
-    if (criticalFields.includes(fieldName)) return 'high';
-    if (importantFields.includes(fieldName)) return 'medium';
-    return 'low';
-  }
-
-  private getDefaultValue(fieldName: string, dataType: string): any {
-    if (dataType === 'number') return 0;
-    if (dataType === 'date') return null;
-    return '';
-  }
-
-  private generateRecommendations(issues: DataIssue[], fieldScores: Record<string, number>): string[] {
     const recommendations: string[] = [];
-    
-    // Low quality fields
-    Object.entries(fieldScores).forEach(([field, score]) => {
-      if (score < 70) {
-        recommendations.push(`Consider reviewing ${field} data - quality score is ${score.toFixed(1)}%`);
+
+    // Analyze each field
+    mappings.forEach(mapping => {
+      const fieldName = mapping.targetField;
+      const values = cleanedData.map(row => row[mapping.sourceColumn]).filter(v => v !== null && v !== undefined && v !== '');
+      
+      // Completeness: percentage of non-empty values
+      const completeness = (values.length / cleanedData.length) * 100;
+      
+      // Accuracy: based on data type validation
+      let accuracy = 100;
+      if (mapping.dataType === 'number') {
+        const validNumbers = values.filter(v => !isNaN(Number(v))).length;
+        accuracy = values.length > 0 ? (validNumbers / values.length) * 100 : 100;
+      } else if (mapping.dataType === 'date') {
+        const validDates = values.filter(v => !isNaN(Date.parse(v))).length;
+        accuracy = values.length > 0 ? (validDates / values.length) * 100 : 100;
+      }
+      
+      // Consistency: variation in format
+      const consistency = this.calculateConsistency(values, mapping.dataType);
+      
+      const fieldScore = (completeness + accuracy + consistency) / 3;
+      fieldScores[fieldName] = fieldScore;
+      
+      totalCompleteness += completeness;
+      totalAccuracy += accuracy;
+      totalConsistency += consistency;
+      
+      // Generate recommendations
+      if (completeness < 80) {
+        recommendations.push(`${fieldName} field has ${completeness.toFixed(1)}% completeness - consider data enrichment`);
+      }
+      if (accuracy < 90) {
+        recommendations.push(`${fieldName} field has data format issues - ${accuracy.toFixed(1)}% accuracy`);
       }
     });
 
-    // High severity issues
-    const highSeverityIssues = issues.filter(issue => issue.severity === 'high');
-    if (highSeverityIssues.length > 0) {
-      recommendations.push(`${highSeverityIssues.length} critical data issues need immediate attention`);
-    }
+    const avgCompleteness = totalCompleteness / mappings.length;
+    const avgAccuracy = totalAccuracy / mappings.length;
+    const avgConsistency = totalConsistency / mappings.length;
+    const overallScore = (avgCompleteness + avgAccuracy + avgConsistency) / 3;
 
-    // Missing data patterns
-    const missingIssues = issues.filter(issue => issue.type === 'missing');
-    if (missingIssues.length > issues.length * 0.3) {
-      recommendations.push('Consider data collection improvements - high percentage of missing values');
-    }
+    const qualityReport: DataQualityReport = {
+      overallScore,
+      completenessScore: avgCompleteness,
+      accuracyScore: avgAccuracy,
+      consistencyScore: avgConsistency,
+      recommendations,
+      fieldScores
+    };
 
-    return recommendations;
+    console.log('📊 Data quality report generated:', qualityReport);
+    return { cleanedData, qualityReport };
+  }
+
+  private calculateConsistency(values: any[], dataType: string): number {
+    if (values.length === 0) return 100;
+    
+    if (dataType === 'string') {
+      // Check for consistent casing and format
+      const formats = new Set(values.map(v => typeof v === 'string' ? v.trim().toLowerCase() : v));
+      return (1 - (formats.size - 1) / values.length) * 100;
+    }
+    
+    if (dataType === 'number') {
+      // Check for consistent number formats
+      const stringValues = values.filter(v => typeof v === 'string');
+      if (stringValues.length === 0) return 100;
+      
+      const hasCommas = stringValues.filter(v => v.includes(',')).length;
+      const hasCurrency = stringValues.filter(v => /[$£€¥]/.test(v)).length;
+      
+      // Penalize inconsistent formatting
+      const inconsistency = Math.abs(hasCommas - stringValues.length/2) + Math.abs(hasCurrency - stringValues.length/2);
+      return Math.max(0, 100 - (inconsistency / stringValues.length) * 100);
+    }
+    
+    return 100; // Default for other types
   }
 }

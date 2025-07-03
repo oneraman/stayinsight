@@ -6,7 +6,7 @@ import { FileUploadWizard } from "./upload/FileUploadWizard";
 import { accurateProcessor } from "@/utils/accurateDataProcessor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, LogIn, Target, TrendingUp, Brain, Database, Award } from "lucide-react";
+import { CheckCircle, LogIn, Target, TrendingUp, Brain, Database, Award, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
@@ -31,6 +31,7 @@ export const EnhancedFileUploader = () => {
     }
 
     console.log('🎯 File selected for maximum accuracy processing:', file.name);
+    console.log('👤 Current user:', currentUser.id);
     
     setIsProcessing(true);
     setProcessingProgress(0);
@@ -40,21 +41,18 @@ export const EnhancedFileUploader = () => {
     try {
       const result = await accurateProcessor.processFileWithMaximumAccuracy(
         file,
-        currentUser.id,
+        currentUser.id, // Pass the actual user ID
         (progress) => {
+          console.log('📊 Processing progress:', progress);
           setProcessingProgress(progress.progress);
           setProcessingMessage(progress.message);
           setProcessingPhase(progress.phase as any);
         }
       );
 
-      setProcessingResult({
-        ...result,
-        processingTime: result.processingStats.totalTime,
-        memoryUsage: 0, // Not tracked in accurate processor
-        dataQualityScore: result.qualityReport.overallScore,
-        warnings: result.warnings
-      });
+      console.log('🎉 Processing completed successfully:', result);
+
+      setProcessingResult(result);
 
       if (result.success) {
         setIsComplete(true);
@@ -80,6 +78,13 @@ export const EnhancedFileUploader = () => {
         title: "Processing Failed",
         description: error instanceof Error ? error.message : "Failed to process file.",
         variant: "destructive",
+      });
+
+      // Show detailed error information
+      setProcessingResult({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        customersProcessed: 0
       });
     } finally {
       setIsProcessing(false);
@@ -160,13 +165,13 @@ export const EnhancedFileUploader = () => {
             </div>
             <div className="bg-green-50 p-3 rounded">
               <div className="font-medium text-green-800">Accuracy Score</div>
-              <div className="text-xl font-bold text-green-900">{processingResult.processingStats?.accuracyScore.toFixed(1) || processingResult.dataQualityScore}%</div>
+              <div className="text-xl font-bold text-green-900">{processingResult.processingStats?.accuracyScore.toFixed(1)}%</div>
             </div>
             <div className="bg-purple-50 p-3 rounded flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-purple-600" />
               <div>
                 <div className="font-medium text-purple-800">Confidence Level</div>
-                <div className="text-lg font-bold text-purple-900">{processingResult.processingStats?.confidenceLevel.toFixed(1) || '95.0'}%</div>
+                <div className="text-lg font-bold text-purple-900">{processingResult.processingStats?.confidenceLevel.toFixed(1)}%</div>
               </div>
             </div>
             <div className="bg-orange-50 p-3 rounded flex items-center gap-2">
@@ -190,8 +195,19 @@ export const EnhancedFileUploader = () => {
               </div>
             </div>
           )}
+
+          {processingResult.qualityReport && (
+            <div className="bg-green-50 border border-green-200 rounded p-3">
+              <div className="font-medium text-green-800 mb-2">Data Quality Report:</div>
+              <div className="text-sm text-green-700">
+                <p>📊 Overall Score: {processingResult.qualityReport.overallScore.toFixed(1)}%</p>
+                <p>✅ Completeness: {processingResult.qualityReport.completenessScore.toFixed(1)}%</p>
+                <p>🎯 Accuracy: {processingResult.qualityReport.accuracyScore.toFixed(1)}%</p>
+              </div>
+            </div>
+          )}
           
-          {processingResult.warnings.length > 0 && (
+          {processingResult.warnings && processingResult.warnings.length > 0 && (
             <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
               <div className="font-medium text-yellow-800 mb-2">Data Quality Notes:</div>
               <ul className="text-sm text-yellow-700 list-disc list-inside">
@@ -204,13 +220,64 @@ export const EnhancedFileUploader = () => {
               </ul>
             </div>
           )}
+
+          <div className="bg-gray-50 border border-gray-200 rounded p-3">
+            <div className="font-medium text-gray-800 mb-2">Next Steps:</div>
+            <ul className="text-sm text-gray-700 list-disc list-inside">
+              <li>Visit the Dashboard to view detailed analytics</li>
+              <li>Check the AI Insights tab for personalized recommendations</li>
+              <li>Review customer risk assessments and take action</li>
+            </ul>
+          </div>
           
-          <div className="mt-4 text-center">
+          <div className="mt-4 text-center space-x-2">
+            <Button asChild>
+              <Link to="/dashboard">View Dashboard</Link>
+            </Button>
             <button 
               onClick={resetUploader}
               className="text-blue-600 hover:text-blue-800 underline text-sm"
             >
               Upload another file
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show error state if processing failed
+  if (processingResult && !processingResult.success) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+            Processing Failed
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="bg-red-50 border border-red-200 rounded p-3">
+            <div className="font-medium text-red-800 mb-2">Error Details:</div>
+            <p className="text-sm text-red-700">{processingResult.error}</p>
+          </div>
+          
+          <div className="bg-blue-50 border border-blue-200 rounded p-3">
+            <div className="font-medium text-blue-800 mb-2">Troubleshooting Tips:</div>
+            <ul className="text-sm text-blue-700 list-disc list-inside">
+              <li>Ensure your file contains customer data with headers</li>
+              <li>Check that you're logged in to your account</li>
+              <li>Verify your internet connection is stable</li>
+              <li>Try uploading a smaller file first</li>
+            </ul>
+          </div>
+          
+          <div className="mt-4 text-center">
+            <button 
+              onClick={resetUploader}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              Try Again
             </button>
           </div>
         </CardContent>
