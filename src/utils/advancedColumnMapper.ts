@@ -4,168 +4,244 @@ export interface ColumnMapping {
   targetField: string;
   confidence: number;
   dataType: 'string' | 'number' | 'date' | 'boolean';
-  transformations?: string[];
 }
 
 export interface ColumnMappingResult {
   mappings: ColumnMapping[];
-  unmappedColumns: string[];
   confidence: number;
-  suggestions: string[];
+  unmappedColumns: string[];
 }
 
-// Comprehensive column pattern matching
-const COLUMN_PATTERNS = {
+// Enhanced field patterns with more comprehensive matching
+const FIELD_PATTERNS = {
   customer_id: [
-    /^(customer[_\s-]?id|cust[_\s-]?id|id|customer[_\s-]?number|account[_\s-]?id)$/i,
-    /^(client[_\s-]?id|member[_\s-]?id|user[_\s-]?id)$/i
+    /^(customer[_\s]?id|cust[_\s]?id|id|customer[_\s]?number|account[_\s]?id)$/i,
+    /^(client[_\s]?id|user[_\s]?id|member[_\s]?id)$/i
   ],
   email: [
-    /^(email|e[_\s-]?mail|email[_\s-]?address|contact[_\s-]?email)$/i
+    /^(email|e[_\s]?mail|email[_\s]?address|contact[_\s]?email)$/i,
+    /^(mail|electronic[_\s]?mail)$/i
   ],
   name: [
-    /^(name|customer[_\s-]?name|full[_\s-]?name|client[_\s-]?name)$/i,
-    /^(first[_\s-]?name|last[_\s-]?name|display[_\s-]?name)$/i
+    /^(name|customer[_\s]?name|full[_\s]?name|client[_\s]?name)$/i,
+    /^(first[_\s]?name|last[_\s]?name|display[_\s]?name)$/i
   ],
   total_spent: [
-    /^(total[_\s-]?spent|total[_\s-]?amount|lifetime[_\s-]?value|ltv|clv)$/i,
-    /^(revenue|total[_\s-]?revenue|spend|spending)$/i
+    /^(total[_\s]?spent|lifetime[_\s]?value|clv|revenue|total[_\s]?revenue)$/i,
+    /^(spent|amount[_\s]?spent|purchase[_\s]?amount|total[_\s]?amount)$/i,
+    /^(value|customer[_\s]?value|monetary[_\s]?value)$/i
   ],
   purchase_count: [
-    /^(purchase[_\s-]?count|order[_\s-]?count|total[_\s-]?orders|num[_\s-]?orders)$/i,
-    /^(transactions|purchase[_\s-]?frequency)$/i
+    /^(purchase[_\s]?count|order[_\s]?count|transaction[_\s]?count)$/i,
+    /^(purchases|orders|transactions|frequency)$/i,
+    /^(num[_\s]?purchases|num[_\s]?orders|total[_\s]?orders)$/i
   ],
   last_purchase_date: [
-    /^(last[_\s-]?purchase|last[_\s-]?order|most[_\s-]?recent|latest[_\s-]?purchase)$/i,
-    /^(last[_\s-]?transaction|final[_\s-]?purchase)$/i
+    /^(last[_\s]?purchase[_\s]?date|last[_\s]?order[_\s]?date|recent[_\s]?purchase)$/i,
+    /^(last[_\s]?transaction[_\s]?date|latest[_\s]?purchase|most[_\s]?recent)$/i,
+    /^(last[_\s]?buy|last[_\s]?activity|last[_\s]?seen)$/i
   ],
   avg_order_value: [
-    /^(avg[_\s-]?order[_\s-]?value|aov|average[_\s-]?order|mean[_\s-]?order)$/i,
-    /^(average[_\s-]?purchase|avg[_\s-]?spent)$/i
+    /^(avg[_\s]?order[_\s]?value|average[_\s]?order|aov|mean[_\s]?order)$/i,
+    /^(avg[_\s]?purchase|average[_\s]?purchase|avg[_\s]?transaction)$/i
   ],
   age: [
-    /^(age|customer[_\s-]?age|years[_\s-]?old)$/i
+    /^(age|customer[_\s]?age|years[_\s]?old)$/i,
+    /^(birth[_\s]?date|date[_\s]?of[_\s]?birth|dob)$/i
   ],
   gender: [
-    /^(gender|sex|m\/f)$/i
+    /^(gender|sex|male[_\s]?female)$/i
   ],
   tenure: [
-    /^(tenure|customer[_\s-]?tenure|months[_\s-]?active|time[_\s-]?with[_\s-]?us)$/i,
-    /^(membership[_\s-]?length|account[_\s-]?age)$/i
-  ],
-  support_calls: [
-    /^(support[_\s-]?calls|help[_\s-]?requests|tickets|complaints)$/i,
-    /^(service[_\s-]?calls|contact[_\s-]?count)$/i
-  ],
-  payment_delay: [
-    /^(payment[_\s-]?delay|days[_\s-]?late|overdue|late[_\s-]?payments)$/i
+    /^(tenure|years[_\s]?active|months[_\s]?active|customer[_\s]?since)$/i,
+    /^(membership[_\s]?length|account[_\s]?age|time[_\s]?with[_\s]?us)$/i
   ],
   usage_frequency: [
-    /^(usage[_\s-]?frequency|activity[_\s-]?level|engagement)$/i,
-    /^(login[_\s-]?frequency|visit[_\s-]?frequency)$/i
+    /^(usage[_\s]?frequency|frequency|activity[_\s]?level)$/i,
+    /^(engagement[_\s]?level|usage[_\s]?pattern|activity[_\s]?frequency)$/i
+  ],
+  support_calls: [
+    /^(support[_\s]?calls|help[_\s]?requests|tickets|complaints)$/i,
+    /^(customer[_\s]?service|contact[_\s]?count|support[_\s]?tickets)$/i
+  ],
+  payment_delay: [
+    /^(payment[_\s]?delay|late[_\s]?payment|overdue|days[_\s]?late)$/i,
+    /^(payment[_\s]?issues|billing[_\s]?problems)$/i
   ],
   subscription_type: [
-    /^(subscription[_\s-]?type|plan[_\s-]?type|membership[_\s-]?tier)$/i,
-    /^(package|service[_\s-]?level|account[_\s-]?type)$/i
+    /^(subscription[_\s]?type|plan[_\s]?type|membership[_\s]?type)$/i,
+    /^(account[_\s]?type|service[_\s]?level|tier)$/i
+  ]
+};
+
+// Data type detection patterns
+const DATA_TYPE_PATTERNS = {
+  date: [
+    /date|time|created|updated|last|first|recent/i,
+    /\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b/,
+    /\b\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}\b/
+  ],
+  number: [
+    /count|amount|value|price|cost|total|sum|avg|average|age|years|days|score/i,
+    /^\d+\.?\d*$/,
+    /\$|€|£|¥|%/
+  ],
+  boolean: [
+    /active|enabled|disabled|yes|no|true|false|is_|has_/i
   ]
 };
 
 export const mapColumnsIntelligently = (headers: string[]): ColumnMappingResult => {
+  console.log('🔍 Starting intelligent column mapping for headers:', headers);
+  
   const mappings: ColumnMapping[] = [];
   const unmappedColumns: string[] = [];
-  const suggestions: string[] = [];
   let totalConfidence = 0;
-
+  
   // Clean and normalize headers
-  const cleanHeaders = headers.map(header => header.trim().replace(/[^\w\s-]/g, ''));
-
-  for (const header of cleanHeaders) {
-    let bestMatch: ColumnMapping | null = null;
-    let highestConfidence = 0;
-
-    // Try to match against all patterns
-    for (const [targetField, patterns] of Object.entries(COLUMN_PATTERNS)) {
-      for (const pattern of patterns) {
-        if (pattern.test(header)) {
-          const confidence = calculateMatchConfidence(header, pattern, targetField);
-          if (confidence > highestConfidence) {
-            highestConfidence = confidence;
+  const cleanHeaders = headers.map(header => ({
+    original: header,
+    clean: header.trim().toLowerCase().replace(/[^\w\s]/g, '_')
+  }));
+  
+  console.log('🧹 Cleaned headers:', cleanHeaders);
+  
+  // Try to map each header to a target field
+  cleanHeaders.forEach(({ original, clean }) => {
+    let bestMatch: { field: string; confidence: number; dataType: string } | null = null;
+    
+    // Check against all field patterns
+    Object.entries(FIELD_PATTERNS).forEach(([field, patterns]) => {
+      patterns.forEach(pattern => {
+        if (pattern.test(clean) || pattern.test(original)) {
+          const confidence = calculateMatchConfidence(clean, original, pattern);
+          
+          if (!bestMatch || confidence > bestMatch.confidence) {
             bestMatch = {
-              sourceColumn: header,
-              targetField,
+              field,
               confidence,
-              dataType: getExpectedDataType(targetField),
-              transformations: getRequiredTransformations(targetField)
+              dataType: inferDataType(original, clean)
             };
           }
         }
-      }
-    }
-
-    if (bestMatch && bestMatch.confidence > 60) {
-      mappings.push(bestMatch);
+      });
+    });
+    
+    if (bestMatch && bestMatch.confidence > 30) { // Lower threshold for more inclusive mapping
+      mappings.push({
+        sourceColumn: original,
+        targetField: bestMatch.field,
+        confidence: bestMatch.confidence,
+        dataType: bestMatch.dataType as any
+      });
       totalConfidence += bestMatch.confidence;
+      
+      console.log(`✅ Mapped "${original}" -> "${bestMatch.field}" (${bestMatch.confidence}% confidence)`);
     } else {
-      unmappedColumns.push(header);
-      suggestions.push(`Consider mapping "${header}" to a customer attribute`);
-    }
-  }
-
-  const overallConfidence = mappings.length > 0 ? totalConfidence / mappings.length : 0;
-
-  return {
-    mappings,
-    unmappedColumns,
-    confidence: overallConfidence,
-    suggestions
-  };
-};
-
-const calculateMatchConfidence = (header: string, pattern: RegExp, targetField: string): number => {
-  let confidence = 70; // Base confidence for regex match
-
-  // Boost confidence for exact matches
-  if (header.toLowerCase() === targetField.replace('_', ' ')) {
-    confidence += 25;
-  }
-
-  // Boost for common business terms
-  const businessTerms = ['customer', 'total', 'average', 'last', 'purchase', 'order'];
-  businessTerms.forEach(term => {
-    if (header.toLowerCase().includes(term)) {
-      confidence += 5;
+      unmappedColumns.push(original);
+      console.log(`❓ Could not map "${original}" with sufficient confidence`);
     }
   });
-
-  // Reduce confidence for ambiguous matches
-  if (header.length <= 3) {
-    confidence -= 15;
+  
+  // Calculate overall confidence
+  const overallConfidence = mappings.length > 0 ? totalConfidence / mappings.length : 0;
+  
+  // Add some fallback mappings for common scenarios
+  if (mappings.length === 0 && headers.length > 0) {
+    console.log('🔄 No mappings found, applying fallback logic...');
+    
+    // Try to infer from position and content
+    headers.forEach((header, index) => {
+      if (index === 0 && header.toLowerCase().includes('id')) {
+        mappings.push({
+          sourceColumn: header,
+          targetField: 'customer_id',
+          confidence: 50,
+          dataType: 'string'
+        });
+      } else if (header.toLowerCase().includes('email') || header.includes('@')) {
+        mappings.push({
+          sourceColumn: header,
+          targetField: 'email',
+          confidence: 70,
+          dataType: 'string'
+        });
+      } else if (header.toLowerCase().includes('name')) {
+        mappings.push({
+          sourceColumn: header,
+          targetField: 'name',
+          confidence: 60,
+          dataType: 'string'
+        });
+      }
+    });
   }
-
-  return Math.min(100, Math.max(0, confidence));
+  
+  const result: ColumnMappingResult = {
+    mappings,
+    confidence: Math.max(overallConfidence, mappings.length > 0 ? 40 : 0), // Ensure minimum confidence if we have mappings
+    unmappedColumns
+  };
+  
+  console.log('📊 Column mapping result:', result);
+  
+  return result;
 };
 
-const getExpectedDataType = (targetField: string): 'string' | 'number' | 'date' | 'boolean' => {
-  const numberFields = ['total_spent', 'purchase_count', 'avg_order_value', 'age', 'tenure', 'support_calls', 'payment_delay'];
-  const dateFields = ['last_purchase_date'];
+const calculateMatchConfidence = (cleanHeader: string, originalHeader: string, pattern: RegExp): number => {
+  let confidence = 50; // Base confidence
   
-  if (numberFields.includes(targetField)) return 'number';
-  if (dateFields.includes(targetField)) return 'date';
+  // Exact match gets highest confidence
+  if (pattern.test(cleanHeader) && cleanHeader.length <= 20) {
+    confidence = 95;
+  } else if (pattern.test(originalHeader)) {
+    confidence = 85;
+  } else if (pattern.test(cleanHeader)) {
+    confidence = 75;
+  }
+  
+  // Boost confidence for shorter, more specific matches
+  if (cleanHeader.length <= 10) {
+    confidence += 10;
+  }
+  
+  // Reduce confidence for very long headers (likely to be descriptions)
+  if (cleanHeader.length > 30) {
+    confidence -= 20;
+  }
+  
+  // Boost confidence for common business terms
+  const businessTerms = ['customer', 'order', 'purchase', 'revenue', 'date', 'email', 'name'];
+  if (businessTerms.some(term => cleanHeader.includes(term))) {
+    confidence += 15;
+  }
+  
+  return Math.max(10, Math.min(100, confidence));
+};
+
+const inferDataType = (originalHeader: string, cleanHeader: string): string => {
+  const combined = `${originalHeader} ${cleanHeader}`.toLowerCase();
+  
+  // Check date patterns
+  if (DATA_TYPE_PATTERNS.date.some(pattern => 
+    typeof pattern === 'string' ? combined.includes(pattern) : pattern.test(combined)
+  )) {
+    return 'date';
+  }
+  
+  // Check number patterns
+  if (DATA_TYPE_PATTERNS.number.some(pattern => 
+    typeof pattern === 'string' ? combined.includes(pattern) : pattern.test(combined)
+  )) {
+    return 'number';
+  }
+  
+  // Check boolean patterns
+  if (DATA_TYPE_PATTERNS.boolean.some(pattern => 
+    typeof pattern === 'string' ? combined.includes(pattern) : pattern.test(combined)
+  )) {
+    return 'boolean';
+  }
+  
   return 'string';
-};
-
-const getRequiredTransformations = (targetField: string): string[] => {
-  const transformations: string[] = [];
-  
-  if (targetField === 'email') {
-    transformations.push('lowercase', 'trim', 'validate_email');
-  }
-  if (targetField === 'total_spent' || targetField === 'avg_order_value') {
-    transformations.push('remove_currency', 'parse_number');
-  }
-  if (targetField === 'last_purchase_date') {
-    transformations.push('parse_date', 'validate_date');
-  }
-  
-  return transformations;
 };

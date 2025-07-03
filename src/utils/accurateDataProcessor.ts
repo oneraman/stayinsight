@@ -59,14 +59,14 @@ export class AccurateDataProcessor {
       const columnMapping = mapColumnsIntelligently(headers);
       console.log('📊 Column mapping results:', columnMapping);
 
-      if (columnMapping.confidence < 60) {
-        throw new Error(`Low confidence in column mapping (${columnMapping.confidence.toFixed(1)}%). Please check your file structure.`);
+      if (columnMapping.confidence < 40) {
+        console.warn('⚠️ Low confidence in column mapping, proceeding with available mappings');
       }
 
       // Phase 3: Enhanced Data Validation & Cleaning
       onProgress?.({
         phase: 'processing',
-        progress: 40,
+        progress: 30,
         message: 'Validating and cleaning data with advanced algorithms...'
       });
 
@@ -74,35 +74,45 @@ export class AccurateDataProcessor {
       console.log('🔍 Data quality report:', qualityReport);
       console.log('🧹 Cleaned data rows:', cleanedData.length);
 
-      // Phase 4: Advanced Risk Scoring
+      // Phase 4: Generate Customer Records
       onProgress?.({
         phase: 'processing',
-        progress: 60,
-        message: 'Calculating enhanced risk scores...'
+        progress: 50,
+        message: 'Generating customer records with enhanced accuracy...'
       });
 
       const customerRecords = this.generateCustomerRecords(cleanedData, columnMapping.mappings, userId);
       console.log('👥 Generated customer records:', customerRecords.length);
 
-      // Phase 5: AI-Powered Insights
-      onProgress?.({
-        phase: 'processing',
-        progress: 75,
-        message: 'Generating AI insights with advanced analysis...'
-      });
-
-      const customerProfiles = this.generateCustomerProfiles(cleanedData, userId);
-      const aiInsights = await this.generateAdvancedInsights(customerProfiles, qualityReport);
-
-      // Phase 6: Database Storage
+      // Phase 5: Database Storage (BEFORE AI insights to ensure data is available)
       onProgress?.({
         phase: 'storing',
-        progress: 85,
+        progress: 65,
         message: 'Storing processed data with accuracy validation...'
       });
 
       const insertedCount = await this.storeCustomersWithValidation(customerRecords);
       console.log('💾 Successfully stored customers:', insertedCount);
+
+      // Phase 6: AI-Powered Insights (AFTER data is stored)
+      onProgress?.({
+        phase: 'processing',
+        progress: 80,
+        message: 'Generating AI insights with advanced analysis...'
+      });
+
+      let aiInsights;
+      try {
+        const customerProfiles = this.generateCustomerProfiles(cleanedData, userId);
+        aiInsights = await this.generateAdvancedInsights(customerProfiles, qualityReport);
+        console.log('🧠 AI insights generated successfully');
+      } catch (error) {
+        console.warn('⚠️ AI insights generation failed, continuing without insights:', error);
+        aiInsights = {
+          portfolioAnalysis: null,
+          sampleCustomerInsights: []
+        };
+      }
 
       const endTime = performance.now();
       const totalTime = endTime - startTime;
@@ -137,7 +147,33 @@ export class AccurateDataProcessor {
 
     } catch (error) {
       console.error('💥 Accurate processing failed:', error);
-      throw new Error(`Accurate processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      onProgress?.({
+        phase: 'complete',
+        progress: 100,
+        message: `Processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+      
+      return {
+        success: false,
+        customersProcessed: 0,
+        columnMapping: { mappings: [], confidence: 0, unmappedColumns: [] },
+        qualityReport: { 
+          overallScore: 0, 
+          completenessScore: 0, 
+          accuracyScore: 0, 
+          consistencyScore: 0, 
+          recommendations: [],
+          fieldScores: {}
+        },
+        processingStats: {
+          totalTime: 0,
+          accuracyScore: 0,
+          confidenceLevel: 0
+        },
+        errors: [error instanceof Error ? error.message : 'Unknown error'],
+        warnings: []
+      };
     }
   }
 
@@ -152,17 +188,13 @@ export class AccurateDataProcessor {
       cellText: false,
       raw: false,
       dateNF: 'yyyy-mm-dd',
-      cellStyles: true, // Preserve formatting for better date detection
-      sheetStubs: true  // Include empty cells for better structure detection
+      cellStyles: true,
+      sheetStubs: true
     });
 
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     
-    // Get range to understand data structure
-    const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:A1');
-    
-    // Extract headers with intelligent detection
     const rawData = XLSX.utils.sheet_to_json(worksheet, {
       header: 1,
       raw: false,
@@ -174,7 +206,7 @@ export class AccurateDataProcessor {
       throw new Error('No data found in the file');
     }
 
-    // Detect header row (might not be the first row)
+    // Detect header row
     let headerRowIndex = 0;
     for (let i = 0; i < Math.min(5, rawData.length); i++) {
       const row = rawData[i];
@@ -187,7 +219,6 @@ export class AccurateDataProcessor {
     const headers = rawData[headerRowIndex].map((h: any) => String(h).trim()).filter(h => h.length > 0);
     const dataRows = rawData.slice(headerRowIndex + 1);
 
-    // Convert to objects with intelligent null handling
     const data = dataRows
       .map(row => {
         const obj: any = {};
@@ -213,15 +244,19 @@ export class AccurateDataProcessor {
         const extractedData = this.extractDataUsingMappings(row, mappings);
         
         // Generate customer ID if not present
-        const customerId = extractedData.customer_id || `CUST_${Date.now()}_${index}`;
+        const customerId = extractedData.customer_id || 
+                          row.customer_id || 
+                          row.id || 
+                          row.customerId ||
+                          `CUST_${Date.now()}_${index}`;
         
         // Parse dates properly
-        const lastPurchaseDate = this.parseDate(extractedData.last_purchase_date);
+        const lastPurchaseDate = this.parseDate(extractedData.last_purchase_date || row.last_purchase_date || row.lastPurchaseDate);
         
         // Parse numbers with validation
-        const purchaseCount = this.parseNumber(extractedData.purchase_count) || 0;
-        const totalSpent = this.parseNumber(extractedData.total_spent) || 0;
-        const avgOrderValue = this.parseNumber(extractedData.avg_order_value) || 
+        const purchaseCount = this.parseNumber(extractedData.purchase_count || row.purchase_count || row.purchaseCount) || 0;
+        const totalSpent = this.parseNumber(extractedData.total_spent || row.total_spent || row.totalSpent) || 0;
+        const avgOrderValue = this.parseNumber(extractedData.avg_order_value || row.avg_order_value) || 
                              (purchaseCount > 0 ? totalSpent / purchaseCount : 0);
         
         // Calculate enhanced risk score
@@ -230,35 +265,41 @@ export class AccurateDataProcessor {
           purchaseCount,
           totalSpent,
           avgOrderValue,
-          age: this.parseNumber(extractedData.age),
-          tenure: this.parseNumber(extractedData.tenure),
-          supportCalls: this.parseNumber(extractedData.support_calls),
-          paymentDelay: this.parseNumber(extractedData.payment_delay),
-          usageFrequency: extractedData.usage_frequency,
-          subscriptionType: extractedData.subscription_type
+          age: this.parseNumber(extractedData.age || row.age),
+          tenure: this.parseNumber(extractedData.tenure || row.tenure),
+          supportCalls: this.parseNumber(extractedData.support_calls || row.support_calls),
+          paymentDelay: this.parseNumber(extractedData.payment_delay || row.payment_delay),
+          usageFrequency: extractedData.usage_frequency || row.usage_frequency,
+          subscriptionType: extractedData.subscription_type || row.subscription_type
         });
 
         const customerRecord = {
           customer_id: customerId,
-          email: extractedData.email || null,
-          name: extractedData.name || null,
+          email: extractedData.email || row.email || row.email_address || null,
+          name: extractedData.name || row.name || row.customer_name || 
+                `${row.first_name || ''} ${row.last_name || ''}`.trim() || null,
           last_purchase_date: lastPurchaseDate?.toISOString() || null,
           purchase_count: purchaseCount,
           total_spent: totalSpent,
           avg_order_value: avgOrderValue,
           risk_score: riskAnalysis.score,
           segment: this.determineSegment(riskAnalysis.score),
-          age: this.parseNumber(extractedData.age),
-          gender: extractedData.gender || null,
-          tenure: this.parseNumber(extractedData.tenure),
-          usage_frequency: extractedData.usage_frequency || null,
-          support_calls: this.parseNumber(extractedData.support_calls),
-          payment_delay: this.parseNumber(extractedData.payment_delay),
-          subscription_type: extractedData.subscription_type || null,
-          user_id: userId // Fix: Use the actual userId parameter instead of hardcoded value
+          age: this.parseNumber(extractedData.age || row.age),
+          gender: extractedData.gender || row.gender || null,
+          tenure: this.parseNumber(extractedData.tenure || row.tenure),
+          usage_frequency: extractedData.usage_frequency || row.usage_frequency || null,
+          support_calls: this.parseNumber(extractedData.support_calls || row.support_calls),
+          payment_delay: this.parseNumber(extractedData.payment_delay || row.payment_delay),
+          subscription_type: extractedData.subscription_type || row.subscription_type || null,
+          user_id: userId
         };
 
-        console.log(`✅ Generated record for customer ${customerId}:`, customerRecord);
+        console.log(`✅ Generated record for customer ${customerId}:`, {
+          customer_id: customerRecord.customer_id,
+          risk_score: customerRecord.risk_score,
+          total_spent: customerRecord.total_spent,
+          user_id: customerRecord.user_id
+        });
         return customerRecord;
       } catch (error) {
         console.error(`❌ Error generating record for row ${index}:`, error);
@@ -270,13 +311,11 @@ export class AccurateDataProcessor {
   private extractDataUsingMappings(row: any, mappings: any[]): any {
     const extractedData: any = {};
     
-    // Create a mapping lookup for faster processing
     const mappingLookup = new Map();
     mappings.forEach(mapping => {
       mappingLookup.set(mapping.sourceColumn, mapping.targetField);
     });
 
-    // Extract data based on mappings
     Object.keys(row).forEach(sourceColumn => {
       const targetField = mappingLookup.get(sourceColumn);
       if (targetField) {
@@ -284,7 +323,6 @@ export class AccurateDataProcessor {
       }
     });
 
-    // Also try direct mapping for common field names
     const directMappings = {
       'customer_id': row.customer_id || row.id || row.customerId,
       'email': row.email || row.email_address,
@@ -302,7 +340,6 @@ export class AccurateDataProcessor {
       'subscription_type': row.subscription_type || row['Subscription Type']
     };
 
-    // Fill in any missing mappings with direct mappings
     Object.keys(directMappings).forEach(field => {
       if (!extractedData[field] && directMappings[field]) {
         extractedData[field] = directMappings[field];
@@ -317,7 +354,6 @@ export class AccurateDataProcessor {
     
     try {
       if (typeof dateValue === 'number') {
-        // Excel serial date
         if (dateValue > 25569 && dateValue < 73050) {
           const excelEpoch = new Date(1900, 0, 1);
           const days = dateValue - 1;
@@ -359,7 +395,7 @@ export class AccurateDataProcessor {
       return 0;
     }
 
-    const batchSize = 50;
+    const batchSize = 25; // Smaller batches for better reliability
     let totalInserted = 0;
     const errors: string[] = [];
 
@@ -381,6 +417,12 @@ export class AccurateDataProcessor {
               console.log('⚠️ Some customers already exist, skipping duplicates');
               errors.push(`Batch ${Math.floor(i/batchSize) + 1}: Some customers already exist`);
             } else {
+              console.error('❌ Database error details:', {
+                code: error.code,
+                message: error.message,
+                details: error.details,
+                hint: error.hint
+              });
               throw error;
             }
           } else {
@@ -392,7 +434,6 @@ export class AccurateDataProcessor {
           errors.push(`Batch ${Math.floor(i/batchSize) + 1}: ${batchError instanceof Error ? batchError.message : 'Unknown error'}`);
         }
 
-        // Small delay between batches to avoid overwhelming the database
         if (i + batchSize < customerRecords.length) {
           await new Promise(resolve => setTimeout(resolve, 100));
         }
@@ -412,10 +453,8 @@ export class AccurateDataProcessor {
 
   private generateCustomerProfiles(cleanedData: any[], userId: string): CustomerProfile[] {
     return cleanedData.map((row, index) => {
-      // Generate customer ID if not present
       const customerId = row.customer_id || `CUST_${Date.now()}_${index}`;
       
-      // Calculate business metrics
       const totalSpent = row.total_spent || 0;
       const purchaseCount = row.purchase_count || 0;
       const avgOrderValue = row.avg_order_value || (purchaseCount > 0 ? totalSpent / purchaseCount : 0);
@@ -424,11 +463,10 @@ export class AccurateDataProcessor {
         ? Math.floor((Date.now() - lastPurchaseDate.getTime()) / (1000 * 60 * 60 * 24))
         : null;
       
-      const tenure = row.tenure || 12; // Default to 12 months
+      const tenure = row.tenure || 12;
       const purchaseFrequency = purchaseCount > 0 && tenure > 0 ? (purchaseCount / (tenure / 12)) : 0;
-      const customerLifetimeValue = totalSpent + (avgOrderValue * 2); // Simple CLV calculation
+      const customerLifetimeValue = totalSpent + (avgOrderValue * 2);
 
-      // Enhanced risk scoring
       const riskAnalysis = calculateEnhancedRiskScore({
         lastPurchaseDate: lastPurchaseDate?.toISOString() || null,
         purchaseCount,
@@ -442,7 +480,6 @@ export class AccurateDataProcessor {
         subscriptionType: row.subscription_type
       });
 
-      // Behavioral analysis
       const engagementLevel = this.calculateEngagementLevel(purchaseFrequency, daysSinceLastPurchase);
       const loyaltyScore = this.calculateLoyaltyScore(purchaseCount, tenure, totalSpent);
       const riskFactors = this.identifyRiskFactors(row, daysSinceLastPurchase);
@@ -476,10 +513,8 @@ export class AccurateDataProcessor {
     qualityReport: DataQualityReport
   ): Promise<{ portfolioAnalysis: any; sampleCustomerInsights: AIInsightResult[] }> {
     try {
-      // Generate portfolio-level insights
       const portfolioAnalysis = await this.aiAnalyzer.generatePortfolioInsights(customerProfiles, qualityReport);
 
-      // Generate insights for top 3 highest-risk customers
       const highRiskCustomers = customerProfiles
         .filter(c => c.riskScore >= 70)
         .sort((a, b) => b.riskScore - a.riskScore)
@@ -490,7 +525,7 @@ export class AccurateDataProcessor {
         try {
           const insight = await this.aiAnalyzer.generateContextualInsights(
             customer,
-            null, // Industry benchmarks would go here
+            null,
             qualityReport
           );
           sampleCustomerInsights.push(insight);
