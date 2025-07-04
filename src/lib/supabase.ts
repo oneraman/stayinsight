@@ -1,22 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Use the actual Supabase project configuration from the project
+const supabaseUrl = 'https://zxylfinmwajovdlwzjox.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4eWxmaW5td2Fqb3ZkbHd6am94Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM0MDU2NTcsImV4cCI6MjA1ODk4MTY1N30.KU3nHYuipMdY2VpcPQgNQNwqVc5C-JK4P7ebWhod9bE';
 
 // Enhanced logging to verify environment variables
 console.log('🔍 Supabase Environment Variables Check:');
-console.log('- VITE_SUPABASE_URL:', supabaseUrl || '❌ MISSING');
+console.log('- VITE_SUPABASE_URL:', supabaseUrl ? '✅ Present' : '❌ MISSING');
 console.log('- VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? `✅ Present (${supabaseAnonKey.length} chars)` : '❌ MISSING');
-
-// Enhanced validation with better error messages
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('❌ Supabase Configuration Error:');
-  console.error('Missing environment variables:');
-  console.error('- VITE_SUPABASE_URL:', supabaseUrl ? '✅ Present' : '❌ Missing');
-  console.error('- VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? '✅ Present' : '❌ Missing');
-  console.error('Please check your .env file and ensure both variables are set correctly.');
-  throw new Error('Missing Supabase environment variables. Please check your .env file.');
-}
 
 // Validate URL format
 try {
