@@ -141,49 +141,71 @@ export const SimpleFileUploader = () => {
 
   if (isComplete && processingResult?.success) {
     return (
-      <Card>
+      <Card className="glass-effect border-success/20">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-green-600" />
+          <CardTitle className="flex items-center gap-2 text-success">
+            <CheckCircle className="h-5 w-5" />
             Data Processing Complete!
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="bg-green-50 border border-green-200 rounded p-4">
-            <div className="text-green-800">
-              <div className="font-medium mb-2">Successfully Processed:</div>
-              <div className="text-2xl font-bold">{processingResult.customersProcessed} customers</div>
+        <CardContent className="space-y-6">
+          <div className="status-low rounded-xl p-6">
+            <div className="text-center">
+              <div className="text-sm font-medium text-success mb-2">Successfully Processed</div>
+              <div className="text-4xl font-bold bg-gradient-to-r from-success to-accent bg-clip-text text-transparent">
+                {processingResult.customersProcessed} customers
+              </div>
             </div>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded p-3">
-            <div className="font-medium text-blue-800 mb-2">Processing Stats:</div>
-            <div className="text-sm text-blue-700 space-y-1">
-              <p>✅ Data stored successfully in database</p>
-              <p>📊 Processing time: {(processingResult.processingStats.totalTime / 1000).toFixed(2)}s</p>
-              <p>🎯 Data accuracy score: {processingResult.processingStats.accuracyScore}%</p>
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+            <div className="font-medium text-primary mb-3">Processing Stats:</div>
+            <div className="text-sm space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-success rounded-full"></div>
+                <span>Data stored successfully in database</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-primary rounded-full"></div>
+                <span>Processing time: {(processingResult.processingStats.totalTime / 1000).toFixed(2)}s</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-accent rounded-full"></div>
+                <span>Data accuracy score: {processingResult.processingStats.accuracyScore}%</span>
+              </div>
             </div>
           </div>
 
-          <div className="bg-gray-50 border border-gray-200 rounded p-3">
-            <div className="font-medium text-gray-800 mb-2">Next Steps:</div>
-            <ul className="text-sm text-gray-700 list-disc list-inside">
-              <li>Visit the Dashboard to view your customer data</li>
-              <li>Review customer analytics and insights</li>
-              <li>Check customer risk assessments</li>
-            </ul>
+          <div className="bg-muted/50 border border-border rounded-xl p-4">
+            <div className="font-medium mb-3">Next Steps:</div>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center text-primary text-xs font-bold">1</div>
+                <span>Visit the Dashboard to view your customer data</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 bg-accent/10 rounded-full flex items-center justify-center text-accent text-xs font-bold">2</div>
+                <span>Review customer analytics and insights</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 bg-warning/10 rounded-full flex items-center justify-center text-warning text-xs font-bold">3</div>
+                <span>Check customer risk assessments</span>
+              </div>
+            </div>
           </div>
           
-          <div className="mt-4 text-center space-x-2">
-            <Button asChild>
+          <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+            <Button asChild size="lg" className="flex-1 sm:flex-none">
               <Link to="/dashboard">View Dashboard</Link>
             </Button>
-            <button 
+            <Button 
+              variant="outline" 
               onClick={resetUploader}
-              className="text-blue-600 hover:text-blue-800 underline text-sm"
+              size="lg"
+              className="flex-1 sm:flex-none"
             >
-              Upload another file
-            </button>
+              Upload Another File
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -233,30 +255,48 @@ export const SimpleFileUploader = () => {
 
   if (isProcessing) {
     return (
-      <Card>
+      <Card className="glass-effect border-primary/20">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Upload className="h-5 w-5 text-blue-600" />
-            Processing Data...
+          <CardTitle className="flex items-center gap-2 text-primary">
+            <Upload className="h-5 w-5 animate-pulse" />
+            Processing Your Data
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between text-sm">
-            <span className="flex items-center gap-2">
-              <span className="text-xl">{getPhaseIcon()}</span>
-              <span className="font-medium text-blue-700">Data Processing</span>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl animate-bounce">{getPhaseIcon()}</span>
+              <span className="font-semibold text-primary">AI Processing</span>
+            </div>
+            <span className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              {Math.round(processingProgress)}%
             </span>
-            <span className="font-bold text-blue-900">{Math.round(processingProgress)}%</span>
           </div>
-          <Progress value={processingProgress} className="h-3" />
-          <p className="text-sm text-gray-600">
-            {processingMessage}
-          </p>
-          <div className="text-xs text-gray-500 space-y-1">
-            <p>📖 Parsing file data and headers</p>
-            <p>⚡ Processing customer records</p>
-            <p>💾 Storing data in secure database</p>
-            <p>✅ Finalizing and validating results</p>
+          
+          <div className="space-y-3">
+            <Progress value={processingProgress} className="h-3 bg-muted" />
+            <p className="text-sm text-muted-foreground font-medium">
+              {processingMessage}
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+              <span>📖</span>
+              <span>Parsing file data</span>
+            </div>
+            <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+              <span>⚡</span>
+              <span>Processing records</span>
+            </div>
+            <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+              <span>💾</span>
+              <span>Storing securely</span>
+            </div>
+            <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+              <span>✅</span>
+              <span>Validating results</span>
+            </div>
           </div>
         </CardContent>
       </Card>

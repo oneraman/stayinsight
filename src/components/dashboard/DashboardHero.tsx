@@ -49,63 +49,67 @@ const DashboardHero = ({ metrics, timePeriod, loading }: DashboardHeroProps) => 
       value: `${metrics.churnRate}%`,
       description: `Last ${timePeriod} days`,
       trend: metrics.churnRate > 5 ? "negative" : "positive",
-      icon: <TrendingDown className="h-6 w-6" />,
-      bgGradient: "from-red-50 to-rose-50",
-      borderColor: "border-red-100",
-      iconBg: "bg-red-100",
-      textColor: "text-red-700"
+      icon: <TrendingDown className="h-5 w-5" />,
+      colorClass: "text-destructive",
+      bgClass: "bg-destructive/10",
+      borderClass: "border-destructive/20"
     },
     {
-      title: "Retention Rate",
+      title: "Retention Rate", 
       value: `${metrics.retentionRate}%`,
       description: `Last ${timePeriod} days`,
       trend: metrics.retentionRate < 90 ? "negative" : "positive",
-      icon: <TrendingUp className="h-6 w-6" />,
-      bgGradient: "from-green-50 to-emerald-50",
-      borderColor: "border-green-100",
-      iconBg: "bg-green-100",
-      textColor: "text-green-700"
+      icon: <TrendingUp className="h-5 w-5" />,
+      colorClass: "text-success",
+      bgClass: "bg-success/10",
+      borderClass: "border-success/20"
     },
     {
       title: "Customer Value",
       value: formatCurrency(metrics.customerLifetimeValue),
       description: "Avg. lifetime value",
       trend: "neutral",
-      icon: <DollarSign className="h-6 w-6" />,
-      bgGradient: "from-blue-50 to-indigo-50",
-      borderColor: "border-blue-100",
-      iconBg: "bg-blue-100",
-      textColor: "text-blue-700"
+      icon: <DollarSign className="h-5 w-5" />,
+      colorClass: "text-primary",
+      bgClass: "bg-primary/10",
+      borderClass: "border-primary/20"
     },
     {
       title: "At-Risk Revenue",
       value: formatCurrency(metrics.atRiskRevenue),
       description: "From high-risk customers",
       trend: metrics.atRiskRevenue > 10000 ? "negative" : "neutral",
-      icon: <AlertTriangle className="h-6 w-6" />,
-      bgGradient: "from-amber-50 to-yellow-50",
-      borderColor: "border-amber-100",
-      iconBg: "bg-amber-100",
-      textColor: "text-amber-700"
+      icon: <AlertTriangle className="h-5 w-5" />,
+      colorClass: "text-warning",
+      bgClass: "bg-warning/10",
+      borderClass: "border-warning/20"
     }
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {heroMetrics.map((metric, index) => (
         <Card 
           key={index} 
-          className={`bg-gradient-to-br ${metric.bgGradient} ${metric.borderColor} shadow-sm hover:shadow-md transition-shadow`}
+          className="metric-card group hover:scale-105"
         >
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className={`text-sm font-medium ${metric.textColor}`}>{metric.title}</h3>
-              <div className={`${metric.iconBg} p-2 rounded-full ${metric.textColor}`}>{metric.icon}</div>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-sm font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
+                {metric.title}
+              </h3>
+              <div className={`p-3 rounded-xl ${metric.bgClass} ${metric.colorClass} border ${metric.borderClass} group-hover:scale-110 transition-transform`}>
+                {metric.icon}
+              </div>
             </div>
             
-            <div className="flex flex-col">
-              <span className={`text-3xl font-bold ${metric.textColor}`}>{metric.value}</span>
-              <span className="text-xs text-gray-500 mt-1">{metric.description}</span>
+            <div className="space-y-2">
+              <div className="metric-value">
+                {metric.value}
+              </div>
+              <p className="text-xs text-muted-foreground group-hover:text-foreground/80 transition-colors">
+                {metric.description}
+              </p>
             </div>
           </CardContent>
         </Card>
