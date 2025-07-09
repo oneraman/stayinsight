@@ -93,15 +93,6 @@ const Dashboard = () => {
     return () => window.removeEventListener('dataUploaded', handleDataUploaded);
   }, []);
 
-  // Refresh dashboard periodically
-  useEffect(() => {
-    const interval = setInterval(() => {
-      console.log("🔄 Periodic Supabase dashboard refresh...");
-      setRefreshTrigger(prev => prev + 1);
-    }, 30000); // Check for updates every 30 seconds
-
-    return () => clearInterval(interval);
-  }, []);
 
   // Auto-scroll to bottom when new messages are added
   useEffect(() => {
