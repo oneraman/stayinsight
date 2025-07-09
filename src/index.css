@@ -115,7 +115,7 @@
   }
   
   .metric-card {
-    @apply bg-gradient-to-br from-card to-muted/20 rounded-xl p-6 border border-border/50 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 group;
+    @apply bg-gradient-to-br from-card to-muted/20 rounded-xl p-6 border border-border/50 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300;
   }
   
   .metric-value {
