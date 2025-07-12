@@ -149,13 +149,13 @@ export const generateDataSummary = async (customers: any[]) => {
     
     const totalCustomers = customers.length;
     const highRiskCount = customers.filter(c => 
-      (c.riskScore >= 70) || (c.risk_level === 'High') || (c.segment === 'high-risk')
+      (c.riskScore >= 65) || (c.risk_level === 'High') || (c.segment === 'high-risk')
     ).length;
     const mediumRiskCount = customers.filter(c => 
-      ((c.riskScore >= 30 && c.riskScore < 70) || (c.risk_level === 'Medium') || (c.segment === 'medium-risk'))
+      ((c.riskScore >= 35 && c.riskScore < 65) || (c.risk_level === 'Medium') || (c.segment === 'medium-risk'))
     ).length;
     const lowRiskCount = customers.filter(c => 
-      (c.riskScore < 30) || (c.risk_level === 'Low') || (c.segment === 'low-risk')
+      (c.riskScore < 35) || (c.risk_level === 'Low') || (c.segment === 'low-risk')
     ).length;
     
     const avgRiskScore = customers.reduce((sum, c) => sum + (c.riskScore || c.risk_score || 0), 0) / totalCustomers;
@@ -171,6 +171,8 @@ export const generateDataSummary = async (customers: any[]) => {
 
     const prompt = `
     IMPORTANT: Base your analysis STRICTLY on the provided customer portfolio data. Do NOT make up information or provide generic insights. Use ONLY the data points provided below to draw conclusions.
+    
+    DATA QUALITY NOTICE: This analysis considers data completeness and quality. If many customers have missing data (null values for purchases, spending, etc.), this will be reflected in the insights and confidence levels.
     
     Analyze this specific customer portfolio and provide executive-level churn insights based ONLY on the following data:
     

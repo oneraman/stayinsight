@@ -29,7 +29,7 @@ const calculateRiskScore = (
   paymentDelay?: number,
   usageFrequency?: string
 ): number => {
-  let score = 50; // Default medium risk
+  let score = 35; // Default medium-low risk (more neutral)
   const now = new Date();
   
   // Recency factor (35% weight) - More sophisticated time-based scoring
@@ -44,7 +44,7 @@ const calculateRiskScore = (
     else if (daysSinceLastPurchase < 365) score += 25;
     else score += 35;
   } else {
-    score += 25; // No purchase history is a risk factor
+    score += 15; // Reduced penalty for missing purchase history
   }
   
   // Frequency factor (30% weight) - Enhanced purchase behavior analysis
@@ -56,7 +56,7 @@ const calculateRiskScore = (
     else if (purchaseCount === 1) score += 10;
     else if (purchaseCount === 0) score += 20;
   } else {
-    score += 15;
+    score += 10; // Reduced penalty for missing purchase count
   }
   
   // Monetary factor (25% weight) - More nuanced spending analysis
@@ -69,7 +69,7 @@ const calculateRiskScore = (
     else if (totalSpent > 50) score += 10;
     else score += 20;
   } else {
-    score += 15;
+    score += 10; // Reduced penalty for missing spending data
   }
   
   // Support interaction factor (5% weight)
@@ -103,8 +103,8 @@ const calculateRiskScore = (
 
 // Enhanced segment determination with more granular categories
 const determineSegment = (riskScore: number): 'low-risk' | 'medium-risk' | 'high-risk' => {
-  if (riskScore < 25) return 'low-risk';
-  if (riskScore < 75) return 'medium-risk';
+  if (riskScore < 35) return 'low-risk';
+  if (riskScore < 65) return 'medium-risk';
   return 'high-risk';
 };
 
