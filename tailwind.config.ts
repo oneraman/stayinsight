@@ -79,7 +79,11 @@ export default {
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
-				sm: 'calc(var(--radius) - 4px)'
+				sm: 'calc(var(--radius) - 4px)',
+				'clay': '1.25rem',
+				'clay-sm': '1rem',
+				'clay-lg': '1.5rem',
+				'clay-xl': '1.75rem'
 			},
 			keyframes: {
 				'accordion-down': {
@@ -121,6 +125,15 @@ export default {
 				'bounce-gentle': {
 					'0%, 100%': { transform: 'translateY(0)' },
 					'50%': { transform: 'translateY(-4px)' }
+				},
+				'clay-squeeze': {
+					'0%': { transform: 'scale(1)' },
+					'50%': { transform: 'scale(0.98)' },
+					'100%': { transform: 'scale(1)' }
+				},
+				'clay-float': {
+					'0%, 100%': { transform: 'translateY(0px)' },
+					'50%': { transform: 'translateY(-2px)' }
 				}
 			},
 			animation: {
@@ -134,6 +147,8 @@ export default {
 				'pulse-subtle': 'pulse-subtle 2s ease-in-out infinite',
 				'shimmer': 'shimmer 2s ease-in-out infinite',
 				'bounce-gentle': 'bounce-gentle 2s ease-in-out infinite',
+				'clay-squeeze': 'clay-squeeze 0.3s ease-out',
+				'clay-float': 'clay-float 3s ease-in-out infinite',
 			},
 			boxShadow: {
 				'primary': 'var(--shadow-primary)',

@@ -35,20 +35,21 @@ const ActionInsightCard = ({ type, title, description, action, onAction }: Actio
   };
 
   return (
-    <Card className={`border-l-4 ${getStyles()} shadow-sm`}>
+    <Card className={`clay-card border-l-4 ${getStyles()}`}>
       <CardContent className="pt-6">
-        <div className="flex gap-3">
-          <div className="flex-shrink-0">{getIcon()}</div>
+        <div className="flex gap-4">
+          <div className="flex-shrink-0 p-2 rounded-clay bg-gradient-to-br from-background to-muted/50">{getIcon()}</div>
           <div>
-            <h3 className="font-medium mb-1">{title}</h3>
-            <p className="text-sm text-gray-600">{description}</p>
+            <h3 className="font-medium mb-2 text-foreground">{title}</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
           </div>
         </div>
       </CardContent>
-      <CardFooter className="border-t bg-white/50 py-3">
+      <CardFooter className="border-t border-border/50 bg-gradient-to-r from-background/50 to-background/30 py-4">
         <Button 
-          variant="ghost" 
-          className="ml-auto text-xs h-8"
+          variant="clay" 
+          size="sm"
+          className="ml-auto"
           onClick={onAction}
         >
           {action}
