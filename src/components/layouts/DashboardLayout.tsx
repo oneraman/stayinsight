@@ -2,7 +2,7 @@ import { ReactNode, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Users, Settings, ChevronLeft, ChevronRight, Upload, LogOut, History } from "lucide-react";
+import { LayoutDashboard, Users, Settings, ChevronLeft, ChevronRight, Upload, LogOut, History, MessageSquare } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -80,6 +80,18 @@ const DashboardLayout = ({
                   isActiveRoute("/customers") ? "text-[#5E5AFF]" : "text-gray-400"
                 )} />
                 {!sidebarCollapsed && <span>Customers</span>}
+              </Link>
+            </li>
+            <li>
+              <Link to="/datachat" className={cn(
+                getLinkClasses("/datachat"),
+                isActiveRoute("/datachat") && "relative before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-8 before:w-1 before:bg-[#5E5AFF] before:rounded-r"
+              )}>
+                <MessageSquare className={cn(
+                  "h-5 w-5",
+                  isActiveRoute("/datachat") ? "text-[#5E5AFF]" : "text-gray-400"
+                )} />
+                {!sidebarCollapsed && <span>Data Chat</span>}
               </Link>
             </li>
             <li>

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, MessagesSquare, User, Send, Database, AlertCircle } from "lucide-react";
 import { getCustomers } from "@/lib/supabase";
-import { generateDataChatResponse } from "@/lib/gemini";
+import { generateSecureDataChatResponse } from "@/lib/enhancedGemini";
 import { CustomerData } from "@/utils/dataProcessing";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -124,7 +124,7 @@ What would you like to know about your customers?`,
 
     try {
       console.log("🤖 Generating AI response for:", userMessage.content);
-      const aiResponse = await generateDataChatResponse(userMessage.content, customerData);
+      const aiResponse = await generateSecureDataChatResponse(userMessage.content, customerData);
       
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
