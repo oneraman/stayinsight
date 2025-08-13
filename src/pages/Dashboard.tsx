@@ -10,6 +10,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import DashboardHero from "@/components/dashboard/DashboardHero";
 import QuickActionsBar from "@/components/dashboard/QuickActionsBar";
 import HighRiskCustomersTable from "@/components/dashboard/HighRiskCustomersTable";
+import AnalyticsSection from "@/components/dashboard/AnalyticsSection";
+import AdvancedInsightsPanel from "@/components/dashboard/AdvancedInsightsPanel";
 import ExportDialog from "@/components/data-export/ExportDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -411,6 +413,18 @@ const Dashboard = () => {
                   metrics={metrics}
                   timePeriod={timePeriod}
                   loading={metrics.loading}
+                />
+
+                {/* Analytics Charts Section */}
+                <AnalyticsSection 
+                  customers={allCustomers}
+                  timePeriod={timePeriod}
+                />
+
+                {/* AI Insights Panel */}
+                <AdvancedInsightsPanel 
+                  customers={allCustomers}
+                  timePeriod={timePeriod}
                 />
 
                 {/* High-Risk Customers Section */}
