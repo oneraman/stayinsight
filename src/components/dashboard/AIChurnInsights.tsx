@@ -13,7 +13,6 @@ import {
 } from '@/lib/gemini';
 import { toast } from 'sonner';
 import { CustomerData } from '@/utils/dataProcessing';
-import { calculateDataQualityScore as calculateDataQuality } from '@/utils/riskScoring';
 
 interface AIChurnInsightsProps {
   customers: CustomerData[];
@@ -32,46 +31,15 @@ const AIChurnInsights = ({ customers, timeframe }: AIChurnInsightsProps) => {
 
     setLoading(true);
     try {
-      // Assess data quality before generating insights
-      const dataQualityScore = calculateDataQuality(customers);
-      const hasGoodData = dataQualityScore > 60;
-      
-      if (!hasGoodData) {
-        const lowQualityInsight = `
-DATA QUALITY ASSESSMENT:
-Your customer dataset has a quality score of ${dataQualityScore}% which limits the accuracy of insights.
-
-KEY DATA LIMITATIONS:
-${customers.length === 0 ? '• No customer data available' : ''}
-${customers.filter(c => !c.lastPurchaseDate).length > customers.length * 0.5 ? '• Missing purchase date information for most customers' : ''}
-${customers.filter(c => !c.totalSpent || c.totalSpent === 0).length > customers.length * 0.5 ? '• Missing or zero spending data for most customers' : ''}
-${customers.filter(c => !c.purchaseCount || c.purchaseCount === 0).length > customers.length * 0.5 ? '• Missing purchase count data for most customers' : ''}
-
-RECOMMENDATIONS FOR BETTER INSIGHTS:
-• Ensure your data includes customer purchase dates
-• Include total spending amounts for each customer
-• Add purchase frequency/count information
-• Consider including customer demographics (age, tenure)
-
-CURRENT ANALYSIS (Limited Confidence):
-With the available data, most customers appear to have incomplete information which may result in inflated risk scores.
-`;
-        setInsights(lowQualityInsight);
-        toast.warning('Insights generated with limited data quality - please review data completeness');
-        return;
-      }
-
       // Generate comprehensive analysis combining all insights
       const overview = await generateDataSummary(customers);
       const highRiskCustomers = customers.filter(c => 
-        c.riskScore >= 65 || c.segment === 'high-risk'
+        c.riskScore >= 70 || c.segment === 'high-risk'
       );
       const segment = highRiskCustomers.length > 0 ? 'high-risk' : 'medium-risk';
       const strategy = await generateRetentionStrategy(segment, customers);
       
       const combinedInsights = `
-DATA QUALITY SCORE: ${dataQualityScore}% (Good quality data available)
-
 PORTFOLIO OVERVIEW:
 ${overview}
 
@@ -90,12 +58,12 @@ ${strategy}
   };
 
   const getInsightStats = () => {
-    const highRisk = customers.filter(c => c.riskScore >= 65 || c.segment === 'high-risk').length;
+    const highRisk = customers.filter(c => c.riskScore >= 70 || c.segment === 'high-risk').length;
     const mediumRisk = customers.filter(c => 
-      (c.riskScore >= 35 && c.riskScore < 65) || c.segment === 'medium-risk'
+      (c.riskScore >= 30 && c.riskScore < 70) || c.segment === 'medium-risk'
     ).length;
     const atRiskRevenue = customers
-      .filter(c => c.riskScore >= 65 || c.segment === 'high-risk')
+      .filter(c => c.riskScore >= 70 || c.segment === 'high-risk')
       .reduce((sum, c) => sum + (c.totalSpent || 0), 0);
 
     return { highRisk, mediumRisk, atRiskRevenue };

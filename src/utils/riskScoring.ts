@@ -34,8 +34,8 @@ export const calculateEnhancedRiskScore = (metrics: CustomerMetrics): { score: n
   const now = new Date();
   const currentTime = now.getTime();
   
-  // Optimized Recency Score (40% weight) - More graceful handling of missing data
-  let recencyScore = 30; // Changed from 50 to be less pessimistic
+  // Optimized Recency Score (40% weight)
+  let recencyScore = 50;
   if (metrics.lastPurchaseDate) {
     const lastPurchaseTime = new Date(metrics.lastPurchaseDate).getTime();
     const daysSinceLastPurchase = Math.floor((currentTime - lastPurchaseTime) / 86400000); // 24*60*60*1000
@@ -50,42 +50,30 @@ export const calculateEnhancedRiskScore = (metrics: CustomerMetrics): { score: n
     else if (daysSinceLastPurchase <= 365) recencyScore = 85;
     else recencyScore = 95;
   } else {
-    recencyScore = 60; // Reduced penalty for missing data
+    recencyScore = 90;
   }
   
-  // Optimized Frequency Score (25% weight) - More graceful for missing data
-  const purchaseCount = metrics.purchaseCount;
-  let frequencyScore = 35; // More neutral default
+  // Optimized Frequency Score (25% weight)
+  const purchaseCount = metrics.purchaseCount || 0;
+  let frequencyScore = 50;
   
-  if (purchaseCount !== undefined && purchaseCount !== null) {
-    if (purchaseCount >= 50) frequencyScore = 5;
-    else if (purchaseCount >= 20) frequencyScore = 15;
-    else if (purchaseCount >= 10) frequencyScore = 25;
-    else if (purchaseCount >= 5) frequencyScore = 35;
-    else if (purchaseCount >= 2) frequencyScore = 50;
-    else if (purchaseCount === 1) frequencyScore = 70;
-    else if (purchaseCount === 0) frequencyScore = 80;
-  } else {
-    frequencyScore = 50; // Moderate penalty for missing data
-  }
+  if (purchaseCount >= 50) frequencyScore = 5;
+  else if (purchaseCount >= 20) frequencyScore = 15;
+  else if (purchaseCount >= 10) frequencyScore = 25;
+  else if (purchaseCount >= 5) frequencyScore = 35;
+  else if (purchaseCount >= 2) frequencyScore = 50;
+  else if (purchaseCount === 1) frequencyScore = 70;
+  else frequencyScore = 90;
   
-  // Optimized Monetary Score (20% weight) - Better handling of missing data
-  const totalSpent = metrics.totalSpent;
-  const avgOrderValue = metrics.avgOrderValue;
+  // Optimized Monetary Score (20% weight)
+  const totalSpent = metrics.totalSpent || 0;
+  const avgOrderValue = metrics.avgOrderValue || 0;
   
-  let monetaryScore = 40; // Neutral default
+  // Simplified tier calculation
+  const spendingTier = totalSpent > 10000 ? 1 : totalSpent > 5000 ? 2 : totalSpent > 1000 ? 3 : totalSpent > 500 ? 4 : totalSpent > 100 ? 5 : 6;
+  const orderValueTier = avgOrderValue > 500 ? 1 : avgOrderValue > 200 ? 2 : avgOrderValue > 100 ? 3 : avgOrderValue > 50 ? 4 : 5;
   
-  if (totalSpent !== undefined && totalSpent !== null) {
-    if (totalSpent > 10000) monetaryScore = 10;
-    else if (totalSpent > 5000) monetaryScore = 20;
-    else if (totalSpent > 1000) monetaryScore = 30;
-    else if (totalSpent > 500) monetaryScore = 40;
-    else if (totalSpent > 100) monetaryScore = 55;
-    else if (totalSpent > 0) monetaryScore = 70;
-    else monetaryScore = 80;
-  } else {
-    monetaryScore = 50; // Moderate penalty for missing spending data
-  }
+  const monetaryScore = Math.min(spendingTier, orderValueTier) * 15;
   
   // Optimized Behavioral Score (10% weight)
   let behavioralScore = 50;
@@ -160,8 +148,8 @@ export const calculateEnhancedRiskScore = (metrics: CustomerMetrics): { score: n
 
 // Enhanced segment determination with more granular categories
 export const determineEnhancedSegment = (riskScore: number): 'low-risk' | 'medium-risk' | 'high-risk' => {
-  if (riskScore < 35) return 'low-risk';
-  if (riskScore < 65) return 'medium-risk';
+  if (riskScore < 30) return 'low-risk';
+  if (riskScore < 70) return 'medium-risk';
   return 'high-risk';
 };
 
