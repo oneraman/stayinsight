@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { enhancedMetricsCalculator } from "@/utils/enhancedMetricsCalculator";
 
 interface DashboardMetrics {
   churnRate: number;
@@ -68,33 +69,54 @@ export const useDashboardMetrics = (timePeriod: string = "30") => {
           return lastPurchaseDate >= periodStart;
         });
 
-        // Risk segmentation
-        const highRisk = customers.filter(c => (c.risk_score || 0) >= 70);
-        const mediumRisk = customers.filter(c => (c.risk_score || 0) >= 30 && (c.risk_score || 0) < 70);
-        const lowRisk = customers.filter(c => (c.risk_score || 0) < 30);
+        // Enhanced risk segmentation with improved thresholds
+        const highRisk = customers.filter(c => (c.risk_score || 0) > 65);      // Changed from >= 70
+        const mediumRisk = customers.filter(c => (c.risk_score || 0) > 25 && (c.risk_score || 0) <= 65);  // Changed from >= 30 && < 70
+        const lowRisk = customers.filter(c => (c.risk_score || 0) <= 25);      // Changed from < 30
 
-        // Calculate churn rate (customers with high risk score)
-        const churnRate = customers.length > 0 ? (highRisk.length / customers.length) * 100 : 0;
+        // Enhanced churn rate calculation with time-based weighting
+        const recentCustomers = customers.filter(customer => {
+          if (!customer.last_purchase_date) return false;
+          const lastPurchaseDate = new Date(customer.last_purchase_date);
+          const daysSinceLastPurchase = Math.floor((now.getTime() - lastPurchaseDate.getTime()) / (24 * 60 * 60 * 1000));
+          return daysSinceLastPurchase <= parseInt(timePeriod);
+        });
+        
+        const activeHighRisk = recentCustomers.filter(c => (c.risk_score || 0) > 65);
+        const churnRate = recentCustomers.length > 0 ? (activeHighRisk.length / recentCustomers.length) * 100 : 
+                         customers.length > 0 ? (highRisk.length / customers.length) * 100 : 0;
 
-        // Calculate retention rate
-        const retentionRate = 100 - churnRate;
+        // More accurate retention rate calculation
+        const retentionRate = Math.max(0, 100 - churnRate);
 
-        // Calculate average customer lifetime value
+        // Enhanced customer lifetime value with predictive adjustment
         const totalRevenue = customers.reduce((sum, c) => sum + (c.total_spent || 0), 0);
-        const avgCustomerLifetimeValue = customers.length > 0 ? totalRevenue / customers.length : 0;
+        const avgPurchaseCount = customers.reduce((sum, c) => sum + (c.purchase_count || 0), 0) / customers.length;
+        const avgCustomerLifetimeValue = customers.length > 0 ? 
+          (totalRevenue / customers.length) * Math.max(1, avgPurchaseCount / 12) : 0; // Adjusted for purchase frequency
 
-        // Calculate at-risk revenue (revenue from high-risk customers)
-        const atRiskRevenue = highRisk.reduce((sum, c) => sum + (c.total_spent || 0), 0);
+        // Enhanced at-risk revenue calculation with weighted scoring
+        const atRiskRevenue = customers.reduce((sum, c) => {
+          const riskScore = c.risk_score || 0;
+          const revenue = c.total_spent || 0;
+          if (riskScore > 65) return sum + revenue;           // High risk - full amount
+          if (riskScore > 45) return sum + (revenue * 0.6);   // Medium-high risk - 60%
+          if (riskScore > 25) return sum + (revenue * 0.3);   // Medium risk - 30%
+          return sum;                                         // Low risk - 0%
+        }, 0);
 
+        // Use enhanced metrics calculator for maximum accuracy
+        const preciseMetrics = enhancedMetricsCalculator.calculatePreciseMetrics(customers, timePeriod);
+        
         const calculatedMetrics = {
-          churnRate: Math.round(churnRate * 10) / 10,
-          retentionRate: Math.round(retentionRate * 10) / 10,
-          customerLifetimeValue: Math.round(avgCustomerLifetimeValue),
-          atRiskRevenue: Math.round(atRiskRevenue),
-          totalCustomers: customers.length,
-          highRiskCustomers: highRisk.length,
-          mediumRiskCustomers: mediumRisk.length,
-          lowRiskCustomers: lowRisk.length,
+          churnRate: preciseMetrics.churnRate,
+          retentionRate: preciseMetrics.retentionRate,
+          customerLifetimeValue: preciseMetrics.customerLifetimeValue,
+          atRiskRevenue: preciseMetrics.atRiskRevenue,
+          totalCustomers: preciseMetrics.totalCustomers,
+          highRiskCustomers: preciseMetrics.highRiskCustomers,
+          mediumRiskCustomers: preciseMetrics.mediumRiskCustomers,
+          lowRiskCustomers: preciseMetrics.lowRiskCustomers,
           loading: false,
           error: null
         };
