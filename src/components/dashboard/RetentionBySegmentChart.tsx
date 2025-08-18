@@ -38,19 +38,19 @@ const RetentionBySegmentChart = () => {
               name="At Risk"
               dataKey="atRisk"
               stackId="a"
-              fill="#F56565"
+              fill="hsl(var(--risk-high))"
             />
             <Bar
               name="Stable"
               dataKey="stable"
               stackId="a"
-              fill="#68D391"
+              fill="hsl(var(--risk-low))"
             />
             <Bar
               name="Growing"
               dataKey="growing"
               stackId="a"
-              fill="#4C51BF"
+              fill="hsl(var(--chart-1))"
             />
           </BarChart>
         </ResponsiveContainer>

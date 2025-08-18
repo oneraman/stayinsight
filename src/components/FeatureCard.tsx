@@ -13,14 +13,14 @@ const FeatureCard = ({ icon, title, description }: FeatureCardProps) => {
     <Card className="card-hover border-none shadow-md">
       <CardHeader>
         <div className="flex items-center space-x-2">
-          <div className="p-2 rounded-full bg-[#5E5AFF]/10 text-[#5E5AFF]">
+          <div className="p-2 rounded-full bg-primary/10 text-primary">
             {icon}
           </div>
           <CardTitle className="text-xl">{title}</CardTitle>
         </div>
       </CardHeader>
       <CardContent>
-        <CardDescription className="text-gray-600">
+        <CardDescription className="text-muted-foreground">
           {description}
         </CardDescription>
       </CardContent>
