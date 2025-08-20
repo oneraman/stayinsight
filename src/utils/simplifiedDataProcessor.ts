@@ -33,8 +33,26 @@ export class SimplifiedDataProcessor {
     
     const errors: string[] = [];
     const warnings: string[] = [];
-
+    let session: any | null = null;
     try {
+      // Create upload session for tracking
+      const { data: sessionData, error: sessionError } = await supabase
+        .from('upload_sessions')
+        .insert({
+          user_id: userId,
+          file_name: file.name,
+          file_size: file.size,
+          total_rows: 0,
+          processed_rows: 0,
+          status: 'uploading'
+        })
+        .select()
+        .single();
+      session = sessionData || null;
+      if (sessionError) {
+        console.warn('⚠️ Could not create upload session:', sessionError.message);
+      }
+
       // Step 1: Parse File (0-30%)
       onProgress?.({
         phase: 'parsing',
@@ -44,6 +62,13 @@ export class SimplifiedDataProcessor {
 
       const { data, headers } = await this.parseFile(file);
       console.log('📊 File parsed:', { rows: data.length, headers: headers.length });
+
+      if (session) {
+        await supabase
+          .from('upload_sessions')
+          .update({ total_rows: data.length, status: 'processing' })
+          .eq('id', session.id);
+      }
 
       if (data.length === 0) {
         throw new Error('No data found in the file');
@@ -82,7 +107,7 @@ export class SimplifiedDataProcessor {
         message: 'Storing data in database...'
       });
 
-      const insertedCount = await this.storeCustomers(customerRecords, onProgress);
+      const insertedCount = await this.storeCustomers(customerRecords, onProgress, session?.id);
       console.log('💾 Stored customers:', insertedCount);
 
       if (insertedCount === 0) {
@@ -98,6 +123,14 @@ export class SimplifiedDataProcessor {
 
       const endTime = performance.now();
       console.log('🎉 Processing completed successfully!');
+
+      // Mark session as completed
+      if (session) {
+        await supabase
+          .from('upload_sessions')
+          .update({ status: 'completed' })
+          .eq('id', session.id);
+      }
 
       return {
         success: true,
@@ -119,6 +152,18 @@ export class SimplifiedDataProcessor {
         progress: 100,
         message: `Processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       });
+
+      // Mark session as failed
+      if (session) {
+        try {
+          await supabase
+            .from('upload_sessions')
+            .update({ status: 'failed', error_message: error instanceof Error ? error.message : String(error) })
+            .eq('id', session.id);
+        } catch (e) {
+          console.warn('⚠️ Failed to update upload session status:', e);
+        }
+      }
 
       return {
         success: false,
@@ -225,7 +270,8 @@ export class SimplifiedDataProcessor {
 
   private async storeCustomers(
     customers: any[],
-    onProgress?: (progress: ProcessingProgress) => void
+    onProgress?: (progress: ProcessingProgress) => void,
+    sessionId?: string
   ): Promise<number> {
     console.log('💾 Storing customers in database...');
     
@@ -263,6 +309,14 @@ export class SimplifiedDataProcessor {
           progress,
           message: `Stored batch ${batchIndex + 1} of ${batches}`
         });
+
+        // Update upload session progress
+        if (sessionId) {
+          await supabase
+            .from('upload_sessions')
+            .update({ processed_rows: totalInserted })
+            .eq('id', sessionId);
+        }
 
       } catch (error) {
         console.error(`❌ Failed to insert batch ${batchIndex + 1}:`, error);

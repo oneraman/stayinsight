@@ -46,7 +46,7 @@ export class RobustDataProcessor {
     
     const errors: string[] = [];
     const warnings: string[] = [];
-    
+    let session: any | null = null;
     if (!userId || !this.isValidUUID(userId)) {
       const error = `Invalid user ID: ${userId}`;
       console.error('❌', error);
@@ -54,6 +54,24 @@ export class RobustDataProcessor {
     }
 
     try {
+      // Create upload session for tracking
+      const { data: sessionData, error: sessionError } = await supabase
+        .from('upload_sessions')
+        .insert({
+          user_id: userId,
+          file_name: file.name,
+          file_size: file.size,
+          total_rows: 0,
+          processed_rows: 0,
+          status: 'uploading'
+        })
+        .select()
+        .single();
+      session = sessionData || null;
+      if (sessionError) {
+        console.warn('⚠️ Could not create upload session:', sessionError.message);
+      }
+
       // Phase 1: Parse File (0-20%)
       onProgress?.({
         phase: 'parsing',
@@ -64,6 +82,12 @@ export class RobustDataProcessor {
       const { data, headers } = await this.parseFileWithLogging(file);
       console.log('✅ File parsed successfully:', { rows: data.length, headers: headers.length });
 
+      if (session) {
+        await supabase
+          .from('upload_sessions')
+          .update({ total_rows: data.length, status: 'processing' })
+          .eq('id', session.id);
+      }
       onProgress?.({
         phase: 'parsing',
         progress: 15,
@@ -101,7 +125,7 @@ export class RobustDataProcessor {
         message: 'Storing customer data in database...'
       });
 
-      const insertedCount = await this.storeCustomersWithRobustHandling(customerRecords, onProgress);
+      const insertedCount = await this.storeCustomersWithRobustHandling(customerRecords, onProgress, session?.id);
       console.log('💾 Successfully stored customers:', insertedCount);
 
       if (insertedCount === 0) {
@@ -143,6 +167,14 @@ export class RobustDataProcessor {
       console.log('🎉 Robust processing completed successfully!');
       console.log(`📊 Final stats: ${insertedCount} customers stored, ${totalTime.toFixed(2)}ms total time`);
 
+      // Mark session as completed
+      if (session) {
+        await supabase
+          .from('upload_sessions')
+          .update({ status: 'completed' })
+          .eq('id', session.id);
+      }
+
       return {
         success: true,
         customersProcessed: insertedCount,
@@ -168,6 +200,18 @@ export class RobustDataProcessor {
         progress: 100,
         message: `Processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       });
+
+      // Mark session as failed
+      if (session) {
+        try {
+          await supabase
+            .from('upload_sessions')
+            .update({ status: 'failed', error_message: error instanceof Error ? error.message : String(error) })
+            .eq('id', session.id);
+        } catch (e) {
+          console.warn('⚠️ Failed to update upload session status:', e);
+        }
+      }
 
       return {
         success: false,
@@ -287,7 +331,8 @@ export class RobustDataProcessor {
 
   private async storeCustomersWithRobustHandling(
     customerRecords: any[], 
-    onProgress?: (progress: ProcessingProgress) => void
+    onProgress?: (progress: ProcessingProgress) => void,
+    sessionId?: string
   ): Promise<number> {
     console.log('💾 Starting robust database storage...');
     console.log('📊 Records to store:', customerRecords.length);
@@ -332,6 +377,14 @@ export class RobustDataProcessor {
           progress,
           message: `Stored batch ${batchIndex + 1} of ${batches} (${totalInserted} customers)`
         });
+
+        // Update upload session progress
+        if (sessionId) {
+          await supabase
+            .from('upload_sessions')
+            .update({ processed_rows: totalInserted })
+            .eq('id', sessionId);
+        }
 
         // Small delay between batches
         if (batchIndex < batches - 1) {
