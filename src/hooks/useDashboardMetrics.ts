@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { enhancedMetricsCalculator } from "@/utils/enhancedMetricsCalculator";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface DashboardMetrics {
   churnRate: number;
@@ -16,6 +17,7 @@ interface DashboardMetrics {
 }
 
 export const useDashboardMetrics = (timePeriod: string = "30") => {
+  const { currentUser } = useAuth();
   const [metrics, setMetrics] = useState<DashboardMetrics>({
     churnRate: 0,
     retentionRate: 0,
@@ -31,15 +33,25 @@ export const useDashboardMetrics = (timePeriod: string = "30") => {
 
   useEffect(() => {
     const calculateMetrics = async () => {
+      if (!currentUser) {
+        setMetrics(prev => ({ 
+          ...prev, 
+          loading: false, 
+          error: "Please log in to view metrics" 
+        }));
+        return;
+      }
+
       try {
         setMetrics(prev => ({ ...prev, loading: true, error: null }));
         
-        console.log('📊 Fetching customer data from Supabase...');
+        console.log('📊 Fetching customer data from Supabase for user:', currentUser.id);
         
-        // Get all customers from Supabase
+        // Get all customers from Supabase for the authenticated user
         const { data: customers, error } = await supabase
           .from('customers')
           .select('*')
+          .eq('user_id', currentUser.id)
           .order('risk_score', { ascending: false });
 
         if (error) {
@@ -135,7 +147,7 @@ export const useDashboardMetrics = (timePeriod: string = "30") => {
     };
 
     calculateMetrics();
-  }, [timePeriod]);
+  }, [timePeriod, currentUser]);
 
   return metrics;
 };

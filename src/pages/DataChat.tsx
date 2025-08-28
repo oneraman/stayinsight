@@ -37,7 +37,12 @@ const DataChat = () => {
         setDataError(null);
         console.log("📊 Fetching customer data for chat...");
         
-        const customers = await getCustomers(1000); // Get up to 1000 customers
+        if (!currentUser) {
+          setDataError("Please log in to access data chat");
+          return;
+        }
+
+        const customers = await getCustomers(currentUser.id, 1000); // Get up to 1000 customers for current user
         
         if (!customers || customers.length === 0) {
           setDataError("No customer data available. Please upload customer data first.");
@@ -96,7 +101,7 @@ What would you like to know about your customers?`,
     };
 
     fetchCustomerData();
-  }, []);
+  }, [currentUser]);
 
   // Auto-scroll to bottom when new messages are added
   useEffect(() => {

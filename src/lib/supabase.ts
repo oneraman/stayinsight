@@ -264,13 +264,14 @@ export const insertCustomers = async (customers: Omit<CustomerRecord, 'id' | 'cr
   }
 };
 
-export const getCustomers = async (limit = 100) => {
+export const getCustomers = async (userId: string, limit = 100) => {
   try {
-    console.log('🔄 Fetching customers from Supabase...');
+    console.log('🔄 Fetching customers from Supabase for user:', userId);
     
     const { data, error } = await supabase
       .from('customers')
       .select('*')
+      .eq('user_id', userId)
       .order('risk_score', { ascending: false })
       .limit(limit);
     
@@ -285,14 +286,15 @@ export const getCustomers = async (limit = 100) => {
   }
 };
 
-export const getCustomerById = async (id: string) => {
+export const getCustomerById = async (id: string, userId: string) => {
   try {
-    console.log('🔄 Fetching customer by ID:', id);
+    console.log('🔄 Fetching customer by ID:', id, 'for user:', userId);
     
     const { data, error } = await supabase
       .from('customers')
       .select('*')
       .eq('id', id)
+      .eq('user_id', userId)
       .single();
     
     if (error) {

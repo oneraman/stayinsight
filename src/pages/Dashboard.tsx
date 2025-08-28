@@ -139,10 +139,18 @@ const Dashboard = () => {
         setConnectionError(configError);
         return;
       }
+
+      if (!currentUser) {
+        console.log("🔒 User not authenticated, skipping customer fetch");
+        setLoadingCustomers(false);
+        setConnectionError("Please log in to view your data");
+        return;
+      }
+
       try {
         setLoadingCustomers(true);
         setConnectionError(null);
-        console.log("📊 Fetching customers from Supabase...");
+        console.log("📊 Fetching customers from Supabase for user:", currentUser.id);
         console.log("🔄 Testing Supabase connection before fetching data...");
         const isConnected = await testSupabaseConnection();
         if (!isConnected) {
@@ -151,6 +159,7 @@ const Dashboard = () => {
         const { data: customers, error } = await supabase
           .from('customers')
           .select('*')
+          .eq('user_id', currentUser.id)
           .order('risk_score', { ascending: false })
           .limit(100);
         if (error) {
@@ -212,7 +221,7 @@ const Dashboard = () => {
       }
     };
     fetchCustomers();
-  }, [refreshTrigger, configError]);
+  }, [refreshTrigger, configError, currentUser]);
 
   const handleUploadClick = () => setShowUploadDialog(true);
   const handleExportClick = () => setShowExportDialog(true);

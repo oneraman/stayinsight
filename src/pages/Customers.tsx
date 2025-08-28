@@ -10,6 +10,7 @@ import { Loader2, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import CustomerSearch from "@/components/CustomerSearch";
 import ExportDialog from "@/components/data-export/ExportDialog";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Customers = () => {
   const [customers, setCustomers] = useState<CustomerData[]>([]);
@@ -22,16 +23,25 @@ const Customers = () => {
   const itemsPerPage = 20;
   const navigate = useNavigate();
 
+  const { currentUser } = useAuth();
+
   useEffect(() => {
     const fetchCustomers = async () => {
+      if (!currentUser) {
+        setLoading(false);
+        setError("Please log in to view your customer data");
+        return;
+      }
+
       try {
         setLoading(true);
-        console.log("📊 Fetching customers from Supabase...");
+        console.log("📊 Fetching customers from Supabase for user:", currentUser.id);
         
         // Get total count for pagination
         const { count, error: countError } = await supabase
           .from('customers')
-          .select('*', { count: 'exact', head: true });
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', currentUser.id);
         
         if (countError) {
           throw new Error(`Failed to get customer count: ${countError.message}`);
@@ -46,6 +56,7 @@ const Customers = () => {
         const { data: supabaseCustomers, error } = await supabase
           .from('customers')
           .select('*')
+          .eq('user_id', currentUser.id)
           .order('risk_score', { ascending: false })
           .range(startIndex, endIndex);
         
@@ -88,16 +99,21 @@ const Customers = () => {
     };
 
     fetchCustomers();
-  }, [currentPage]);
+  }, [currentPage, currentUser]);
 
   // Fetch all customers for export (not just current page)
   const fetchAllCustomers = async (): Promise<CustomerData[]> => {
+    if (!currentUser) {
+      throw new Error("User not authenticated");
+    }
+
     try {
-      console.log("📊 Fetching all customers for export...");
+      console.log("📊 Fetching all customers for export for user:", currentUser.id);
       
       const { data: supabaseCustomers, error } = await supabase
         .from('customers')
         .select('*')
+        .eq('user_id', currentUser.id)
         .order('risk_score', { ascending: false });
       
       if (error) {
