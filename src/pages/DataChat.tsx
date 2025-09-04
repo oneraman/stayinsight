@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, MessagesSquare, User, Send, Database, AlertCircle } from "lucide-react";
 import { getCustomers } from "@/lib/supabase";
-import { generateSecureDataChatResponse } from "@/lib/enhancedGemini";
+import { generateSecureDataChatResponse, sendDataChatMessage } from "@/lib/enhancedGemini";
 import { CustomerData } from "@/utils/dataProcessing";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -28,6 +28,7 @@ const DataChat = () => {
   const [dataError, setDataError] = useState<string | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
   // Fetch customer data on component mount
   useEffect(() => {
@@ -129,12 +130,16 @@ What would you like to know about your customers?`,
 
     try {
       console.log("🤖 Generating AI response for:", userMessage.content);
-      const aiResponse = await generateSecureDataChatResponse(userMessage.content, customerData);
-      
+      const { response, sessionId: newSessionId } = await sendDataChatMessage(
+        userMessage.content,
+        customerData,
+        { sessionId: sessionId ?? undefined, title: 'Data Chat' }
+      );
+      if (!sessionId && newSessionId) setSessionId(newSessionId);
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
-        content: aiResponse,
+        content: response,
         timestamp: new Date()
       };
 

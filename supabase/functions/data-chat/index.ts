@@ -35,10 +35,38 @@ serve(async (req) => {
       throw new Error('Unauthorized')
     }
 
-    const { question, customerData } = await req.json()
+    const { question, customerData, sessionId: incomingSessionId, title } = await req.json()
 
     if (!question || !customerData) {
       throw new Error('Question and customer data are required')
+    }
+
+    const userId = user.id
+    let sessionId = incomingSessionId as string | undefined
+
+    // Ensure a valid session exists and belongs to the current user
+    if (sessionId) {
+      const { data: session, error: sessionErr } = await supabase
+        .from('data_chat_sessions')
+        .select('id,user_id')
+        .eq('id', sessionId)
+        .maybeSingle()
+
+      if (sessionErr || !session || session.user_id !== userId) {
+        throw new Error('Invalid or unauthorized session')
+      }
+    } else {
+      const derivedTitle = (title || question).slice(0, 80)
+      const { data: newSession, error: createErr } = await supabase
+        .from('data_chat_sessions')
+        .insert({ user_id: userId, title: derivedTitle })
+        .select('id')
+        .single()
+
+      if (createErr || !newSession) {
+        throw new Error('Failed to create chat session')
+      }
+      sessionId = newSession.id
     }
 
     // Prepare data summary for better context
@@ -86,6 +114,11 @@ Instructions:
 
 Please provide a helpful and insightful response:`
 
+    // Persist user message
+    await supabase
+      .from('data_chat_messages')
+      .insert({ session_id: sessionId!, user_id: userId, role: 'user', content: question });
+
     // Call Gemini API
     const response = await fetch(`${GEMINI_API_URL}?key=${geminiApiKey}`, {
       method: 'POST',
@@ -120,8 +153,13 @@ Please provide a helpful and insightful response:`
       throw new Error('No response from Gemini API')
     }
 
+    // Persist AI response message
+    await supabase
+      .from('data_chat_messages')
+      .insert({ session_id: sessionId!, user_id: userId, role: 'ai', content: aiResponse });
+
     return new Response(
-      JSON.stringify({ response: aiResponse }),
+      JSON.stringify({ response: aiResponse, sessionId }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,

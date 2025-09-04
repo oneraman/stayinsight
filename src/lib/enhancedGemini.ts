@@ -1,16 +1,19 @@
 import { supabase } from "@/lib/supabase";
 import { CustomerData } from "@/utils/dataProcessing";
 
-export const generateSecureDataChatResponse = async (
-  question: string, 
-  customerData: CustomerData[]
-): Promise<string> => {
+export type DataChatResult = { response: string; sessionId: string };
+
+export const sendDataChatMessage = async (
+  question: string,
+  customerData: CustomerData[],
+  options?: { sessionId?: string; title?: string }
+): Promise<DataChatResult> => {
   try {
-    console.log("🔒 Using secure Supabase edge function for AI response");
-    
+    console.log("🔒 Using secure Supabase edge function for AI response with session support");
+
     // Get the current session
     const { data: { session } } = await supabase.auth.getSession();
-    
+
     if (!session?.access_token) {
       throw new Error('Authentication required');
     }
@@ -19,7 +22,9 @@ export const generateSecureDataChatResponse = async (
     const { data, error } = await supabase.functions.invoke('data-chat', {
       body: {
         question,
-        customerData
+        customerData,
+        sessionId: options?.sessionId,
+        title: options?.title,
       },
       headers: {
         Authorization: `Bearer ${session.access_token}`,
@@ -35,12 +40,31 @@ export const generateSecureDataChatResponse = async (
       throw new Error('No response received from AI service');
     }
 
-    console.log("✅ Secure AI response generated successfully");
-    return data.response;
+    const result: DataChatResult = {
+      response: data.response,
+      sessionId: data.sessionId,
+    };
+
+    console.log("✅ Secure AI response generated and stored successfully");
+    return result;
 
   } catch (error) {
     console.error("❌ Error in secure data chat:", error);
-    
+    if (error instanceof Error) throw error;
+    throw new Error('Unknown error occurred');
+  }
+};
+
+export const generateSecureDataChatResponse = async (
+  question: string, 
+  customerData: CustomerData[]
+): Promise<string> => {
+  try {
+    const { response } = await sendDataChatMessage(question, customerData);
+    return response;
+  } catch (error) {
+    console.error("❌ Error in secure data chat:", error);
+
     // Fallback error message
     if (error instanceof Error) {
       if (error.message.includes('API key')) {
@@ -50,7 +74,7 @@ export const generateSecureDataChatResponse = async (
         return "Authentication required. Please log in again to use the data chat feature.";
       }
     }
-    
+
     return "I apologize, but I encountered an error while processing your question. Please try again later or contact support if the issue persists.";
   }
 };
