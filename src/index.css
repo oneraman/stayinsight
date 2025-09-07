@@ -35,13 +35,15 @@
 
     --radius: 0.75rem;
 
-    /* Enhanced Analytics colors */
-    --success: 142 76% 36%;
-    --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 222 47% 11%;
-    --info: 199 89% 48%;
-    --info-foreground: 0 0% 100%;
+    /* Modern SaaS theme */
+    --risk-low: 142 71% 45%; /* Green for low risk */
+    --risk-medium: 38 92% 50%; /* Orange for medium risk */
+    --risk-high: 0 84% 60%; /* Red for high risk */
+    --info: 217 91% 60%; /* Blue for info */
+    
+    /* Card styles */
+    --card-shadow: 0 1px 3px 0 hsl(var(--foreground) / 0.1), 0 1px 2px 0 hsl(var(--foreground) / 0.06);
+    --card-shadow-hover: 0 4px 6px -1px hsl(var(--foreground) / 0.1), 0 2px 4px -1px hsl(var(--foreground) / 0.06);
     
     /* Chart colors */
     --chart-1: 247 94% 68%;
@@ -49,11 +51,6 @@
     --chart-3: 142 76% 36%;
     --chart-4: 38 92% 50%;
     --chart-5: 0 84% 60%;
-    
-    /* Risk levels */
-    --risk-high: 0 84% 60%;
-    --risk-medium: 38 92% 50%;
-    --risk-low: 142 76% 36%;
     
     /* Brand colors */
     --brand-primary: 247 94% 68%;
@@ -145,26 +142,53 @@
 }
 
 @layer components {
-  /* Modern card styles */
-  .card-hover {
-    @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:shadow-primary/10;
-  }
-  
-  .dashboard-card {
-    @apply bg-card rounded-xl p-6 border border-border hover:shadow-lg transition-all duration-300 backdrop-blur-sm;
-  }
-  
-  .metric-card {
-    @apply bg-gradient-to-br from-card to-muted/20 rounded-xl p-6 border border-border/50 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300;
-  }
-  
-  .metric-value {
-    @apply text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
-  }
-  
-  .metric-label {
-    @apply text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors;
-  }
+/* Modern SaaS Dashboard styles */
+.dashboard-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  box-shadow: var(--card-shadow);
+  transition: box-shadow 0.2s ease;
+}
+
+.dashboard-card:hover {
+  box-shadow: var(--card-shadow-hover);
+}
+
+.metric-value {
+  @apply text-2xl font-bold;
+}
+
+.kpi-badge {
+  @apply inline-flex items-center rounded-full px-2 py-1 text-xs font-medium;
+}
+
+.kpi-badge.low-risk {
+  @apply bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400;
+}
+
+.kpi-badge.medium-risk {
+  @apply bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400;
+}
+
+.kpi-badge.high-risk {
+  @apply bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400;
+}
+
+.kpi-badge.info {
+  @apply bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400;
+}
+
+.chart-container {
+  @apply bg-card border border-border rounded-lg shadow-sm p-6;
+}
+
+.ai-insight-card {
+  @apply bg-card border border-border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow;
+}
+
+.table-container {
+  @apply bg-card border border-border rounded-lg shadow-sm overflow-hidden;
+}
   
   /* Analytics specific styles */
   .analytics-gradient {

@@ -76,6 +76,9 @@ export default {
 					foreground: 'hsl(var(--info-foreground))'
 				}
 			},
+			fontFamily: {
+				sans: ["Inter", "sans-serif"],
+			},
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
