@@ -1,21 +1,58 @@
 import { ReactNode, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Users, Settings, ChevronLeft, ChevronRight, Upload, LogOut, History, MessageSquare } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { 
+  LayoutDashboard, 
+  Users, 
+  Settings, 
+  ChevronLeft, 
+  ChevronRight, 
+  Upload, 
+  LogOut, 
+  History, 
+  MessageSquare,
+  Search,
+  RefreshCw,
+  Download,
+  Bell,
+  User
+} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 interface DashboardLayoutProps {
   children: ReactNode;
+  onUpload?: () => void;
+  onRefresh?: () => void;
+  onExport?: () => void;
+  isRefreshing?: boolean;
+  hasData?: boolean;
 }
 
 const DashboardLayout = ({
-  children
+  children,
+  onUpload,
+  onRefresh,
+  onExport,
+  isRefreshing = false,
+  hasData = true
 }: DashboardLayoutProps) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const { logOut } = useAuth();
+  const [activeFilter, setActiveFilter] = useState("30 Days");
+  const [searchQuery, setSearchQuery] = useState("");
+  const { currentUser, logOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -45,6 +82,24 @@ const DashboardLayout = ({
     
     return `${baseClasses} ${isActiveRoute(path) ? activeClasses : inactiveClasses}`;
   };
+
+  const timeFilters = ["7 Days", "30 Days", "90 Days"];
+
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return "U";
+    return name
+      .split(" ")
+      .map(part => part[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2);
+  };
+
+  const displayName = currentUser?.user_metadata?.display_name || 
+                     currentUser?.email?.split('@')[0] || 
+                     'User';
+
+  const avatarUrl = currentUser?.user_metadata?.avatar_url;
 
   return (
     <div className="min-h-screen bg-gray-50 flex dark:bg-gray-900 transition-colors duration-300">
@@ -157,8 +212,140 @@ const DashboardLayout = ({
 
       {/* Main content */}
       <div className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'ml-20' : 'ml-64'}`}>
-        <DashboardHeader />
-        <main className="flex-1 p-6 bg-gray-50">
+        {/* Modern Dashboard Header */}
+        <div className="bg-white border-b border-gray-200 sticky top-0 z-20">
+          <div className="px-6 py-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              {/* Title and filters */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <h1 className="text-2xl font-bold text-gray-900">Customer Retention Dashboard</h1>
+                <div className="flex gap-2">
+                  {timeFilters.map((filter) => (
+                    <Badge
+                      key={filter}
+                      variant={activeFilter === filter ? "default" : "outline"}
+                      className="cursor-pointer px-3 py-1"
+                      onClick={() => setActiveFilter(filter)}
+                    >
+                      {filter}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              {/* Search and actions */}
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search customers, reports..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 w-full sm:w-64"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="icon" className="relative">
+                    <Bell className="h-5 w-5 text-gray-500" />
+                    <Badge className="absolute top-1 right-1 w-2 h-2 p-0 bg-red-500" />
+                  </Button>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                        <Avatar className="h-8 w-8 border border-gray-200">
+                          <AvatarImage 
+                            src={avatarUrl || ""} 
+                            alt={displayName} 
+                          />
+                          <AvatarFallback className="bg-primary/10 text-primary">
+                            {getInitials(displayName)}
+                          </AvatarFallback>
+                        </Avatar>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56" align="end" forceMount>
+                      <DropdownMenuLabel>
+                        <div className="flex flex-col space-y-1">
+                          <p className="text-sm font-medium">
+                            {displayName}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {currentUser?.email || ""}
+                          </p>
+                        </div>
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link to="/settings" className="cursor-pointer flex w-full items-center">
+                          <Settings className="mr-2 h-4 w-4" />
+                          <span>Settings</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/history" className="cursor-pointer flex w-full items-center">
+                          <History className="mr-2 h-4 w-4" />
+                          <span>Upload History</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/profile" className="cursor-pointer flex w-full items-center">
+                          <User className="mr-2 h-4 w-4" />
+                          <span>Profile</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        className="cursor-pointer"
+                        onClick={() => logOut()}
+                      >
+                        <LogOut className="mr-2 h-4 w-4" />
+                        <span>Log out</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  <Button onClick={onUpload} className="gap-2">
+                    <Upload className="h-4 w-4" />
+                    Upload Data
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    onClick={onRefresh}
+                    disabled={isRefreshing}
+                    className="gap-2"
+                  >
+                    {isRefreshing ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        Refreshing...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-4 w-4" />
+                        Refresh
+                      </>
+                    )}
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    onClick={onExport}
+                    disabled={!hasData}
+                    className="gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    Export
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <main className="flex-1 bg-gray-50">
           {children}
         </main>
       </div>

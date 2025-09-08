@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import ModernDashboardHeader from "@/components/dashboard/ModernDashboardHeader";
+
 import ModernKPICards from "@/components/dashboard/ModernKPICards";
 import ModernChartsGrid from "@/components/dashboard/ModernChartsGrid";
 import ModernAIInsights from "@/components/dashboard/ModernAIInsights";
@@ -202,7 +202,7 @@ const Dashboard = () => {
 
   return (
     <>
-      <ModernDashboardHeader 
+      <DashboardLayout
         onUpload={handleUploadClick}
         onRefresh={() => {
           // Show alert dialog instead of direct refresh
@@ -215,10 +215,8 @@ const Dashboard = () => {
         onExport={handleExportClick}
         isRefreshing={isRefreshing}
         hasData={allCustomers.length > 0}
-      />
-
-      <DashboardLayout>
-        <div className="max-w-7xl mx-auto px-4 py-6">
+      >
+        <div className="max-w-7xl mx-auto px-6 py-6">
           {/* Configuration Error Alert */}
           {configError && (
             <Alert className="border-red-200 bg-red-50 mb-6">
