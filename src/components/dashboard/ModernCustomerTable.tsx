@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table";
 import { Search, Filter, ArrowUpDown, Eye, ChevronLeft, ChevronRight } from "lucide-react";
 
-interface CustomerData {
+interface TableCustomerData {
   company: string;
   risk: "High" | "Medium" | "Low";
   lastPurchase: string;
@@ -29,10 +29,10 @@ interface CustomerData {
 }
 
 interface ModernCustomerTableProps {
-  customers?: CustomerData[];
+  customers?: TableCustomerData[];
 }
 
-const defaultCustomers: CustomerData[] = [
+const defaultCustomers: TableCustomerData[] = [
   { company: "Acme Corp", risk: "High", lastPurchase: "2025-08-01", spent: "$12,300", segment: "High Value" },
   { company: "Beta LLC", risk: "Medium", lastPurchase: "2025-07-22", spent: "$3,200", segment: "Mid Value" },
   { company: "Gamma Inc", risk: "Low", lastPurchase: "2025-09-02", spent: "$980", segment: "Low Value" },
@@ -78,8 +78,8 @@ const ModernCustomerTable = ({ customers = defaultCustomers }: ModernCustomerTab
       return matchesSearch && matchesRisk && matchesSegment;
     })
     .sort((a, b) => {
-      let aValue: any = a[sortBy as keyof CustomerData];
-      let bValue: any = b[sortBy as keyof CustomerData];
+      let aValue: any = a[sortBy as keyof TableCustomerData];
+      let bValue: any = b[sortBy as keyof TableCustomerData];
       
       if (sortBy === "spent") {
         aValue = parseFloat(aValue.replace(/[\$,]/g, ""));

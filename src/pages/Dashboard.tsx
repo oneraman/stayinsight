@@ -32,7 +32,7 @@ import { useAuth } from "@/contexts/AuthContext";
 const Dashboard = () => {
   const { currentUser } = useAuth();
   const [timePeriod, setTimePeriod] = useState("30");
-  const [allCustomers, setAllCustomers] = useState<CustomerData[]>([]);
+  const [allCustomers, setAllCustomers] = useState<any[]>([]);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
@@ -141,11 +141,11 @@ const Dashboard = () => {
         if (data && data.length > 0) {
           // Transform database data to match ModernCustomerTable interface
           const transformedData = data.map(customer => ({
-            company: customer.name,
-            risk: customer.risk_score > 0.7 ? 'High' : customer.risk_score > 0.4 ? 'Medium' : 'Low' as const,
-            lastPurchase: customer.last_purchase_date,
-            spent: `$${customer.total_spent.toLocaleString()}`,
-            segment: customer.total_spent > 10000 ? 'High Value' : customer.total_spent > 5000 ? 'Mid Value' : 'Low Value' as const
+            company: customer.name || 'Unknown Company',
+            risk: (customer.risk_score || 0) > 0.7 ? 'High' : (customer.risk_score || 0) > 0.4 ? 'Medium' : 'Low' as const,
+            lastPurchase: customer.last_purchase_date || new Date().toISOString().split('T')[0],
+            spent: `$${(customer.total_spent || 0).toLocaleString()}`,
+            segment: (customer.total_spent || 0) > 10000 ? 'High Value' : (customer.total_spent || 0) > 5000 ? 'Mid Value' : 'Low Value' as const
           }));
           setAllCustomers(transformedData);
         } else {
