@@ -212,8 +212,114 @@ const DashboardLayout = ({
 
       {/* Main content */}
       <div className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'ml-20' : 'ml-64'}`}>
-        {/* Modern Dashboard Header */}
-        <div className="bg-white border-b border-gray-200 sticky top-0 z-20">
+        {/* Top Navigation Bar */}
+        <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6 z-30">
+          <div className="flex items-center gap-4">
+            <Link to="/dashboard" className="text-xl font-bold text-primary">
+              StayInsightAI
+            </Link>
+            
+            <nav className="hidden lg:flex gap-6 text-sm">
+              <Link 
+                to="/dashboard" 
+                className={`${isActiveRoute('/dashboard') 
+                  ? 'text-gray-900 font-medium border-b-2 border-primary pb-1' 
+                  : 'text-gray-500 hover:text-gray-900'}`}
+              >
+                Dashboard
+              </Link>
+              <Link 
+                to="/customers" 
+                className={`${isActiveRoute('/customers') 
+                  ? 'text-gray-900 font-medium border-b-2 border-primary pb-1' 
+                  : 'text-gray-500 hover:text-gray-900'}`}
+              >
+                Customers
+              </Link>
+              <Link 
+                to="/history" 
+                className={`${isActiveRoute('/history') 
+                  ? 'text-gray-900 font-medium border-b-2 border-primary pb-1' 
+                  : 'text-gray-500 hover:text-gray-900'}`}
+              >
+                Upload History
+              </Link>
+            </nav>
+          </div>
+          
+          <div className="hidden md:flex items-center relative max-w-md w-full mx-8">
+            <Search className="h-4 w-4 absolute left-3 text-gray-400" />
+            <Input 
+              placeholder="Search customers, reports..." 
+              className="pl-9 bg-gray-50 border-gray-200 focus-visible:ring-primary"
+            />
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" className="relative">
+              <Bell className="h-5 w-5 text-gray-500" />
+              <Badge className="absolute top-1 right-1 w-2 h-2 p-0 bg-red-500" />
+            </Button>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Avatar className="h-8 w-8 border border-gray-200">
+                    <AvatarImage 
+                      src={avatarUrl || ""} 
+                      alt={displayName} 
+                    />
+                    <AvatarFallback className="bg-primary/10 text-primary">
+                      {getInitials(displayName)}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium">
+                      {displayName}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {currentUser?.email || ""}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/settings" className="cursor-pointer flex w-full items-center">
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/history" className="cursor-pointer flex w-full items-center">
+                    <History className="mr-2 h-4 w-4" />
+                    <span>Upload History</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/profile" className="cursor-pointer flex w-full items-center">
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Profile</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  className="cursor-pointer"
+                  onClick={() => logOut()}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </header>
+
+        {/* Dashboard Header Panel */}
+        <div className="bg-white border-b border-gray-200">
           <div className="px-6 py-4">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
               {/* Title and filters */}
@@ -233,113 +339,41 @@ const DashboardLayout = ({
                 </div>
               </div>
 
-              {/* Search and actions */}
-              <div className="flex flex-col sm:flex-row items-center gap-3">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Search customers, reports..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 w-full sm:w-64"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" className="relative">
-                    <Bell className="h-5 w-5 text-gray-500" />
-                    <Badge className="absolute top-1 right-1 w-2 h-2 p-0 bg-red-500" />
-                  </Button>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                        <Avatar className="h-8 w-8 border border-gray-200">
-                          <AvatarImage 
-                            src={avatarUrl || ""} 
-                            alt={displayName} 
-                          />
-                          <AvatarFallback className="bg-primary/10 text-primary">
-                            {getInitials(displayName)}
-                          </AvatarFallback>
-                        </Avatar>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56" align="end" forceMount>
-                      <DropdownMenuLabel>
-                        <div className="flex flex-col space-y-1">
-                          <p className="text-sm font-medium">
-                            {displayName}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {currentUser?.email || ""}
-                          </p>
-                        </div>
-                      </DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem asChild>
-                        <Link to="/settings" className="cursor-pointer flex w-full items-center">
-                          <Settings className="mr-2 h-4 w-4" />
-                          <span>Settings</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link to="/history" className="cursor-pointer flex w-full items-center">
-                          <History className="mr-2 h-4 w-4" />
-                          <span>Upload History</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link to="/profile" className="cursor-pointer flex w-full items-center">
-                          <User className="mr-2 h-4 w-4" />
-                          <span>Profile</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem 
-                        className="cursor-pointer"
-                        onClick={() => logOut()}
-                      >
-                        <LogOut className="mr-2 h-4 w-4" />
-                        <span>Log out</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-
-                  <Button onClick={onUpload} className="gap-2">
-                    <Upload className="h-4 w-4" />
-                    Upload Data
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    onClick={onRefresh}
-                    disabled={isRefreshing}
-                    className="gap-2"
-                  >
-                    {isRefreshing ? (
-                      <>
-                        <RefreshCw className="h-4 w-4 animate-spin" />
-                        Refreshing...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="h-4 w-4" />
-                        Refresh
-                      </>
-                    )}
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    onClick={onExport}
-                    disabled={!hasData}
-                    className="gap-2"
-                  >
-                    <Download className="h-4 w-4" />
-                    Export
-                  </Button>
-                </div>
+              {/* Action buttons */}
+              <div className="flex items-center gap-2">
+                <Button onClick={onUpload} className="gap-2">
+                  <Upload className="h-4 w-4" />
+                  Upload Data
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  onClick={onRefresh}
+                  disabled={isRefreshing}
+                  className="gap-2"
+                >
+                  {isRefreshing ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      Refreshing...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-4 w-4" />
+                      Refresh
+                    </>
+                  )}
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  onClick={onExport}
+                  disabled={!hasData}
+                  className="gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Export
+                </Button>
               </div>
             </div>
           </div>
