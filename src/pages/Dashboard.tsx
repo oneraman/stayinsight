@@ -28,12 +28,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { CustomerData } from "@/utils/dataProcessing";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
 
 const Dashboard = () => {
   const { currentUser } = useAuth();
   const [timePeriod, setTimePeriod] = useState("30");
   const [allCustomers, setAllCustomers] = useState<any[]>([]);
+  const [rawCustomerData, setRawCustomerData] = useState<any[]>([]);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
+  
+  // Get real metrics from hook
+  const metrics = useDashboardMetrics(timePeriod);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
@@ -139,16 +144,20 @@ const Dashboard = () => {
           .eq('user_id', currentUser.id);
         
         if (data && data.length > 0) {
-          // Transform database data to match ModernCustomerTable interface
+          // Store raw data for metrics calculation
+          setRawCustomerData(data);
+          
+          // Transform database data to match ModernCustomerTable interface using correct risk thresholds
           const transformedData = data.map(customer => ({
             company: customer.name || 'Unknown Company',
-            risk: (customer.risk_score || 0) > 0.7 ? 'High' : (customer.risk_score || 0) > 0.4 ? 'Medium' : 'Low' as const,
-            lastPurchase: customer.last_purchase_date || new Date().toISOString().split('T')[0],
+            risk: (customer.risk_score || 0) > 65 ? 'High' : (customer.risk_score || 0) > 25 ? 'Medium' : 'Low' as const,
+            lastPurchase: customer.last_purchase_date ? new Date(customer.last_purchase_date).toLocaleDateString() : 'N/A',
             spent: `$${(customer.total_spent || 0).toLocaleString()}`,
             segment: (customer.total_spent || 0) > 10000 ? 'High Value' : (customer.total_spent || 0) > 5000 ? 'Mid Value' : 'Low Value' as const
           }));
           setAllCustomers(transformedData);
         } else {
+          setRawCustomerData([]);
           setAllCustomers([]);
         }
       } catch (error) {
@@ -171,15 +180,37 @@ const Dashboard = () => {
     fetchCustomerData();
   }, [currentUser, refreshTrigger, connectionStatus]);
 
-  // Calculate basic metrics
-  const totalCustomers = allCustomers.length;
-  const highRiskCount = allCustomers.filter(c => c.riskScore > 0.7).length;
-  const churnRate = totalCustomers > 0 ? (highRiskCount / totalCustomers) * 100 : 0;
-
-  // Filter high-risk customers
-  const highRiskCustomers = allCustomers
-    .filter(customer => customer.riskScore > 0.7)
-    .slice(0, 10);
+  // Prepare KPI data from real metrics
+  const kpiData = [
+    {
+      title: "Churn Rate",
+      value: `${metrics.churnRate.toFixed(1)}%`,
+      description: `Last ${timePeriod} days`,
+      badge: (metrics.churnRate > 15 ? "highRisk" : metrics.churnRate > 8 ? "mediumRisk" : "lowRisk") as "lowRisk" | "mediumRisk" | "highRisk" | "info",
+      trend: { value: metrics.churnRate, isPositive: false }
+    },
+    {
+      title: "Retention Rate", 
+      value: `${metrics.retentionRate.toFixed(1)}%`,
+      description: `Last ${timePeriod} days`,
+      badge: (metrics.retentionRate > 85 ? "lowRisk" : metrics.retentionRate > 70 ? "mediumRisk" : "highRisk") as "lowRisk" | "mediumRisk" | "highRisk" | "info",
+      trend: { value: 100 - metrics.churnRate, isPositive: true }
+    },
+    {
+      title: "Customer Value",
+      value: `$${Math.round(metrics.customerLifetimeValue).toLocaleString()}`,
+      description: "Avg. lifetime value",
+      badge: "info" as "lowRisk" | "mediumRisk" | "highRisk" | "info",
+      trend: { value: 5.2, isPositive: true }
+    },
+    {
+      title: "At-Risk Revenue",
+      value: `$${Math.round(metrics.atRiskRevenue).toLocaleString()}`, 
+      description: "From high-risk customers",
+      badge: (metrics.atRiskRevenue > 50000 ? "highRisk" : metrics.atRiskRevenue > 25000 ? "mediumRisk" : "lowRisk") as "lowRisk" | "mediumRisk" | "highRisk" | "info",
+      trend: { value: 12.1, isPositive: false }
+    }
+  ];
 
   const handleUploadClick = () => setShowUploadDialog(true);
   const handleExportClick = () => setShowExportDialog(true);
@@ -300,13 +331,17 @@ const Dashboard = () => {
             ) : (
               <>
                 {/* KPI Cards */}
-                <ModernKPICards />
+                <ModernKPICards data={kpiData} />
 
                 {/* Charts Grid */}
-                <ModernChartsGrid />
+                <ModernChartsGrid customers={rawCustomerData} timePeriod={timePeriod} />
 
                 {/* AI Insights */}
-                <ModernAIInsights />
+                <ModernAIInsights 
+                  customers={rawCustomerData} 
+                  metrics={metrics}
+                  timePeriod={timePeriod}
+                />
 
                 {/* Customer Table */}
                 <ModernCustomerTable customers={allCustomers} />

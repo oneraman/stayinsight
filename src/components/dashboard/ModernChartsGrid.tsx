@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
+import { useChartData } from "@/hooks/useChartData";
 import {
   LineChart,
   Line,
@@ -79,7 +80,53 @@ const ChartCard = ({ title, tooltip, children }: ChartCardProps) => (
   </Card>
 );
 
-const ModernChartsGrid = () => {
+interface ModernChartsGridProps {
+  customers?: any[];
+  timePeriod?: string;
+}
+
+const ModernChartsGrid = ({ customers = [], timePeriod = "30" }: ModernChartsGridProps) => {
+  // Generate real chart data from customer data
+  const chartData = useChartData(customers, timePeriod);
+  
+  // Use real data if available, otherwise fall back to sample data
+  const trendData = chartData.trendData.length > 0 ? chartData.trendData : [
+    { month: "Jan", churn: 8.2, retention: 91.8 },
+    { month: "Feb", churn: 9.1, retention: 90.9 },
+    { month: "Mar", churn: 10.5, retention: 89.5 },
+    { month: "Apr", churn: 11.8, retention: 88.2 },
+    { month: "May", churn: 12.5, retention: 87.5 },
+  ];
+  
+  const riskData = chartData.riskDistribution.length > 0 ? chartData.riskDistribution.map(item => ({
+    name: item.name,
+    value: item.value,
+    color: item.name === "Low Risk" ? "hsl(142, 71%, 45%)" : 
+           item.name === "Medium Risk" ? "hsl(38, 92%, 50%)" : "hsl(0, 84%, 60%)"
+  })) : [
+    { name: "Low Risk", value: 5, color: "hsl(142, 71%, 45%)" },
+    { name: "Medium Risk", value: 25, color: "hsl(38, 92%, 50%)" },
+    { name: "High Risk", value: 70, color: "hsl(0, 84%, 60%)" },
+  ];
+  
+  const revenueData = chartData.revenueData.length > 0 ? chartData.revenueData : [
+    { month: "Jan", total: 125000, atRisk: 15000 },
+    { month: "Feb", total: 132000, atRisk: 18000 },
+    { month: "Mar", total: 128000, atRisk: 22000 },
+    { month: "Apr", total: 145000, atRisk: 35000 },
+    { month: "May", total: 150000, atRisk: 48000 },
+  ];
+  
+  const segmentData = chartData.segmentData.length > 0 ? chartData.segmentData.map(item => ({
+    segment: item.name,
+    lowRisk: item.stable || 0,
+    mediumRisk: item.growing || 0,
+    highRisk: item.atRisk || 0
+  })) : [
+    { segment: "High Value", lowRisk: 30, mediumRisk: 45, highRisk: 25 },
+    { segment: "Mid Value", lowRisk: 20, mediumRisk: 35, highRisk: 45 },
+    { segment: "Low Value", lowRisk: 10, mediumRisk: 25, highRisk: 65 },
+  ];
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <ChartCard

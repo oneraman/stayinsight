@@ -13,6 +13,9 @@ interface AIInsightData {
 
 interface ModernAIInsightsProps {
   insights?: AIInsightData[];
+  customers?: any[];
+  metrics?: any;
+  timePeriod?: string;
 }
 
 const defaultInsights: AIInsightData[] = [
@@ -61,7 +64,70 @@ const getActionIcon = (action: string) => {
   return <TrendingUp className="h-4 w-4" />;
 };
 
-const ModernAIInsights = ({ insights = defaultInsights }: ModernAIInsightsProps) => {
+const ModernAIInsights = ({ 
+  insights,
+  customers = [],
+  metrics,
+  timePeriod = "30"
+}: ModernAIInsightsProps) => {
+  
+  // Generate real AI insights from data
+  const generateRealInsights = (): AIInsightData[] => {
+    if (!customers.length || !metrics) return defaultInsights;
+    
+    const realInsights: AIInsightData[] = [];
+    
+    // High risk analysis
+    if (metrics.highRiskCustomers > 0) {
+      const highRiskPercent = ((metrics.highRiskCustomers / metrics.totalCustomers) * 100).toFixed(0);
+      realInsights.push({
+        icon: "🔴",
+        title: "High Churn Risk Alert",
+        description: `${metrics.highRiskCustomers} customers (${highRiskPercent}%) are at high risk`,
+        highlight: "highRisk",
+        suggestedActions: [
+          "Send personalized retention email",
+          "Offer loyalty discount program",
+          "Schedule customer success call"
+        ]
+      });
+    }
+    
+    // Revenue at risk analysis
+    if (metrics.atRiskRevenue > 10000) {
+      const revenuePercent = ((metrics.atRiskRevenue / (customers.reduce((sum, c) => sum + (c.total_spent || 0), 0))) * 100).toFixed(0);
+      realInsights.push({
+        icon: "💰",
+        title: "Revenue at Risk",
+        description: `$${Math.round(metrics.atRiskRevenue).toLocaleString()} (${revenuePercent}%) revenue from at-risk customers`,
+        highlight: metrics.atRiskRevenue > 50000 ? "highRisk" : "mediumRisk",
+        suggestedActions: [
+          "Priority customer outreach",
+          "Implement win-back campaign",
+          "Review pricing strategy"
+        ]
+      });
+    }
+    
+    // Retention opportunity
+    if (metrics.lowRiskCustomers / metrics.totalCustomers < 0.3) {
+      realInsights.push({
+        icon: "🟡", 
+        title: "Retention Opportunity",
+        description: `Only ${metrics.lowRiskCustomers} customers (${((metrics.lowRiskCustomers / metrics.totalCustomers) * 100).toFixed(0)}%) are low risk`,
+        highlight: "mediumRisk",
+        suggestedActions: [
+          "Launch customer health program",
+          "Increase engagement touchpoints",
+          "Improve onboarding process"
+        ]
+      });
+    }
+    
+    return realInsights.length > 0 ? realInsights : defaultInsights;
+  };
+  
+  const displayInsights = insights || generateRealInsights();
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
@@ -73,7 +139,7 @@ const ModernAIInsights = ({ insights = defaultInsights }: ModernAIInsightsProps)
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {insights.map((insight, index) => (
+        {displayInsights.map((insight, index) => (
           <Card 
             key={index} 
             className={`ai-insight-card border-l-4 ${getHighlightColor(insight.highlight)}`}
