@@ -1,6 +1,6 @@
-
-import * as XLSX from 'xlsx';
 import { supabase } from '@/lib/supabase';
+import * as XLSX from 'xlsx';
+import { updateUploadSession, createUploadSession } from '@/lib/supabase';
 
 export interface SimplifiedProcessingResult {
   success: boolean;
@@ -34,29 +34,57 @@ export class SimplifiedDataProcessor {
     const errors: string[] = [];
     const warnings: string[] = [];
     let session: any | null = null;
+    
     try {
-      // Create upload session for tracking
-      const { data: sessionData, error: sessionError } = await supabase
-        .from('upload_sessions')
-        .insert({
-          user_id: userId,
-          file_name: file.name,
-          file_size: file.size,
-          total_rows: 0,
-          processed_rows: 0,
-          status: 'uploading'
-        })
-        .select()
-        .single();
-      session = sessionData || null;
-      if (sessionError) {
-        console.warn('⚠️ Could not create upload session:', sessionError.message);
+      // Step 1: Upload file to Supabase Storage first
+      const fileExtension = file.name.split('.').pop();
+      const fileName = `${userId}/${Date.now()}-${file.name}`;
+      
+      console.log('📤 Uploading file to storage:', fileName);
+      onProgress?.({ 
+        progress: 10, 
+        message: 'Uploading file to secure storage...', 
+        phase: 'parsing' 
+      });
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('uploaded-files')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error('❌ File upload failed:', uploadError);
+        throw new Error(`Failed to upload file: ${uploadError.message}`);
       }
 
-      // Step 1: Parse File (0-30%)
+      console.log('✅ File uploaded successfully:', uploadData.path);
+
+      // Get the file URL
+      const { data: urlData } = supabase.storage
+        .from('uploaded-files')
+        .getPublicUrl(fileName);
+
+      // Create upload session with file storage info
+      const uploadSession = await createUploadSession({
+        user_id: userId,
+        file_name: file.name,
+        file_size: file.size,
+        status: 'processing',
+        total_rows: 0,
+        processed_rows: 0,
+        file_path: uploadData.path,
+        file_url: urlData.publicUrl,
+        storage_bucket: 'uploaded-files'
+      });
+
+      session = uploadSession;
+
+      // Step 2: Parse File (10-30%)
       onProgress?.({
         phase: 'parsing',
-        progress: 10,
+        progress: 20,
         message: 'Reading file data...'
       });
 
@@ -80,7 +108,7 @@ export class SimplifiedDataProcessor {
         message: `Found ${data.length} rows with ${headers.length} columns`
       });
 
-      // Step 2: Process Data (30-60%)
+      // Step 3: Process Data (30-50%)
       onProgress?.({
         phase: 'processing',
         progress: 40,
@@ -96,14 +124,14 @@ export class SimplifiedDataProcessor {
 
       onProgress?.({
         phase: 'processing',
-        progress: 60,
+        progress: 50,
         message: `Processed ${customerRecords.length} customer records`
       });
 
-      // Step 3: Store Data (60-90%)
+      // Step 4: Store Data (50-90%)
       onProgress?.({
         phase: 'storing',
-        progress: 70,
+        progress: 60,
         message: 'Storing data in database...'
       });
 
@@ -114,7 +142,7 @@ export class SimplifiedDataProcessor {
         throw new Error('Failed to store any customer data');
       }
 
-      // Step 4: Complete (90-100%)
+      // Step 5: Complete (90-100%)
       onProgress?.({
         phase: 'complete',
         progress: 100,
@@ -303,7 +331,7 @@ export class SimplifiedDataProcessor {
         }
 
         // Update progress
-        const progress = 70 + ((batchIndex + 1) / batches) * 20;
+        const progress = 60 + ((batchIndex + 1) / batches) * 30;
         onProgress?.({
           phase: 'storing',
           progress,

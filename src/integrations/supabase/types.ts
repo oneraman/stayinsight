@@ -171,10 +171,13 @@ export type Database = {
           created_at: string | null
           error_message: string | null
           file_name: string
+          file_path: string | null
           file_size: number
+          file_url: string | null
           id: string
           processed_rows: number | null
           status: string | null
+          storage_bucket: string | null
           total_rows: number | null
           updated_at: string | null
           user_id: string | null
@@ -183,10 +186,13 @@ export type Database = {
           created_at?: string | null
           error_message?: string | null
           file_name: string
+          file_path?: string | null
           file_size: number
+          file_url?: string | null
           id?: string
           processed_rows?: number | null
           status?: string | null
+          storage_bucket?: string | null
           total_rows?: number | null
           updated_at?: string | null
           user_id?: string | null
@@ -195,10 +201,13 @@ export type Database = {
           created_at?: string | null
           error_message?: string | null
           file_name?: string
+          file_path?: string | null
           file_size?: number
+          file_url?: string | null
           id?: string
           processed_rows?: number | null
           status?: string | null
+          storage_bucket?: string | null
           total_rows?: number | null
           updated_at?: string | null
           user_id?: string | null

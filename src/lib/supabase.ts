@@ -73,6 +73,9 @@ export interface UploadSession {
   processed_rows: number;
   status: 'uploading' | 'processing' | 'completed' | 'failed';
   error_message?: string;
+  file_path?: string;
+  file_url?: string;
+  storage_bucket?: string;
   created_at?: string;
   updated_at?: string;
 }
