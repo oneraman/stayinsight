@@ -1,7 +1,10 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, TrendingUp, Mail, Gift } from "lucide-react";
+import React, { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { AlertTriangle, TrendingUp, Target, Sparkles, RefreshCw, Mail, Gift } from 'lucide-react';
+import { aiInsightsEngine, CustomerInsight } from '@/utils/aiInsightsEngine';
+import { toast } from 'sonner';
 
 interface AIInsightData {
   icon: string;
@@ -39,7 +42,10 @@ const defaultInsights: AIInsightData[] = [
       "Prioritize customer success calls"
     ]
   }
-];
+  ];
+
+  // Generate real AI insights from data (fallback)
+  const generateRealInsights = (): AIInsightData[] => {
 
 const getHighlightColor = (highlight: string) => {
   switch (highlight) {
@@ -70,9 +76,37 @@ const ModernAIInsights = ({
   metrics,
   timePeriod = "30"
 }: ModernAIInsightsProps) => {
+  const [aiInsights, setAiInsights] = useState<CustomerInsight[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [portfolioHealth, setPortfolioHealth] = useState<any>(null);
+
+  const generateAIInsights = async () => {
+    if (!customers || customers.length === 0) {
+      toast.error('No customer data available for analysis');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const analysis = await aiInsightsEngine.analyzePortfolio(customers);
+      setAiInsights(analysis.insights);
+      setPortfolioHealth(analysis);
+      toast.success('AI insights generated successfully');
+    } catch (error) {
+      console.error('Failed to generate insights:', error);
+      toast.error('Failed to generate AI insights');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (customers && customers.length > 0 && aiInsights.length === 0) {
+      generateAIInsights();
+    }
+  }, [customers]);
   
-  // Generate real AI insights from data
-  const generateRealInsights = (): AIInsightData[] => {
+  const defaultInsights: AIInsightData[] = [
     if (!customers.length || !metrics) return defaultInsights;
     
     const realInsights: AIInsightData[] = [];
@@ -127,15 +161,48 @@ const ModernAIInsights = ({
     return realInsights.length > 0 ? realInsights : defaultInsights;
   };
   
-  const displayInsights = insights || generateRealInsights();
+  const displayInsights = aiInsights.length > 0 
+    ? aiInsights.map(insight => ({
+        icon: insight.type === 'risk' ? "🔴" : 
+              insight.type === 'opportunity' ? "🟢" :
+              insight.type === 'recommendation' ? "🟡" : "✨",
+        title: insight.title,
+        description: insight.description,
+        highlight: insight.priority === 'high' ? 'highRisk' as const : 
+                   insight.priority === 'medium' ? 'mediumRisk' as const : 'lowRisk' as const,
+        suggestedActions: insight.actionable ? ['Take Action', 'Learn More'] : []
+      }))
+    : (insights || generateRealInsights());
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <AlertTriangle className="h-5 w-5 text-primary" />
-        <h2 className="text-xl font-semibold">AI-Powered Insights</h2>
-        <Badge variant="secondary" className="ml-2">
-          Real-time
-        </Badge>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5 text-primary" />
+          <h2 className="text-xl font-semibold">AI-Powered Insights</h2>
+          {portfolioHealth && (
+            <Badge variant={portfolioHealth.overallHealth === 'excellent' ? 'default' : 
+                           portfolioHealth.overallHealth === 'good' ? 'secondary' : 'destructive'}>
+              Health: {portfolioHealth.healthScore}%
+            </Badge>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={generateAIInsights}
+            disabled={isLoading || !customers || customers.length === 0}
+            size="sm"
+            variant="outline"
+            className="gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? 'Analyzing...' : 'Refresh AI'}
+          </Button>
+          <Badge variant="secondary" className="gap-1">
+            <Sparkles className="w-3 h-3" />
+            Real-time
+          </Badge>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

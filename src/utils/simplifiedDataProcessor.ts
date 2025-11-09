@@ -1,5 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import * as XLSX from 'xlsx';
+import { mapColumnsWithAI, inferDataType } from './intelligentColumnMapper';
+import { generateCustomerInsights } from '@/lib/gemini';
 import { updateUploadSession, createUploadSession } from '@/lib/supabase';
 
 export interface SimplifiedProcessingResult {
@@ -250,29 +252,48 @@ export class SimplifiedDataProcessor {
     return { data, headers };
   }
 
-  private processCustomerData(data: any[], userId: string): any[] {
-    console.log('⚙️ Processing customer data...');
+  private async processCustomerData(data: any[], userId: string): Promise<any[]> {
+    console.log('🔄 Processing customer data with AI-powered mapping...');
     
+    if (data.length === 0) {
+      console.warn('No data to process');
+      return [];
+    }
+
+    // Get column headers
+    const headers = Object.keys(data[0]);
+    console.log('📋 Detected columns:', headers);
+
+    // Use AI to intelligently map columns
+    const mappingResult = await mapColumnsWithAI(headers, data);
+    console.log('🎯 AI mapping result:', mappingResult);
+
     const customerRecords: any[] = [];
     
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
       
       try {
-        // Generate customer ID from available data
-        const customerId = this.generateCustomerId(row, i);
-        
-        // Extract basic customer data with fallbacks
-        const email = this.extractValue(row, ['email', 'Email', 'email_address', 'Email Address']);
-        const name = this.extractValue(row, ['name', 'Name', 'customer_name', 'Customer Name', 'full_name']);
-        const totalSpent = this.parseNumber(this.extractValue(row, ['total_spent', 'Total Spent', 'lifetime_value', 'revenue'])) || 0;
-        const purchaseCount = this.parseNumber(this.extractValue(row, ['purchase_count', 'Purchase Count', 'orders', 'transactions'])) || 0;
-        const lastPurchaseDate = this.parseDate(this.extractValue(row, ['last_purchase_date', 'Last Purchase', 'last_order_date']));
+        // Use AI-mapped columns to extract data
+        const customerId = this.extractValueByMapping(row, mappingResult.mappings, 'customerId') || this.generateCustomerId(row, i);
+        const name = this.extractValueByMapping(row, mappingResult.mappings, 'name');
+        const email = this.extractValueByMapping(row, mappingResult.mappings, 'email');
+        const totalSpent = this.parseNumber(this.extractValueByMapping(row, mappingResult.mappings, 'totalSpent')) || 0;
+        const purchaseCount = this.parseNumber(this.extractValueByMapping(row, mappingResult.mappings, 'purchaseCount')) || 0;
+        const lastPurchaseDate = this.parseDate(this.extractValueByMapping(row, mappingResult.mappings, 'lastPurchaseDate'));
 
-        // Calculate basic risk score
-        const riskScore = this.calculateRiskScore(lastPurchaseDate, purchaseCount, totalSpent);
+        // Calculate basic risk score with enhanced logic
+        const riskScore = await this.calculateEnhancedRiskScore({
+          totalSpent,
+          purchaseCount,
+          daysSinceLastPurchase: lastPurchaseDate ? 
+            Math.floor((Date.now() - lastPurchaseDate.getTime()) / (1000 * 60 * 60 * 24)) : null,
+          avgOrderValue: purchaseCount > 0 ? totalSpent / purchaseCount : 0,
+          email,
+          name
+        });
         
-        const customerRecord = {
+        customerRecords.push({
           customer_id: customerId,
           email: email || null,
           name: name || null,
@@ -283,17 +304,38 @@ export class SimplifiedDataProcessor {
           risk_score: riskScore,
           segment: this.determineSegment(riskScore),
           user_id: userId
-        };
-
-        customerRecords.push(customerRecord);
+        });
         
       } catch (error) {
         console.warn(`⚠️ Error processing row ${i + 1}:`, error);
       }
     }
 
-    console.log('✅ Customer data processing complete');
+    console.log(`✅ Successfully processed ${customerRecords.length} customers`);
+    console.log(`📊 Mapping confidence: ${(mappingResult.confidence * 100).toFixed(1)}%`);
+    
+    if (mappingResult.suggestions.length > 0) {
+      console.warn('⚠️ Data quality suggestions:', mappingResult.suggestions);
+    }
+
     return customerRecords;
+  }
+
+  private extractValueByMapping(row: any, mappings: Record<string, string>, targetField: string): any {
+    // Find the source column that maps to our target field
+    const sourceColumn = Object.entries(mappings).find(([_, target]) => target === targetField)?.[0];
+    
+    if (sourceColumn && row[sourceColumn] !== undefined) {
+      return row[sourceColumn];
+    }
+    
+    // Fallback to direct field access and flexible field names
+    return this.extractValue(row, [
+      targetField,
+      targetField.toLowerCase(),
+      targetField.replace(/([A-Z])/g, '_$1').toLowerCase(),
+      targetField.replace(/([A-Z])/g, ' $1').trim()
+    ]);
   }
 
   private async storeCustomers(
@@ -415,7 +457,50 @@ export class SimplifiedDataProcessor {
     }
   }
 
-  private calculateRiskScore(lastPurchaseDate: Date | null, purchaseCount: number, totalSpent: number): number {
+  private async calculateEnhancedRiskScore(metrics: {
+    totalSpent: number;
+    purchaseCount: number;
+    daysSinceLastPurchase: number | null;
+    avgOrderValue: number;
+    email: any;
+    name: any;
+  }): Promise<number> {
+    // Base risk calculation
+    let riskScore = 0;
+
+    // High risk if no purchases
+    if (metrics.purchaseCount === 0) return 95;
+
+    // Risk based on recency (40% weight)
+    if (metrics.daysSinceLastPurchase) {
+      if (metrics.daysSinceLastPurchase > 365) riskScore += 40;
+      else if (metrics.daysSinceLastPurchase > 180) riskScore += 30;
+      else if (metrics.daysSinceLastPurchase > 90) riskScore += 20;
+      else if (metrics.daysSinceLastPurchase > 30) riskScore += 10;
+    } else {
+      // No purchase date = risky
+      riskScore += 25;
+    }
+
+    // Risk based on frequency (30% weight)
+    if (metrics.purchaseCount === 1) riskScore += 30;
+    else if (metrics.purchaseCount < 3) riskScore += 20;
+    else if (metrics.purchaseCount < 5) riskScore += 10;
+    else if (metrics.purchaseCount < 10) riskScore += 5;
+
+    // Risk based on monetary value (20% weight)
+    if (metrics.totalSpent < 50) riskScore += 20;
+    else if (metrics.totalSpent < 200) riskScore += 15;
+    else if (metrics.totalSpent < 500) riskScore += 10;
+    else if (metrics.totalSpent < 1000) riskScore += 5;
+
+    // Risk based on engagement (10% weight)
+    if (!metrics.email) riskScore += 10;
+    if (!metrics.name || metrics.name === 'Unknown Customer') riskScore += 5;
+
+    // Ensure risk is between 0-100
+    return Math.min(Math.max(Math.round(riskScore), 0), 100);
+  }
     let score = 50;
     
     if (lastPurchaseDate) {
