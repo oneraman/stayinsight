@@ -178,7 +178,10 @@ Provide analysis in this JSON format:
     }, {} as Record<string, number>);
 
     return Object.entries(segments)
-      .map(([segment, count]) => `- ${segment}: ${count} (${((count / customers.length) * 100).toFixed(1)}%)`)
+      .map(([segment, count]) => {
+        const numCount = Number(count);
+        return `- ${segment}: ${numCount} (${((numCount / customers.length) * 100).toFixed(1)}%)`;
+      })
       .join('\n');
   }
 

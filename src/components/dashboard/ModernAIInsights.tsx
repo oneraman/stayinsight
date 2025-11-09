@@ -42,10 +42,7 @@ const defaultInsights: AIInsightData[] = [
       "Prioritize customer success calls"
     ]
   }
-  ];
-
-  // Generate real AI insights from data (fallback)
-  const generateRealInsights = (): AIInsightData[] => {
+];
 
 const getHighlightColor = (highlight: string) => {
   switch (highlight) {
@@ -106,7 +103,8 @@ const ModernAIInsights = ({
     }
   }, [customers]);
   
-  const defaultInsights: AIInsightData[] = [
+  // Generate real AI insights from data (fallback)
+  const generateRealInsights = (): AIInsightData[] => {
     if (!customers.length || !metrics) return defaultInsights;
     
     const realInsights: AIInsightData[] = [];

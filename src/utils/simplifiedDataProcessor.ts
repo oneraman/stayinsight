@@ -117,7 +117,7 @@ export class SimplifiedDataProcessor {
         message: 'Processing customer data...'
       });
 
-      const customerRecords = this.processCustomerData(data, userId);
+      const customerRecords = await this.processCustomerData(data, userId);
       console.log('👥 Processed customer records:', customerRecords.length);
 
       if (customerRecords.length === 0) {
@@ -500,25 +500,6 @@ export class SimplifiedDataProcessor {
 
     // Ensure risk is between 0-100
     return Math.min(Math.max(Math.round(riskScore), 0), 100);
-  }
-    let score = 50;
-    
-    if (lastPurchaseDate) {
-      const daysSince = Math.floor((Date.now() - lastPurchaseDate.getTime()) / (1000 * 60 * 60 * 24));
-      if (daysSince > 180) score += 30;
-      else if (daysSince > 90) score += 15;
-      else if (daysSince < 30) score -= 15;
-    } else {
-      score += 20;
-    }
-    
-    if (purchaseCount > 10) score -= 20;
-    else if (purchaseCount < 2) score += 15;
-    
-    if (totalSpent > 1000) score -= 15;
-    else if (totalSpent < 100) score += 15;
-    
-    return Math.max(0, Math.min(100, score));
   }
 
   private determineSegment(riskScore: number): string {
