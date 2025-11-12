@@ -109,24 +109,32 @@ const Dashboard = () => {
     }
   };
 
-  const handleRefreshData = async () => {
+  const handleClearAllData = async () => {
     if (!currentUser) return;
     
     setIsRefreshing(true);
     try {
-      await supabase
+      const { error } = await supabase
         .from('customers')
         .delete()
         .eq('user_id', currentUser.id);
       
+      if (error) throw error;
+      
       setAllCustomers([]);
-      toast.success("Dashboard data cleared successfully");
+      setRawCustomerData([]);
+      setRefreshTrigger(prev => prev + 1);
+      toast.success("All customer data cleared successfully");
     } catch (error) {
       console.error('Error clearing data:', error);
       toast.error("Failed to clear data");
     } finally {
       setIsRefreshing(false);
     }
+  };
+
+  const handleRefreshData = () => {
+    setRefreshTrigger(prev => prev + 1);
   };
 
   // Fetch customer data
@@ -214,6 +222,7 @@ const Dashboard = () => {
 
   const handleUploadClick = () => setShowUploadDialog(true);
   const handleExportClick = () => setShowExportDialog(true);
+  const [showClearDialog, setShowClearDialog] = useState(false);
 
   const renderEmptyState = () => (
     <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
@@ -235,15 +244,9 @@ const Dashboard = () => {
     <>
       <DashboardLayout
         onUpload={handleUploadClick}
-        onRefresh={() => {
-          // Show alert dialog instead of direct refresh
-          const confirmRefresh = () => {
-            handleRefreshData();
-          };
-          // For now, just refresh directly - you can add the alert dialog later
-          handleRefreshData();
-        }}
+        onRefresh={handleRefreshData}
         onExport={handleExportClick}
+        onClearData={() => setShowClearDialog(true)}
         isRefreshing={isRefreshing}
         hasData={allCustomers.length > 0}
       >
@@ -369,6 +372,28 @@ const Dashboard = () => {
         onOpenChange={setShowExportDialog}
         customers={allCustomers}
       />
+
+      {/* Clear All Data Confirmation Dialog */}
+      <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear All Customer Data?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete all {allCustomers.length} customer records from your database. 
+              This action cannot be undone. You'll need to upload new data to see insights again.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleClearAllData}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Yes, Clear All Data
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

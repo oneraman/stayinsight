@@ -26,7 +26,8 @@ import {
   RefreshCw,
   Download,
   Bell,
-  User
+  User,
+  Trash2
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -37,6 +38,7 @@ interface DashboardLayoutProps {
   onUpload?: () => void;
   onRefresh?: () => void;
   onExport?: () => void;
+  onClearData?: () => void;
   isRefreshing?: boolean;
   hasData?: boolean;
 }
@@ -46,6 +48,7 @@ const DashboardLayout = ({
   onUpload,
   onRefresh,
   onExport,
+  onClearData,
   isRefreshing = false,
   hasData = true
 }: DashboardLayoutProps) => {
@@ -374,6 +377,17 @@ const DashboardLayout = ({
                   <Download className="h-4 w-4" />
                   Export
                 </Button>
+
+                {hasData && onClearData && (
+                  <Button 
+                    variant="destructive" 
+                    onClick={onClearData}
+                    className="gap-2"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Clear All Data
+                  </Button>
+                )}
               </div>
             </div>
           </div>
