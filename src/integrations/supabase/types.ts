@@ -245,10 +245,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_user_display_name: {
-        Args: { user_id: string }
-        Returns: string
-      }
+      get_user_display_name: { Args: { user_id: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never
