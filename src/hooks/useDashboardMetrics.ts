@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { enhancedMetricsCalculator } from "@/utils/enhancedMetricsCalculator";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface DashboardMetrics {
@@ -101,34 +100,24 @@ export const useDashboardMetrics = (timePeriod: string = "30") => {
         // More accurate retention rate calculation
         const retentionRate = Math.max(0, 100 - churnRate);
 
-        // Enhanced customer lifetime value with predictive adjustment
+        // Simple customer lifetime value
         const totalRevenue = customers.reduce((sum, c) => sum + (c.total_spent || 0), 0);
-        const avgPurchaseCount = customers.reduce((sum, c) => sum + (c.purchase_count || 0), 0) / customers.length;
-        const avgCustomerLifetimeValue = customers.length > 0 ? 
-          (totalRevenue / customers.length) * Math.max(1, avgPurchaseCount / 12) : 0; // Adjusted for purchase frequency
+        const customerLifetimeValue = customers.length > 0 ? totalRevenue / customers.length : 0;
 
-        // Enhanced at-risk revenue calculation with weighted scoring
-        const atRiskRevenue = customers.reduce((sum, c) => {
-          const riskScore = c.risk_score || 0;
-          const revenue = c.total_spent || 0;
-          if (riskScore > 65) return sum + revenue;           // High risk - full amount
-          if (riskScore > 45) return sum + (revenue * 0.6);   // Medium-high risk - 60%
-          if (riskScore > 25) return sum + (revenue * 0.3);   // Medium risk - 30%
-          return sum;                                         // Low risk - 0%
-        }, 0);
-
-        // Use enhanced metrics calculator for maximum accuracy
-        const preciseMetrics = enhancedMetricsCalculator.calculatePreciseMetrics(customers, timePeriod);
+        // Simple at-risk revenue
+        const atRiskRevenue = highRisk.reduce((sum, customer) => 
+          sum + (customer.total_spent || 0), 0
+        );
         
         const calculatedMetrics = {
-          churnRate: preciseMetrics.churnRate,
-          retentionRate: preciseMetrics.retentionRate,
-          customerLifetimeValue: preciseMetrics.customerLifetimeValue,
-          atRiskRevenue: preciseMetrics.atRiskRevenue,
-          totalCustomers: preciseMetrics.totalCustomers,
-          highRiskCustomers: preciseMetrics.highRiskCustomers,
-          mediumRiskCustomers: preciseMetrics.mediumRiskCustomers,
-          lowRiskCustomers: preciseMetrics.lowRiskCustomers,
+          churnRate,
+          retentionRate,
+          customerLifetimeValue,
+          atRiskRevenue,
+          totalCustomers: customers.length,
+          highRiskCustomers: highRisk.length,
+          mediumRiskCustomers: mediumRisk.length,
+          lowRiskCustomers: lowRisk.length,
           loading: false,
           error: null
         };
