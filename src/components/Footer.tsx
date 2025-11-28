@@ -83,7 +83,7 @@ const Footer = () => {
         </div>
         <div className="mt-12 border-t border-gray-200 pt-8">
           <p className="text-base text-gray-400 text-center">
-            &copy; {new Date().getFullYear()} StayInsightAI. All rights reserved.
+            &copy; {new Date().getFullYear()} StayInsight. All rights reserved.
           </p>
         </div>
       </div>
