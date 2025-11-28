@@ -78,7 +78,7 @@ const Settings = () => {
               <CardHeader>
                 <CardTitle>Appearance Settings</CardTitle>
                 <CardDescription>
-                  Customize how StayInsights looks for you
+                  Customize how StayInsight looks for you
                 </CardDescription>
               </CardHeader>
               <CardContent>

@@ -110,7 +110,7 @@ const DashboardLayout = ({
       <div className={`bg-[#1A1F2C] text-white transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'w-20' : 'w-64'} flex flex-col fixed h-full z-10`}>
         <div className="flex items-center p-4 border-b border-gray-800">
           <Link to="/dashboard" className={`text-xl font-bold text-[#5E5AFF] flex items-center ${sidebarCollapsed ? 'justify-center' : ''}`}>
-            {sidebarCollapsed ? "SIA" : "stayInsightAI"}
+            {sidebarCollapsed ? "SI" : "stayInsight"}
           </Link>
         </div>
         
@@ -219,7 +219,7 @@ const DashboardLayout = ({
         <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6 z-30">
           <div className="flex items-center gap-4">
             <Link to="/dashboard" className="text-xl font-bold text-primary">
-              StayInsightAI
+              StayInsight
             </Link>
             
             <nav className="hidden lg:flex gap-6 text-sm">
