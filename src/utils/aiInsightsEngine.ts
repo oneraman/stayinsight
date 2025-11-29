@@ -1,4 +1,4 @@
-import { generateCustomerInsights } from '@/lib/gemini';
+import { callLovableAI } from '@/lib/lovableAI';
 
 export interface CustomerInsight {
   type: 'risk' | 'opportunity' | 'recommendation' | 'trend';
@@ -81,7 +81,7 @@ Provide analysis in this JSON format:
 }`;
 
     try {
-      const response = await generateCustomerInsights(prompt);
+      const response = await callLovableAI(prompt, { temperature: 0.7 });
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       
       if (jsonMatch) {

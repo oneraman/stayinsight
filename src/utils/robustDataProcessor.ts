@@ -1,7 +1,10 @@
 
 import * as XLSX from 'xlsx';
 import { supabase } from '@/lib/supabase';
-import { mapColumnsIntelligently } from './advancedColumnMapper';
+import { analyzeColumnsIntelligently } from './smartColumnAnalyzer';
+import { SmartDataExtractor } from './smartDataExtractor';
+import { calculateEnhancedRiskScore, determineEnhancedSegment } from './riskScoring';
+import { processCustomerDataWithSmartExtraction } from './robustDataProcessorMethods';
 
 export interface RobustProcessingResult {
   success: boolean;
@@ -54,6 +57,43 @@ export class RobustDataProcessor {
     }
 
     try {
+      // Phase 0: Upload file to Supabase Storage (0-10%)
+      onProgress?.({
+        phase: 'parsing',
+        progress: 2,
+        message: 'Uploading file to secure storage...'
+      });
+
+      let filePath: string | null = null;
+      let fileUrl: string | null = null;
+
+      try {
+        const timestamp = Date.now();
+        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        filePath = `${userId}/${timestamp}_${sanitizedFileName}`;
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('uploaded-files')
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) {
+          console.warn('⚠️ File storage failed:', uploadError.message);
+          warnings.push('File storage failed, but processing will continue');
+        } else {
+          const { data: urlData } = supabase.storage
+            .from('uploaded-files')
+            .getPublicUrl(filePath);
+          fileUrl = urlData.publicUrl;
+          console.log('✅ File uploaded to storage:', filePath);
+        }
+      } catch (storageError) {
+        console.warn('⚠️ Storage error:', storageError);
+        warnings.push('File storage unavailable, but processing will continue');
+      }
+
       // Create upload session for tracking
       const { data: sessionData, error: sessionError } = await supabase
         .from('upload_sessions')
@@ -61,9 +101,12 @@ export class RobustDataProcessor {
           user_id: userId,
           file_name: file.name,
           file_size: file.size,
+          file_path: filePath,
+          file_url: fileUrl,
+          storage_bucket: 'uploaded-files',
           total_rows: 0,
           processed_rows: 0,
-          status: 'uploading'
+          status: 'processing'
         })
         .select()
         .single();
@@ -94,25 +137,37 @@ export class RobustDataProcessor {
         message: `Parsed ${data.length} rows with ${headers.length} columns`
       });
 
-      // Phase 2: Column Mapping (20-30%)
+      // Phase 2: Smart Column Analysis (15-35%)
       onProgress?.({
         phase: 'processing',
         progress: 20,
-        message: 'Mapping columns with intelligent detection...'
+        message: 'Analyzing columns with multi-layer detection...'
       });
 
-      const columnMapping = mapColumnsIntelligently(headers);
-      console.log('🗺️ Column mapping result:', columnMapping);
+      const columnAnalysis = await analyzeColumnsIntelligently(headers, data.slice(0, 100));
+      console.log('🗺️ Smart column analysis result:', columnAnalysis);
 
-      // Phase 3: Data Processing (30-50%)
+      if (columnAnalysis.warnings.length > 0) {
+        warnings.push(...columnAnalysis.warnings);
+      }
+
+      if (columnAnalysis.confidence < 50) {
+        warnings.push('Low confidence in column mapping. Results may need manual review.');
+      }
+
+      // Phase 3: Smart Data Extraction (35-55%)
       onProgress?.({
         phase: 'processing',
-        progress: 35,
-        message: 'Processing and validating customer data...'
+        progress: 40,
+        message: 'Extracting and validating customer data with smart parsing...'
       });
 
-      const customerRecords = await this.processCustomerData(data, columnMapping.mappings, userId);
-      console.log('👥 Customer records generated:', customerRecords.length);
+      const customerRecords = await processCustomerDataWithSmartExtraction(
+        data, 
+        columnAnalysis.mappings, 
+        userId
+      );
+      console.log('👥 Smart extraction complete:', customerRecords.length);
 
       if (customerRecords.length === 0) {
         throw new Error('No valid customer records could be generated from the data');
@@ -182,12 +237,12 @@ export class RobustDataProcessor {
         warnings,
         processingStats: {
           totalTime,
-          accuracyScore: columnMapping.confidence || 75,
-          confidenceLevel: Math.min(85, columnMapping.confidence || 75),
+          accuracyScore: columnAnalysis.confidence || 75,
+          confidenceLevel: Math.min(85, columnAnalysis.confidence || 75),
           dataStoredSuccessfully: insertedCount > 0,
           aiInsightsGenerated
         },
-        columnMapping,
+        columnMapping: columnAnalysis,
         qualityReport: this.generateBasicQualityReport(customerRecords),
         aiInsights
       };

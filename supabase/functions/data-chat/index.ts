@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 import { corsHeaders } from '../_shared/cors.ts'
 
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent'
+const LOVABLE_AI_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -10,10 +10,10 @@ serve(async (req) => {
   }
 
   try {
-    // Get Gemini API key from Supabase secrets
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY')
-    if (!geminiApiKey) {
-      throw new Error('Gemini API key not configured')
+    // Get Lovable API key from Supabase secrets
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')
+    if (!lovableApiKey) {
+      throw new Error('Lovable API key not configured')
     }
 
     // Create Supabase client
@@ -119,39 +119,55 @@ Please provide a helpful and insightful response:`
       .from('data_chat_messages')
       .insert({ session_id: sessionId!, user_id: userId, role: 'user', content: question });
 
-    // Call Gemini API
-    const response = await fetch(`${GEMINI_API_URL}?key=${geminiApiKey}`, {
+    console.log('🤖 Calling Lovable AI Gateway...')
+
+    // Call Lovable AI Gateway
+    const response = await fetch(LOVABLE_AI_URL, {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
+        model: 'google/gemini-2.5-flash',
+        messages: [{
+          role: 'user',
+          content: prompt
         }],
-        generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 1024,
-        }
+        temperature: 0.7,
+        max_tokens: 1024,
       })
     })
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('Gemini API error:', errorText)
-      throw new Error(`Gemini API error: ${response.status}`)
+      console.error('Lovable AI Gateway error:', response.status, errorText)
+      
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: 'Rate limit exceeded. Please try again in a few moments.' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 429 }
+        )
+      }
+      
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: 'AI credits exhausted. Please add credits to your workspace.' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 402 }
+        )
+      }
+      
+      throw new Error(`Lovable AI Gateway error: ${response.status}`)
     }
 
     const data = await response.json()
-    const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text
+    const aiResponse = data.choices?.[0]?.message?.content
 
     if (!aiResponse) {
-      throw new Error('No response from Gemini API')
+      throw new Error('No response from Lovable AI Gateway')
     }
+
+    console.log('✅ AI response received successfully')
 
     // Persist AI response message
     await supabase
