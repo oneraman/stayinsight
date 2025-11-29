@@ -160,17 +160,17 @@ const ModernAIInsights = ({
   };
   
   const displayInsights = aiInsights.length > 0 
-    ? aiInsights.map(insight => ({
+    ? aiInsights.slice(0, 3).map(insight => ({
         icon: insight.type === 'risk' ? "🔴" : 
               insight.type === 'opportunity' ? "🟢" :
               insight.type === 'recommendation' ? "🟡" : "✨",
-        title: insight.title,
-        description: insight.description,
+        title: insight.title.substring(0, 100),
+        description: insight.description.substring(0, 150),
         highlight: insight.priority === 'high' ? 'highRisk' as const : 
                    insight.priority === 'medium' ? 'mediumRisk' as const : 'lowRisk' as const,
         suggestedActions: insight.actionable ? ['Take Action', 'Learn More'] : []
       }))
-    : (insights || generateRealInsights());
+    : (insights || generateRealInsights()).slice(0, 3);
 
   return (
     <div className="space-y-6">

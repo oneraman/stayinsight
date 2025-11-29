@@ -90,29 +90,29 @@ serve(async (req) => {
       purchaseCount: customer.purchaseCount
     }))
 
-    const prompt = `You are a business intelligence AI assistant analyzing customer data. Please answer the user's question based on the provided customer data.
+    const systemPrompt = `You are a concise data analyst for customer churn analysis.
 
-Customer Data Summary:
-- Total Customers: ${totalCustomers}
+Rules:
+- Keep answers under 3 sentences
+- Use bullet points for lists
+- Be direct and specific
+- No fluff or filler words
+- Focus on actionable insights
+- Reference actual customer data`
+
+    const prompt = `Customer Data Summary:
+- Total: ${totalCustomers} customers
 - Risk Distribution: ${JSON.stringify(riskDistribution)}
-- Total Revenue: $${totalRevenue.toLocaleString()}
-- Average Order Value: $${avgOrderValue.toFixed(2)}
-- Average Risk Score: ${avgRiskScore.toFixed(2)}
+- Revenue: $${totalRevenue.toLocaleString()}
+- Avg Order Value: $${avgOrderValue.toFixed(2)}
+- Avg Risk Score: ${avgRiskScore.toFixed(2)}
 
-Sample Customer Records:
+Sample Customers:
 ${JSON.stringify(sampleCustomers, null, 2)}
 
-User Question: "${question}"
+Question: "${question}"
 
-Instructions:
-1. Provide specific, data-driven answers based on the actual customer data provided
-2. Include relevant numbers, percentages, and insights
-3. If the question asks for specific customers or segments, analyze the data accordingly
-4. Be conversational but professional
-5. If you cannot answer based on the available data, clearly explain what information is missing
-6. Suggest follow-up questions or actions when appropriate
-
-Please provide a helpful and insightful response:`
+Respond in under 150 words with bullet points.`
 
     // Persist user message
     await supabase
@@ -130,12 +130,12 @@ Please provide a helpful and insightful response:`
       },
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
-        messages: [{
-          role: 'user',
-          content: prompt
-        }],
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: prompt }
+        ],
         temperature: 0.7,
-        max_tokens: 1024,
+        max_tokens: 400,
       })
     })
 
