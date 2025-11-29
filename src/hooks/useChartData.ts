@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
-import { CustomerData } from '@/utils/dataProcessing';
 
-export const useChartData = (customers: CustomerData[], timePeriod: string) => {
+export const useChartData = (customers: any[], timePeriod: string) => {
   const chartData = useMemo(() => {
     if (!customers.length) {
       return {
@@ -31,18 +30,19 @@ export const useChartData = (customers: CustomerData[], timePeriod: string) => {
       });
     }
 
-    // Process customer data
+    // Process customer data (using snake_case from database)
     customers.forEach(customer => {
-      if (customer.lastPurchaseDate) {
-        const monthKey = customer.lastPurchaseDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      const lastPurchase = customer.last_purchase_date ? new Date(customer.last_purchase_date) : null;
+      if (lastPurchase && !isNaN(lastPurchase.getTime())) {
+        const monthKey = lastPurchase.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
         const monthData = monthlyData.get(monthKey);
         if (monthData) {
           monthData.customers++;
-          monthData.revenue += customer.totalSpent || 0;
+          monthData.revenue += customer.total_spent || 0;
           monthData.totalCustomers++;
           
           // Calculate churn based on risk score
-          if (customer.riskScore && customer.riskScore >= 70) {
+          if (customer.risk_score && customer.risk_score >= 65) {
             monthData.churnRate += 1;
           }
         }
@@ -64,16 +64,16 @@ export const useChartData = (customers: CustomerData[], timePeriod: string) => {
     };
 
     customers.forEach(customer => {
-      const value = customer.totalSpent || 0;
+      const value = customer.total_spent || 0;
       let segment: 'High Value' | 'Mid Value' | 'Low Value';
       
-      if (value >= 15000) segment = 'High Value';
+      if (value >= 10000) segment = 'High Value';
       else if (value >= 5000) segment = 'Mid Value';
       else segment = 'Low Value';
 
-      const riskScore = customer.riskScore || 50;
-      if (riskScore >= 70) segments[segment].atRisk++;
-      else if (riskScore >= 40) segments[segment].stable++;
+      const riskScore = customer.risk_score || 50;
+      if (riskScore >= 65) segments[segment].atRisk++;
+      else if (riskScore >= 25) segments[segment].stable++;
       else segments[segment].growing++;
     });
 
@@ -85,9 +85,9 @@ export const useChartData = (customers: CustomerData[], timePeriod: string) => {
     // Risk distribution data
     const riskBuckets = { low: 0, medium: 0, high: 0 };
     customers.forEach(customer => {
-      const risk = customer.riskScore || 50;
-      if (risk >= 70) riskBuckets.high++;
-      else if (risk >= 40) riskBuckets.medium++;
+      const risk = customer.risk_score || 50;
+      if (risk >= 65) riskBuckets.high++;
+      else if (risk >= 25) riskBuckets.medium++;
       else riskBuckets.low++;
     });
 
