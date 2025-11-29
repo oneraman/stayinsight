@@ -147,6 +147,18 @@ export class RobustDataProcessor {
       const columnAnalysis = await analyzeColumnsIntelligently(headers, data.slice(0, 100));
       console.log('🗺️ Smart column analysis result:', columnAnalysis);
 
+      // Check if we have at least customer_id or name mapped
+      const hasCriticalFields = columnAnalysis.mappings.some((m: any) => 
+        ['customer_id', 'name', 'email'].includes(m.targetField)
+      );
+
+      if (!hasCriticalFields) {
+        throw new Error(
+          `This file doesn't appear to contain customer data. Found columns: ${headers.join(', ')}. ` +
+          `Please upload a file with customer information like: customer ID, name, email, purchase history, etc.`
+        );
+      }
+
       if (columnAnalysis.warnings.length > 0) {
         warnings.push(...columnAnalysis.warnings);
       }
