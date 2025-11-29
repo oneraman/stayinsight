@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sparkles, Loader2, AlertTriangle, TrendingDown, Target } from 'lucide-react';
-import { generateCustomerInsights, generateChurnPrediction } from '@/lib/gemini';
+import { generateCustomerInsights, generateChurnPrediction } from '@/lib/lovableAI';
+import { parseAIResponse, formatForDisplay, extractMetrics, FormattedPrediction } from '@/utils/aiResponseFormatter';
 import { toast } from 'sonner';
 
 interface AIChurnAnalysisProps {
@@ -12,7 +13,9 @@ interface AIChurnAnalysisProps {
 
 const AIChurnAnalysis = ({ customerData }: AIChurnAnalysisProps) => {
   const [insights, setInsights] = useState<string | null>(null);
-  const [prediction, setPrediction] = useState<string | null>(null);
+  const [prediction, setPrediction] = useState<FormattedPrediction | null>(null);
+  const [showFullInsights, setShowFullInsights] = useState(false);
+  const [showFullPrediction, setShowFullPrediction] = useState(false);
   const [loading, setLoading] = useState({
     insights: false,
     prediction: false
@@ -36,7 +39,8 @@ const AIChurnAnalysis = ({ customerData }: AIChurnAnalysisProps) => {
     setLoading(prev => ({ ...prev, prediction: true }));
     try {
       const aiPrediction = await generateChurnPrediction(customerData);
-      setPrediction(aiPrediction);
+      const parsed = parseAIResponse(aiPrediction, 'prediction');
+      setPrediction(parsed);
       toast.success('Churn prediction generated successfully!');
     } catch (error) {
       console.error('Error generating prediction:', error);
@@ -114,7 +118,7 @@ const AIChurnAnalysis = ({ customerData }: AIChurnAnalysisProps) => {
           {!insights ? (
             <div className="text-center py-6">
               <p className="text-muted-foreground mb-4">
-                Get comprehensive AI-powered insights about this customer's behavior and retention strategies.
+                Get concise AI insights in under 75 words.
               </p>
               <Button 
                 onClick={handleGenerateInsights}
@@ -124,23 +128,40 @@ const AIChurnAnalysis = ({ customerData }: AIChurnAnalysisProps) => {
                 {loading.insights ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Analyzing Customer...
+                    Analyzing...
                   </>
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4" />
-                    Generate AI Insights
+                    Generate Insights
                   </>
                 )}
               </Button>
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="max-h-80 overflow-y-auto">
-                <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                  {insights}
+            <div className="space-y-3">
+              {extractMetrics(insights).length > 0 && (
+                <div className="grid grid-cols-2 gap-3 pb-3 border-b">
+                  {extractMetrics(insights).slice(0, 4).map((metric, idx) => (
+                    <div key={idx} className="text-center p-2 bg-muted/50 rounded">
+                      <p className="text-xs text-muted-foreground">{metric.label}</p>
+                      <p className="text-lg font-semibold">{metric.value}</p>
+                    </div>
+                  ))}
                 </div>
+              )}
+              <div className="text-sm leading-relaxed">
+                {showFullInsights ? insights : formatForDisplay(insights, 150)}
               </div>
+              {insights.length > 150 && (
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowFullInsights(!showFullInsights)}
+                >
+                  {showFullInsights ? 'Show Less' : 'Show More'}
+                </Button>
+              )}
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -156,7 +177,7 @@ const AIChurnAnalysis = ({ customerData }: AIChurnAnalysisProps) => {
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4" />
-                    Regenerate Insights
+                    Regenerate
                   </>
                 )}
               </Button>
@@ -177,7 +198,7 @@ const AIChurnAnalysis = ({ customerData }: AIChurnAnalysisProps) => {
           {!prediction ? (
             <div className="text-center py-6">
               <p className="text-muted-foreground mb-4">
-                Get detailed churn probability analysis and intervention recommendations.
+                Get concise churn prediction in 50 words.
               </p>
               <Button 
                 onClick={handleGeneratePrediction}
@@ -188,29 +209,60 @@ const AIChurnAnalysis = ({ customerData }: AIChurnAnalysisProps) => {
                 {loading.prediction ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Predicting Churn...
+                    Predicting...
                   </>
                 ) : (
                   <>
                     <AlertTriangle className="h-4 w-4" />
-                    Generate Churn Prediction
+                    Generate Prediction
                   </>
                 )}
               </Button>
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="max-h-80 overflow-y-auto">
-                <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                  {prediction}
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center p-4 bg-muted/50 rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-1">Churn Risk</p>
+                  <p className="text-3xl font-bold">
+                    {prediction.churnRisk}%
+                  </p>
+                  <Badge 
+                    variant={prediction.riskLevel === 'high' ? 'destructive' : 
+                             prediction.riskLevel === 'medium' ? 'secondary' : 'default'}
+                    className="mt-2"
+                  >
+                    {prediction.riskLevel.toUpperCase()}
+                  </Badge>
+                </div>
+                <div className="text-center p-4 bg-muted/50 rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-1">Timeframe</p>
+                  <p className="text-xl font-semibold mt-2">
+                    {prediction.timeframe}
+                  </p>
                 </div>
               </div>
+              
+              <div className="p-3 bg-orange-50 dark:bg-orange-950/30 rounded border-l-4 border-orange-500">
+                <p className="text-xs font-medium text-orange-700 dark:text-orange-400 mb-1">
+                  Warning Sign
+                </p>
+                <p className="text-sm">{prediction.warningSign}</p>
+              </div>
+              
+              <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded border-l-4 border-green-500">
+                <p className="text-xs font-medium text-green-700 dark:text-green-400 mb-1">
+                  Recommended Action
+                </p>
+                <p className="text-sm">{prediction.action}</p>
+              </div>
+              
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={handleGeneratePrediction}
                 disabled={loading.prediction}
-                className="gap-2"
+                className="gap-2 w-full"
               >
                 {loading.prediction ? (
                   <>

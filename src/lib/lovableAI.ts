@@ -72,56 +72,37 @@ export const callLovableAI = async (
  * Generate customer insights using Lovable AI
  */
 export const generateCustomerInsights = async (customerData: any): Promise<string> => {
-  const prompt = `Analyze this customer data and provide detailed churn insights:
-
-Customer: ${customerData.name || 'Unknown'}
-Customer ID: ${customerData.customer_id || customerData.customerId}
-Email: ${customerData.email || 'Not provided'}
-Total Orders: ${customerData.purchase_count || customerData.purchaseCount || 0}
-Total Spent: $${customerData.total_spent || customerData.totalSpent || 0}
-Average Order Value: $${customerData.avg_order_value || customerData.avgOrderValue || 0}
-Risk Score: ${customerData.risk_score || customerData.riskScore || 'Not calculated'}
+  const prompt = `Customer: ${customerData.name || 'Unknown'}
+Risk: ${customerData.risk_score || customerData.riskScore || 0}%
+Spent: $${customerData.total_spent || customerData.totalSpent || 0}
+Orders: ${customerData.purchase_count || customerData.purchaseCount || 0}
 Last Purchase: ${customerData.last_purchase_date || customerData.lastPurchaseDate || 'Unknown'}
 
-Provide:
-1. Churn Risk Assessment (High/Medium/Low)
-2. Key Risk Factors
-3. Customer Value Analysis
-4. Behavioral Patterns
-5. Retention Strategies (3-4 specific actions)
-6. Urgency Level
-7. Success Probability
+Answer in under 75 words:
+1. RISK: High/Medium/Low + why (1 sentence)
+2. ACTION: One specific thing to do this week
+3. OUTCOME: Expected result if action taken`;
 
-Be specific and data-driven.`;
-
-  return callLovableAI(prompt);
+  return callLovableAI(prompt, { maxTokens: 400 });
 };
 
 /**
  * Generate churn prediction using Lovable AI
  */
 export const generateChurnPrediction = async (customerData: any): Promise<string> => {
-  const prompt = `As a churn prediction expert, analyze this customer's likelihood to churn:
-
-Customer ID: ${customerData.customer_id || customerData.customerId}
-Name: ${customerData.name || 'Unknown'}
-Purchase History: ${customerData.purchase_count || customerData.purchaseCount || 0} orders
-Total Revenue: $${customerData.total_spent || customerData.totalSpent || 0}
+  const prompt = `Customer: ${customerData.name || 'Unknown'}
+Risk: ${customerData.risk_score || customerData.riskScore || 0}%
+Spent: $${customerData.total_spent || customerData.totalSpent || 0}
+Orders: ${customerData.purchase_count || customerData.purchaseCount || 0}
 Last Purchase: ${customerData.last_purchase_date || customerData.lastPurchaseDate || 'Unknown'}
-Risk Score: ${customerData.risk_score || customerData.riskScore || 'Not calculated'}
-Segment: ${customerData.segment || 'Unknown'}
 
-Provide:
-1. Churn Probability (percentage)
-2. Time Frame estimate
-3. Primary Indicators (top 3 factors)
-4. Protective Factors
-5. Intervention Window
-6. Recommended Actions (3-4 specific interventions)
+Respond in exactly 50 words:
+• Churn Risk: X% (High/Medium/Low)
+• Timeframe: X days until likely churn
+• Warning Sign: [one key indicator]
+• Save Action: [one specific intervention]`;
 
-Be specific and actionable.`;
-
-  return callLovableAI(prompt);
+  return callLovableAI(prompt, { maxTokens: 300 });
 };
 
 /**
@@ -129,28 +110,18 @@ Be specific and actionable.`;
  */
 export const generatePortfolioAnalysis = async (customers: any[]): Promise<string> => {
   const totalCustomers = customers.length;
-  const highRiskCount = customers.filter(c => (c.risk_score || c.riskScore || 0) >= 70).length;
+  const highRiskCount = customers.filter(c => (c.risk_score || c.riskScore || 0) >= 65).length;
   const totalRevenue = customers.reduce((sum, c) => sum + (c.total_spent || c.totalSpent || 0), 0);
   const avgRiskScore = customers.reduce((sum, c) => sum + (c.risk_score || c.riskScore || 0), 0) / totalCustomers;
 
-  const prompt = `Analyze this customer portfolio and provide strategic insights:
+  const prompt = `Portfolio: ${totalCustomers} customers, $${totalRevenue.toLocaleString()} revenue, ${highRiskCount} at-risk
 
-Portfolio Metrics:
-- Total Customers: ${totalCustomers}
-- High Risk Customers: ${highRiskCount} (${((highRiskCount / totalCustomers) * 100).toFixed(1)}%)
-- Total Revenue: $${totalRevenue.toLocaleString()}
-- Average Risk Score: ${avgRiskScore.toFixed(1)}%
+Give exactly 3 insights, each under 20 words:
+1. URGENT: [biggest risk right now]
+2. OPPORTUNITY: [quick win action]
+3. METRIC: [key number to watch]
 
-Provide:
-1. Portfolio Health Score (1-10)
-2. Churn Risk Assessment
-3. Revenue at Risk
-4. Critical Issues
-5. Strategic Opportunities
-6. 30-Day Action Plan
-7. Success Metrics
+Under 150 words total.`;
 
-Focus on actionable insights.`;
-
-  return callLovableAI(prompt);
+  return callLovableAI(prompt, { maxTokens: 400 });
 };

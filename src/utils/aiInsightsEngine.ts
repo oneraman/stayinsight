@@ -46,42 +46,25 @@ export class AIInsightsEngine {
     const avgPurchaseCount = customers.reduce((sum, c) => sum + (c.purchase_count || 0), 0) / totalCustomers;
     const avgSpent = totalRevenue / totalCustomers;
 
-    // Prepare data summary for AI
-    const prompt = `Analyze this customer portfolio and provide strategic insights:
+    // Prepare concise AI prompt
+    const atRiskPercent = ((atRiskCustomers / totalCustomers) * 100).toFixed(1);
+    const prompt = `Portfolio: ${totalCustomers} customers, ${atRiskCustomers} at-risk (${atRiskPercent}%), $${totalRevenue.toLocaleString()} revenue
 
-Portfolio Metrics:
-- Total Customers: ${totalCustomers}
-- At-Risk Customers: ${atRiskCustomers} (${((atRiskCustomers / totalCustomers) * 100).toFixed(1)}%)
-- Total Revenue: $${totalRevenue.toLocaleString()}
-- At-Risk Revenue: $${atRiskRevenue.toLocaleString()} (${((atRiskRevenue / totalRevenue) * 100).toFixed(1)}%)
-- Average Risk Score: ${avgRiskScore.toFixed(1)}%
-- Average Purchase Count: ${avgPurchaseCount.toFixed(1)}
-- Average Customer Value: $${avgSpent.toFixed(2)}
+Give exactly 3 insights, each under 20 words:
+1. URGENT: [biggest risk]
+2. OPPORTUNITY: [quick win]
+3. METRIC: [key number to watch]
 
-Customer Segments:
-${this.getSegmentBreakdown(customers)}
-
-Top 5 Highest Risk Customers:
-${this.getTopRiskCustomers(customers)}
-
-Provide analysis in this JSON format:
+JSON format:
 {
-  "overallHealth": "good|moderate|poor",
   "insights": [
-    {
-      "type": "risk|opportunity|recommendation|trend",
-      "priority": "high|medium|low",
-      "title": "Brief title",
-      "description": "Detailed insight",
-      "actionable": true|false,
-      "confidence": 0.95
-    }
+    {"type": "urgent|opportunity|metric", "priority": "high|medium", "title": "...", "description": "...", "actionable": true, "confidence": 0.9}
   ],
-  "recommendations": ["List of 3-5 actionable recommendations"]
+  "recommendations": ["3 specific actions"]
 }`;
 
     try {
-      const response = await callLovableAI(prompt, { temperature: 0.7 });
+      const response = await callLovableAI(prompt, { temperature: 0.7, maxTokens: 400 });
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       
       if (jsonMatch) {
@@ -89,15 +72,23 @@ Provide analysis in this JSON format:
         
         const healthScore = this.calculateHealthScore(avgRiskScore, atRiskCustomers / totalCustomers);
         
+        // Map AI types to our standard types
+        const mappedInsights = (aiAnalysis.insights || []).map((insight: any) => ({
+          ...insight,
+          type: insight.type === 'urgent' ? 'risk' : 
+                insight.type === 'opportunity' ? 'opportunity' : 
+                insight.type === 'metric' ? 'trend' : insight.type
+        }));
+        
         return {
-          overallHealth: aiAnalysis.overallHealth || this.determineHealth(healthScore),
+          overallHealth: this.determineHealth(healthScore),
           healthScore,
           totalCustomers,
           atRiskCustomers,
           totalRevenue,
           atRiskRevenue,
-          insights: aiAnalysis.insights || [],
-          recommendations: aiAnalysis.recommendations || []
+          insights: mappedInsights.slice(0, 3), // Limit to 3 insights
+          recommendations: (aiAnalysis.recommendations || []).slice(0, 3)
         };
       }
     } catch (error) {
@@ -126,7 +117,7 @@ Provide analysis in this JSON format:
         type: 'risk',
         priority: 'high',
         title: 'Critical Churn Risk',
-        description: `This customer has a ${customer.risk_score}% churn probability. Immediate intervention recommended.`,
+        description: `${customer.risk_score}% churn risk. Act now.`,
         actionable: true,
         confidence: 0.9
       });
@@ -138,7 +129,7 @@ Provide analysis in this JSON format:
         type: 'opportunity',
         priority: 'high',
         title: 'High-Value Customer',
-        description: `Total value: $${customer.total_spent.toLocaleString()}. VIP treatment recommended.`,
+        description: `$${customer.total_spent.toLocaleString()} lifetime value. Priority service.`,
         actionable: true,
         confidence: 1.0
       });
@@ -150,7 +141,7 @@ Provide analysis in this JSON format:
         type: 'recommendation',
         priority: 'medium',
         title: 'Re-engagement Needed',
-        description: `No purchase in ${customer.days_since_last_purchase} days. Consider win-back campaign.`,
+        description: `${customer.days_since_last_purchase} days inactive. Send win-back offer.`,
         actionable: true,
         confidence: 0.85
       });
@@ -229,7 +220,7 @@ Provide analysis in this JSON format:
         type: 'risk',
         priority: 'high',
         title: 'High Churn Risk Alert',
-        description: `${metrics.atRiskCustomers} customers (${((metrics.atRiskCustomers / metrics.totalCustomers) * 100).toFixed(1)}%) are at high risk of churning.`,
+        description: `${metrics.atRiskCustomers} customers (${((metrics.atRiskCustomers / metrics.totalCustomers) * 100).toFixed(1)}%) at high risk. Act now.`,
         actionable: true,
         confidence: 0.9
       });
@@ -240,19 +231,17 @@ Provide analysis in this JSON format:
       insights.push({
         type: 'risk',
         priority: 'high',
-        title: 'Significant Revenue at Risk',
-        description: `$${metrics.atRiskRevenue.toLocaleString()} in revenue at risk from high-risk customers.`,
+        title: 'Revenue at Risk',
+        description: `$${metrics.atRiskRevenue.toLocaleString()} at risk. Launch retention campaign.`,
         actionable: true,
         confidence: 0.85
       });
     }
 
     const recommendations = [
-      'Prioritize retention campaigns for high-value at-risk customers',
-      'Implement win-back strategies for inactive customers',
-      'Enhance early engagement programs for new customers',
-      'Create VIP programs for high-value customers',
-      'Improve data collection to enhance analysis accuracy'
+      'Launch retention campaign for top 10 at-risk customers',
+      'Send win-back emails to 90+ day inactive customers',
+      'Create VIP perks for $5000+ lifetime value customers'
     ];
 
     return {
